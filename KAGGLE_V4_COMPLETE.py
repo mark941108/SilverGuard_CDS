@@ -119,12 +119,12 @@ This system runs on a single T4 GPU, enabling deployment in:
 # ---
 
 # %%
-%%capture
+# %%capture
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
-!pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS
-!pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets transformers
-!pip install -q pillow==11.0.0 torchaudio librosa soundfile
+# !pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS
+# !pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets transformers
+# !pip install -q pillow==11.0.0 torchaudio librosa soundfile
 # Updated: Added torchaudio librosa soundfile for MedASR Voice Input
 
 # %%
