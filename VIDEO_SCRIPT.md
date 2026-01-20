@@ -27,10 +27,10 @@
 
 | 時間 | 畫面 | 旁白 (英文) |
 |------|------|-------------|
-| 0:00-0:05 | Hero Image 滿版 + 標題動畫 | *"Every year, medication errors cost 42 billion dollars globally."* |
-| 0:05-0:10 | 疊加文字: **"$42B USD"**, **"7x Error Rate for Elderly"** | *"For patients over 65, the risk is seven times higher."* |
-| 0:10-0:15 | 模糊藥袋照片 (你的合成數據) | *"A blurry prescription label isn't just confusing..."* |
-| 0:15-0:20 | 紅色警告畫面 + **"⚠️ LETHAL RISK"** | *"...it's potentially lethal."* |
+| 0:00-0:05 | Hero Image 滿版 + 標題動畫 | *"I am an **Energy Engineering student**, not a doctor."* |
+| 0:05-0:10 | 疊加文字: **"System Stability"**, **"Fail-Safe"** | *"In my field, 'system stability' is everything."* |
+| 0:10-0:15 | 模糊藥袋照片 (你的合成數據) | *"So when I saw how fragile medication safety is for the elderly..."* |
+| 0:15-0:20 | 紅色警告畫面 + **"⚠️ LETHAL RISK"** | *"...I decided to build a system that doesn't just read text—it protects life."* |
 
 **🎬 製作提示:**
 - 用快節奏剪輯
@@ -60,9 +60,9 @@
 
 | 時間 | 畫面 | 旁白 (英文) |
 |------|------|-------------|
-| 0:50-1:05 | **[畫面分割]** 左邊是模糊藥袋圖 (Noisy Data)，右邊是 Agent | *"Watch closely. We feed it a high-noise, real-world image. A standard VLM would hallucinate here."* |
-| 1:05-1:15 | **[特效]** `Logic Flaw Detected` 出現時畫面**凍結** 👉 **出現「大腦思考」動畫** | *"MedGemma extracts the data... But wait! It detects a logic flaw. The dosage violates the AGS Beers Criteria for an 88-year-old."* |
-| 1:15-1:25 | **[動畫]** 顯示 Prompt 文字變化: `Adding Context: Please re-analyze...` | *"The Agent reflects. It dynamically rewrites its own prompt to focus on safety."* |
+| 0:50-1:05 | **[畫面分割]** 左邊是模糊藥袋圖 (Noisy Data)，右邊是 Agent | *"Watch as we feed it a **'Nightmare Case'**—blurry, dark, and confusing. A standard model would fail here."* |
+| 1:05-1:15 | **[特效]** `Logic Flaw Detected` 出現時畫面**凍結** 👉 **出現「大腦思考」動畫** | *"But my Agent acts like a human pharmacist. It triggers a **Self-Correction Loop**, realizing the dosage is lethal for an 88-year-old."* |
+| 1:15-1:25 | **[動畫]** 顯示 Prompt 文字變化: `Adding Context: Please re-analyze...` | *"It doesn't just guess; it **reasons, reflects, and retries**."* |
 | 1:25-1:35 | **[特效]** 顯示溫度計動畫: **Temperature 0.6 ➔ 0.4** 🌡️ | *"It reduces temperature to 0.4 for deterministic reasoning, and retries."* |
 | 1:35-1:50 | **[左右對比]** 左邊: Attempt 1 (❌ Fail) vs 右邊: Attempt 2 (✅ Success) | *"And there it is—HIGH_RISK correctly flagged. This is true Agentic Intelligence: observe, evaluate, adapt, retry."* |
 
@@ -94,8 +94,8 @@
 
 | 時間 | 畫面 | 旁白 (英文) |
 |------|------|-------------|
-| 2:30-2:40 | Hero Image + GitHub/Kaggle 連結 | *"Scalable. Private. Life-saving."* |
-| 2:40-2:50 | 標語: **"AI Pharmacist Guardian: Safety First, Privacy Always."** | *"This is the future of digital pharmacy."* |
+| 2:30-2:40 | Hero Image + GitHub/Kaggle 連結 | *"Built by **one student**, running on **free hardware**, designed for **every forgotten elder**."* |
+| 2:40-2:50 | 標語: **"AI Pharmacist Guardian: Safety First, Privacy Always."** | *"This is AI Pharmacist Guardian: Turning personal regret into public safety."* |
 
 **🎬 製作提示:**
 - 乾淨俐落，不要拖泥帶水
@@ -151,10 +151,10 @@
 
 ```text
 [Scene 1: Hook - 0:00-0:20]
-Every year, medication errors cost 42 billion dollars globally.
-For patients over 65, the risk is seven times higher.
-A blurry prescription label isn't just confusing...
-it's potentially lethal.
+I am an Energy Engineering student, not a doctor.
+In my field, 'system stability' is everything.
+So when I saw how fragile medication safety is for the elderly...
+I decided to build a system that doesn't just read text—it protects life.
 
 [Scene 2: Solution - 0:20-0:50]
 Meet AI Pharmacist Guardian.
@@ -163,12 +163,11 @@ This is our "Privacy Moat": Unlike cloud APIs that leak sensitive PHI, our Edge 
 It utilizes a Hybrid Architecture: Neural perception for reading, Symbolic logic for safety.
 
 [Scene 3: Agentic Loop - 0:50-1:50]
-Watch closely. Let's analyze a prescription for an 88-year-old patient taking 2000mg of Glucophage.
-First, the Input Gate validates image quality to prevent garbage-in, garbage-out.
-MedGemma extracts patient info... but wait! The Neuro-Symbolic Logic Check detects a contradiction.
-According to AGS Beers Criteria 2023, this dosage exceeds safe limits for elderly patients.
-The agent triggers its "Fail-Safe". It reflects, modifies its reasoning prompt, and retries with lower temperature.
-This isn't just an OCR loop; it's a digital safety net that catches the error before it reaches the patient.
+Watch as we feed it a 'Nightmare Case'—blurry, dark, and confusing. A standard model would fail here.
+But my Agent acts like a human pharmacist. It triggers a Self-Correction Loop, realizing the dosage is lethal for an 88-year-old.
+It doesn't just guess; it reasons, reflects, and retries.
+It reduces temperature to 0.4 for deterministic reasoning, and retries.
+And there it is—HIGH_RISK correctly flagged. This is true Agentic Intelligence: observe, evaluate, adapt, retry.
 
 [Scene 4: SilverGuard - 1:50-2:30]
 Complex JSON is meaningless to elderly patients. That's why we built SilverGuard.
@@ -177,10 +176,7 @@ and Text-to-Speech that speaks in warm, native Taiwanese Mandarin.
 We don't just detect errors—we bridge the communication gap for the most vulnerable.
 
 [Scene 5: Call to Action - 2:30-2:50]
-Scalable. Private. Life-saving.
-The Secret Sauce? It's the Neuro-Symbolic Fail-Safe.
-We didn't just build an AI to read text; we built a system that knows when to stop.
-AI Pharmacist Guardian: Safety First, Privacy Always.
+Built by one student, running on free hardware, designed for every forgotten elder. This is AI Pharmacist Guardian: Turning personal regret into public safety.
 ```
 
 ---

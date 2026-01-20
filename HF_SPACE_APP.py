@@ -9,8 +9,13 @@ import re
 import spaces # ZeroGPU support
 
 # ============================================================================
+# ============================================================================
 # 🏥 AI Pharmacist Guardian - Hugging Face Space Demo
 # ============================================================================
+# Project: AI Pharmacist Guardian
+# Author: Wang Yuan-dao (Solo Developer & Energy Engineering Student)
+# Philosophy: Zero-Cost Edge AI + Agentic Safety Loop
+#
 # This app provides an interactive demo for the MedGemma Impact Challenge.
 # It loads the fine-tuned adapter from Hugging Face Hub (Bonus 1) and runs inference.
 

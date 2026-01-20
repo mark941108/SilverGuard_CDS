@@ -4,7 +4,10 @@
 ---
 
 ## Team
-**Yuan-dao Wang** — Full Stack AI Engineer (Solo Project)
+> **Wang Yuan-dao (Solo Developer & AI Orchestrator)**  
+> * **Background:** Undergraduate in **Energy & Refrigerating Air-Conditioning Engineering** (NTUT).  
+> * **Role:** **System Architect.** While my major focuses on thermal stability and industrial control, I applied these engineering principles of **"Fail-Safe Design"** and **"Feedback Loops"** to Medical AI.  
+> * **Contribution:** As a one-man army, I orchestrated MedGemma 1.5 using an Agentic Workflow to simulate a multi-person safety verification team, proving that a single domain expert—armed with the right AI—can solve complex medical challenges.
 
 ## Links
 - **Video Demo:** `[Insert YouTube Link]`
@@ -16,16 +19,12 @@
 
 ## Problem Statement
 
-| Statistic | Source |
-|-----------|--------|
-| **$42B/year** medication error cost | WHO 2024 |
-| **7x higher** error rate for patients 65+ | Geriatric Research |
-| **53%** of preventable harm at prescribing stage | WHO 2024 |
-
-**Challenge:** Elderly patients cannot read complex prescription labels → dangerous medication errors.
-**Strategic Context:** We use Taiwan as a **High-Complexity Stress Test** (Code-Switching + Super-Aged Society) to proxy future global challenges.
-
----
+> **The Personal Mission: Bridging a Missing Memory**  
+> My grandparents passed away when I was very young, leaving a void in my life where memories of caring for them should be. Now, as an engineer facing Taiwan's entry into a "Super-Aged Society" in 2025, I often ask: *"If they were here, would they be safe?"*  
+> This project is born from that personal reflection. I cannot go back to help them, but I can use technology to prevent the medication errors that threaten millions of other elders.  
+> 
+> **The Global Impact:**  
+> Medication errors cost **$42 billion annually** (WHO). By deploying an edge-based guardian, we aim to protect the most vulnerable demographic in resource-poor settings.
 
 ## Solution: MedGemma Agentic Workflow
 
@@ -49,12 +48,13 @@ Input → VLM Reasoning → Logic Check → [RETRY if failed] → Confidence →
 
 ## Technical Details
 
-| Parameter | Value |
-|-----------|-------|
-| Model | `google/medgemma-1.5-4b-it` |
-| Method | QLoRA (4-bit nf4), LoRA r=16 |
-| Training | 600 synthetic images, 3 epochs, ~54 min on T4 |
-| Risk Injection | 30% adversarial (elderly overdose, wrong timing, drug interactions, renal risk) |
+> **1. Zero-Budget Edge Architecture (The "Constraints as Features" Philosophy)**  
+> To ensure feasibility in rural clinics, I enforced a strict constraint: **No Paid APIs, No Cloud Dependencies.**  
+> * **Hardware:** Runs entirely on a free-tier **T4 GPU (16GB VRAM)**.  
+> * **Optimization:** Utilizes **4-bit quantization (NF4)** for MedGemma and offloads the ASR (Speech) model to the CPU. This heterogeneous computing strategy achieves <$0.001 inference cost per prescription.
+> 
+> **2. Adversarial Stress-Testing (The "Anti-Fragile" Approach)**  
+> I did not pamper the model with perfect data. I built a custom **"Gallery of Horrors" Generator** (`generate_stress_test.py`) to attack the system with extreme blur, occlusion, and low-light noise. The Agentic Loop was tuned against these edge cases to ensure robustness in the chaotic real world.
 
 ### Confidence Formula
 `C = α × P_mean + (1-α) × P_min` where α=0.7  
