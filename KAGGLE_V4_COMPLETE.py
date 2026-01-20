@@ -2642,23 +2642,24 @@ def launch_agentic_app():
         current_try = 0
         
         # V8 Prompt: Explicitly mentions Voice Context
+        # V8 Prompt: Explicitly mentions Voice Context
         base_prompt = (
             "You are 'AI Pharmacist Guardian', a **meticulous and risk-averse** clinical pharmacist in Taiwan. "
             "You prioritize patient safety above all else. When uncertain, you MUST flag for human review rather than guessing. "
-            "Your patient is an elderly person (65+) who may have poor vision.\\n\\n"
-            "Task:\\n"
-            "1. Extract: Patient info, Drug info (English name + Chinese function), Usage.\\n"
-            "2. Safety Check: Cross-reference AGS Beers Criteria 2023. Flag HIGH_RISK if age>80 + high dose.\\n"
-            "3. Cross-Check Context: Consider the provided CAREGIVER VOICE NOTE (if any) for allergies or specific conditions.\\n"
-            "4. SilverGuard: Add a warm message in spoken Taiwanese Mandarin (口語化台式中文).\\n\\n"
-            "Output Constraints:\\n"
-            "- Return ONLY a valid JSON object.\\n"
-            "- 'safety_analysis.reasoning' MUST be in Traditional Chinese (繁體中文).\\n"
-            "- Add 'silverguard_message' field using the persona of a caring grandchild (貼心晚輩).\\n\\n"
-            "JSON Example:\\n"
-            "{\\"extracted_data\\": {...}, \\"safety_analysis\\": {\\"status\\": \\"HIGH_RISK\\", "
-            "\\"reasoning\\": \\"病患88歲，... [語音警示] 照護者提到病患對阿斯匹靈過敏，但處方開立了 Aspirin！\\"}, "
-            "\\"silverguard_message\\": \\"阿嬤，這藥先不要吃喔...\\"}"
+            "Your patient is an elderly person (65+) who may have poor vision.\n\n"
+            "Task:\n"
+            "1. Extract: Patient info, Drug info (English name + Chinese function), Usage.\n"
+            "2. Safety Check: Cross-reference AGS Beers Criteria 2023. Flag HIGH_RISK if age>80 + high dose.\n"
+            "3. Cross-Check Context: Consider the provided CAREGIVER VOICE NOTE (if any) for allergies or specific conditions.\n"
+            "4. SilverGuard: Add a warm message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
+            "Output Constraints:\n"
+            "- Return ONLY a valid JSON object.\n"
+            "- 'safety_analysis.reasoning' MUST be in Traditional Chinese (繁體中文).\n"
+            "- Add 'silverguard_message' field using the persona of a caring grandchild (貼心晚輩).\n\n"
+            "JSON Example:\n"
+            "{\"extracted_data\": {...}, \"safety_analysis\": {\"status\": \"HIGH_RISK\", "
+            "\"reasoning\": \"病患88歲，... [語音警示] 照護者提到病患對阿斯匹靈過敏，但處方開立了 Aspirin！\"}, "
+            "\"silverguard_message\": \"阿嬤，這藥先不要吃喔...\"}"
         )
         
         correction_context = ""
@@ -2670,7 +2671,7 @@ def launch_agentic_app():
                 # V8: Inject Voice Context
                 prompt_text = base_prompt
                 if voice_context:
-                    prompt_text += f"\\n\\n[📢 CAREGIVER VOICE NOTE]:\\n\\"{voice_context}\\"\\n(⚠️ CRITICAL: Check this note for allergies, past history, or observations. If the prescription conflicts with this note, flag as HIGH_RISK.)"
+                    prompt_text += f"\n\n[📢 CAREGIVER VOICE NOTE]:\n\"{voice_context}\"\n(⚠️ CRITICAL: Check this note for allergies, past history, or observations. If the prescription conflicts with this note, flag as HIGH_RISK.)"
                 
                 prompt_text += correction_context
                 
@@ -2730,7 +2731,7 @@ def launch_agentic_app():
             except Exception as e:
                 # Agentic Self-Correction Loop
                 current_try += 1
-                correction_context += f"\\n\\n[System]: Previous attempt failed ({str(e)}). Please ensure Output is VALID JSON only and logic is consistent."
+                correction_context += f"\n\n[System]: Previous attempt failed ({str(e)}). Please ensure Output is VALID JSON only and logic is consistent."
                 if verbose:
                     print(f"   🔄 Agent Retry #{current_try}: {e}")
         
