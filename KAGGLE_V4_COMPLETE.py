@@ -606,6 +606,7 @@ def generate_case_base(case_id):
     }
 
 # ===== 繪圖 =====
+# ===== 繪圖 =====
 def generate_image(case, output_path, difficulty):
     img = Image.new('RGB', (IMG_SIZE, IMG_SIZE), 'white')
     draw = ImageDraw.Draw(img)
@@ -614,52 +615,66 @@ def generate_image(case, output_path, difficulty):
     try:
         ft_title = ImageFont.truetype(font_bold_path, 40)
         ft_large = ImageFont.truetype(font_bold_path, 36)
-        ft_main = ImageFont.truetype(font_reg_path, 24)
+        ft_main = ImageFont.truetype(font_reg_path, 28) # Slightly larger for readability
+        ft_small = ImageFont.truetype(font_reg_path, 24)
         ft_warn = ImageFont.truetype(font_bold_path, 24)
     except Exception as e:
         print(f"⚠️ Failed to load custom fonts: {e}. Using default PIL font.")
         ft_title = ImageFont.load_default()
         ft_large = ImageFont.load_default()
         ft_main = ImageFont.load_default()
+        ft_small = ImageFont.load_default()
         ft_warn = ImageFont.load_default()
-        # Adjust font sizes for default font if necessary, though load_default doesn't take size
-        # For simplicity, we'll just use it as is, knowing it won't look great.
 
-    # 標題
+    # --- Header ---
     draw.text((40, 30), case["hospital"]["name"], font=ft_title, fill="#003366")
-    draw.text((550, 40), "門診藥袋", font=ft_main, fill="black")
+    draw.text((560, 40), "門診藥袋", font=ft_title, fill="black") # Standard Title
     
-    # QR Code
-    qr = qrcode.make(json.dumps({"id": case["rx_id"]})).resize((100, 100))
-    img.paste(qr, (750, 20))
+    # QR Code (Smart Hospital)
+    qr = qrcode.make(json.dumps({"id": case["rx_id"], "drug": case["drug"]["name_en"]})).resize((110, 110))
+    img.paste(qr, (740, 20))
     
-    draw.line([(30, 140), (866, 140)], fill="#003366", width=3)
+    draw.line([(30, 140), (866, 140)], fill="#003366", width=4)
     
-    # 病患資訊
+    # --- Patient Info ---
     p = case["patient"]
+    # Row 1
     draw.text((50, 160), f"姓名: {p['name']}", font=ft_large, fill="black")
-    draw.text((350, 165), f"病歷號: {p['chart_no']}", font=ft_main, fill="gray")
+    draw.text((450, 165), f"病歷號: {p['chart_no']}", font=ft_main, fill="black")
+    
+    # Row 2
     draw.text((50, 210), f"年齡: {p['age']} 歲", font=ft_large, fill="black")
-    draw.text((250, 215), f"出生: {p['dob']}", font=ft_main, fill="gray")
+    draw.text((450, 215), f"調劑日: {case['date']}", font=ft_main, fill="black")
     
-    draw.line([(30, 280), (866, 280)], fill="gray", width=1)
+    draw.line([(30, 270), (866, 270)], fill="gray", width=2)
     
-    # 藥物資訊
+    # --- Drug Info ---
     d = case["drug"]
-    draw.text((50, 300), f"{d['name_en']} {d['dose']}", font=ft_large, fill="black")
-    draw.text((50, 350), f"{d['name_zh']} ({d['generic']})", font=ft_main, fill="gray")
-    draw.text((600, 300), f"總量: {d['usage_instruction']['quantity']}", font=ft_large, fill="black")
+    # English Name + Dose
+    draw.text((50, 290), f"{d['name_en']} {d['dose']}", font=ft_title, fill="black")
+    # Chinese Name + Generic
+    draw.text((50, 340), f"{d['name_zh']} ({d['generic']})", font=ft_main, fill="#444444")
+    # Quantity
+    draw.text((600, 290), f"總量: {d['usage_instruction']['quantity']}", font=ft_large, fill="black")
     
-    # 用法
-    draw.rectangle([(40, 420), (850, 520)], outline="black", width=2)
-    draw.text((60, 450), d['usage_instruction']['timing_zh'], font=ft_large, fill="black")
-    draw.text((450, 460), d['usage_instruction']['timing_en'], font=ft_main, fill="gray")
+    # Appearance (New Field)
+    draw.text((50, 390), f"外觀: {d.get('appearance', '無')}", font=ft_main, fill="#006600") # Dark Green
     
-    # 警語
-    draw.text((50, 550), "適應症:", font=ft_main, fill="gray")
-    draw.text((150, 550), d['indication'], font=ft_main, fill="black")
-    draw.text((50, 590), "⚠ 警語:", font=ft_warn, fill="red")
-    draw.text((150, 590), d['warning'], font=ft_main, fill="red")
+    # --- Usage Box ---
+    draw.rectangle([(40, 440), (850, 540)], outline="black", width=3)
+    draw.text((60, 470), d['usage_instruction']['timing_zh'], font=ft_title, fill="black")
+    draw.text((450, 480), d['usage_instruction']['timing_en'], font=ft_main, fill="#666666")
+    
+    # --- Indication & Warning ---
+    y_base = 580
+    draw.text((50, y_base), "適應症:", font=ft_main, fill="black")
+    draw.text((160, y_base), d['indication'], font=ft_main, fill="black")
+    
+    draw.text((50, y_base+50), "⚠ 警語:", font=ft_warn, fill="red")
+    draw.text((160, y_base+50), d['warning'], font=ft_main, fill="red")
+    
+    # Footer
+    draw.line([(30, 800), (866, 800)], fill="gray", width=1)
     
     # 增強
     img = apply_augmentation(img, difficulty)
