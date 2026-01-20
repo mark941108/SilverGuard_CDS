@@ -490,7 +490,8 @@ The MedGemma Impact Challenge/
 ├── requirements.txt         # Dependencies
 └── medgemma_training_data_v4/
     ├── medgemma_v4_*.png    # Synthetic drug bag images
-    └── dataset_v4.json      # Training annotations
+    ├── dataset_v4_train.json  # Training split (90%)
+    └── dataset_v4_test.json   # Testing split (10%)
 ```
 
 ---

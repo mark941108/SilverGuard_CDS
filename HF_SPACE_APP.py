@@ -173,35 +173,64 @@ DRUG_ALIASES = {
     "crestor": "rosuvastatin",
 }
 
+# ===== 藥物資料庫 (V5 擴充版：12種藥物) =====
+# Sync from KAGGLE_V4_COMPLETE.py Cell 2
+DRUG_DATABASE = {
+    "Hypertension": [
+        {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after"},
+        {"code": "BC23456790", "name_en": "Concor", "name_zh": "康肯", "generic": "Bisoprolol", "dose": "5mg", "appearance": "黃色心形", "indication": "降血壓", "warning": "心跳過慢者慎用", "default_usage": "QD_breakfast_after"},
+        {"code": "BC23456791", "name_en": "Diovan", "name_zh": "得安穩", "generic": "Valsartan", "dose": "80mg", "appearance": "淡紅色橢圓形", "indication": "降血壓", "warning": "懷孕禁用", "default_usage": "QD_breakfast_after"},
+    ],
+    "Diabetes": [
+        {"code": "BC11223344", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用", "default_usage": "BID_meals_after"},
+        {"code": "BC11223345", "name_en": "Amaryl", "name_zh": "瑪爾胰", "generic": "Glimepiride", "dose": "2mg", "appearance": "綠色橢圓形", "indication": "降血糖", "warning": "小心低血糖", "default_usage": "QD_breakfast_after"},
+        {"code": "BC11223346", "name_en": "Januvia", "name_zh": "佳糖維", "generic": "Sitagliptin", "dose": "100mg", "appearance": "米色圓形", "indication": "降血糖", "warning": "腎功能不全需調整劑量", "default_usage": "QD_breakfast_after"},
+    ],
+    "Sedative": [
+        {"code": "BC99998888", "name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後請立即就寢", "default_usage": "QD_bedtime"},
+        {"code": "BC99998889", "name_en": "Imovane", "name_zh": "宜眠安", "generic": "Zopiclone", "dose": "7.5mg", "appearance": "藍色圓形", "indication": "失眠", "warning": "可能有金屬味", "default_usage": "QD_bedtime"},
+    ],
+    "Cardiac": [
+        {"code": "BC55556666", "name_en": "Aspirin", "name_zh": "阿斯匹靈", "generic": "ASA", "dose": "100mg", "appearance": "白色圓形", "indication": "預防血栓", "warning": "胃潰瘍患者慎用", "default_usage": "QD_breakfast_after"},
+        {"code": "BC55556667", "name_en": "Plavix", "name_zh": "保栓通", "generic": "Clopidogrel", "dose": "75mg", "appearance": "粉紅色圓形", "indication": "預防血栓", "warning": "手術前需停藥", "default_usage": "QD_breakfast_after"},
+    ],
+    "Anticoagulant": [
+        {"code": "BC77778888", "name_en": "Warfarin", "name_zh": "可化凝", "generic": "Warfarin", "dose": "5mg", "appearance": "粉紅色圓形", "indication": "抗凝血", "warning": "需定期監測INR，避免深綠色蔬菜", "default_usage": "QD_bedtime"},
+    ],
+    "Lipid": [
+        {"code": "BC88889999", "name_en": "Lipitor", "name_zh": "立普妥", "generic": "Atorvastatin", "dose": "20mg", "appearance": "白色橢圓形", "indication": "降血脂", "warning": "肌肉痠痛時需回診", "default_usage": "QD_bedtime"},
+        {"code": "BC88889998", "name_en": "Crestor", "name_zh": "冠脂妥", "generic": "Rosuvastatin", "dose": "10mg", "appearance": "粉紅色圓形", "indication": "降血脂", "warning": "避免與葡萄柚汁併服", "default_usage": "QD_bedtime"},
+    ],
+}
+
 # V7 Mock-RAG Interface - Enhanced to search using original AND alias
 def retrieve_drug_info(drug_name: str) -> dict:
     """RAG Interface: Query drug knowledge base. In production, this calls external APIs."""
     drug_lower = drug_name.lower().strip()
     # V7 Fix: Build list of names to search (alias first, then original)
-    search_names = [drug_lower]
+    names_to_search = [drug_lower]
     if drug_lower in DRUG_ALIASES:
-        search_names.insert(0, DRUG_ALIASES[drug_lower]) # Prioritize official generic name
+        names_to_search.append(DRUG_ALIASES[drug_lower]) 
 
-    # Mock DB - Expanded with V5 aliases
-    mock_db = {
-        "metformin": {"class": "Antidiabetic", "risk": "Lactic Acidosis (Rare) - Avoid in kidney failure"},
-        "glucophage": {"class": "Antidiabetic", "risk": "Lactic Acidosis (Rare) - Avoid in kidney failure"}, # Direct mapping
-        "aspirin": {"class": "Antiplatelet", "risk": "Bleeding - High risk with Warfarin"},
-        "glimepiride": {"class": "Sulfonylurea", "risk": "Hypoglycemia - Monitor elderly closely"},
-        "amaryl": {"class": "Sulfonylurea", "risk": "Hypoglycemia - Monitor elderly closely"},
-        "warfarin": {"class": "Anticoagulant", "risk": "Major Bleeding - Narrow therapeutic index"},
-        "coumadin": {"class": "Anticoagulant", "risk": "Major Bleeding - Narrow therapeutic index"},
-        "atorvastatin": {"class": "Statin", "risk": "Muscle pain - Watch for rhabdomyolysis"},
-        "lipitor": {"class": "Statin", "risk": "Muscle pain - Watch for rhabdomyolysis"},
-        "zolpidem": {"class": "Hypnotic", "risk": "Falls/Delirium - BEERS CRITERIA HIGH RISK for elderly"},
-        "stilnox": {"class": "Hypnotic", "risk": "Falls/Delirium - BEERS CRITERIA HIGH RISK for elderly"},
-    }
-    
-    for name in search_names:
-        if name in mock_db:
-            return mock_db[name]
+    # Search in full database
+    for cat, drugs in DRUG_DATABASE.items():
+        for drug in drugs:
+            name_en_lower = drug.get("name_en", "").lower()
+            generic_lower = drug.get("generic", "").lower()
             
-    return {"class": "Unknown", "risk": "Manual Review Required"}
+            # Use 'found' flag format expected by logical_consistency_check
+            for search_name in names_to_search:
+                if (search_name in name_en_lower or 
+                    search_name in generic_lower or
+                    name_en_lower in search_name or
+                    generic_lower in search_name):
+                    
+                    # Adapt to simplified dict format if needed, or return full drug object + found flag
+                    result = drug.copy()
+                    result["found"] = True
+                    return result
+            
+    return {"found": False, "class": "Unknown", "risk": "Manual Review Required"}
 
 # ============================================================================
 # 💊 OpenFDA Drug Interaction Checker (Agentic Tool Use)
