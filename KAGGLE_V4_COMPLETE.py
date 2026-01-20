@@ -2538,6 +2538,9 @@ import gradio as gr
 import requests
 import librosa
 import soundfile as sf
+import torch
+from pathlib import Path
+from PIL import Image
 
 # 1. Load MedASR (Lazy Loading)
 MEDASR_MODEL = "google/medasr"
@@ -2626,7 +2629,7 @@ def launch_agentic_app():
             "final_status": "UNKNOWN"
         }
         
-        # [1] Input Validation
+        # [1] Input Validation (Uses check_image_quality from Cell 4)
         quality_ok, quality_status, blur_score, quality_msg = check_image_quality(img_path)
         result["input_gate"] = {"status": quality_status, "blur_score": blur_score, "message": quality_msg}
         if not quality_ok:
@@ -2642,20 +2645,20 @@ def launch_agentic_app():
         base_prompt = (
             "You are 'AI Pharmacist Guardian', a **meticulous and risk-averse** clinical pharmacist in Taiwan. "
             "You prioritize patient safety above all else. When uncertain, you MUST flag for human review rather than guessing. "
-            "Your patient is an elderly person (65+) who may have poor vision.\n\n"
-            "Task:\n"
-            "1. Extract: Patient info, Drug info (English name + Chinese function), Usage.\n"
-            "2. Safety Check: Cross-reference AGS Beers Criteria 2023. Flag HIGH_RISK if age>80 + high dose.\n"
-            "3. Cross-Check Context: Consider the provided CAREGIVER VOICE NOTE (if any) for allergies or specific conditions.\n"
-            "4. SilverGuard: Add a warm message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
-            "Output Constraints:\n"
-            "- Return ONLY a valid JSON object.\n"
-            "- 'safety_analysis.reasoning' MUST be in Traditional Chinese (繁體中文).\n"
-            "- Add 'silverguard_message' field using the persona of a caring grandchild (貼心晚輩).\n\n"
-            "JSON Example:\n"
-            "{\"extracted_data\": {...}, \"safety_analysis\": {\"status\": \"HIGH_RISK\", "
-            "\"reasoning\": \"病患88歲，... [語音警示] 照護者提到病患對阿斯匹靈過敏，但處方開立了 Aspirin！\"}, "
-            "\"silverguard_message\": \"阿嬤，這藥先不要吃喔...\"}"
+            "Your patient is an elderly person (65+) who may have poor vision.\\n\\n"
+            "Task:\\n"
+            "1. Extract: Patient info, Drug info (English name + Chinese function), Usage.\\n"
+            "2. Safety Check: Cross-reference AGS Beers Criteria 2023. Flag HIGH_RISK if age>80 + high dose.\\n"
+            "3. Cross-Check Context: Consider the provided CAREGIVER VOICE NOTE (if any) for allergies or specific conditions.\\n"
+            "4. SilverGuard: Add a warm message in spoken Taiwanese Mandarin (口語化台式中文).\\n\\n"
+            "Output Constraints:\\n"
+            "- Return ONLY a valid JSON object.\\n"
+            "- 'safety_analysis.reasoning' MUST be in Traditional Chinese (繁體中文).\\n"
+            "- Add 'silverguard_message' field using the persona of a caring grandchild (貼心晚輩).\\n\\n"
+            "JSON Example:\\n"
+            "{\\"extracted_data\\": {...}, \\"safety_analysis\\": {\\"status\\": \\"HIGH_RISK\\", "
+            "\\"reasoning\\": \\"病患88歲，... [語音警示] 照護者提到病患對阿斯匹靈過敏，但處方開立了 Aspirin！\\"}, "
+            "\\"silverguard_message\\": \\"阿嬤，這藥先不要吃喔...\\"}"
         )
         
         correction_context = ""
@@ -2667,48 +2670,69 @@ def launch_agentic_app():
                 # V8: Inject Voice Context
                 prompt_text = base_prompt
                 if voice_context:
-                    prompt_text += f"\n\n[📢 CAREGIVER VOICE NOTE]:\n\"{voice_context}\"\n(⚠️ CRITICAL: Check this note for allergies, past history, or observations. If the prescription conflicts with this note, flag as HIGH_RISK.)"
+                    prompt_text += f"\\n\\n[📢 CAREGIVER VOICE NOTE]:\\n\\"{voice_context}\\"\\n(⚠️ CRITICAL: Check this note for allergies, past history, or observations. If the prescription conflicts with this note, flag as HIGH_RISK.)"
                 
                 prompt_text += correction_context
                 
-                inputs = processor(text=prompt_text, images=img, return_tensors="pt").to("cuda")
-                generated_ids = model.generate(
-                    **inputs, 
-                    max_new_tokens=1024,
-                    do_sample=False, # Deterministic for safety
-                    temperature=0.0,
-                    num_beams=1
-                )
-                generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+                # Use standard Chat Template
+                messages = [{"role": "user", "content": [
+                    {"type": "image"},
+                    {"type": "text", "text": prompt_text}
+                ]}]
                 
-                # Parse
-                parsed_json = extract_and_parse_json(generated_text)
+                prompt = processor.tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True
+                )
+                
+                inputs = processor(text=prompt, images=img, return_tensors="pt").to(model.device)
+                input_len = inputs.input_ids.shape[1] # Track input length
+                
+                # Deterministic generation for safety
+                with torch.no_grad():
+                    outputs = model.generate(
+                        **inputs, 
+                        max_new_tokens=1024,
+                        do_sample=False, 
+                        temperature=0.0
+                    )
+                
+                # Slice output to remove prompt echoing
+                generated_tokens = outputs[0][input_len:]
+                generated_text = processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+                
+                # Parse (Uses parse_json_from_response from Cell 4)
+                parsed_json, parse_error = parse_json_from_response(generated_text)
                 
                 if parsed_json:
-                    # Grounding Check
-                    grounding_result = verify_data_grounding(parsed_json)
-                    parsed_json["grounding_verification"] = grounding_result
+                    # Grounding Check (Uses logical_consistency_check from Cell 4)
+                    extracted = parsed_json.get("extracted_data", {})
+                    safety = parsed_json.get("safety_analysis", {})
+                    grounded, ground_msg = logical_consistency_check(extracted, safety)
                     
-                    # Validation success logic (Simplified for V8 demo)
+                    # Store results
                     result["vlm_output"] = {"raw": generated_text, "parsed": parsed_json}
+                    result["grounding"] = {"passed": grounded, "message": ground_msg}
                     result["pipeline_status"] = "SUCCESS"
                     
                     # Determine Status
-                    safety = parsed_json.get("safety_analysis", {})
                     status = safety.get("status", "UNKNOWN")
-                    # If high risk or hallucination, flag
-                    if grounding_result["status"] == "FAIL":
-                        result["final_status"] = "HALLUCINATION_DETECTED"
-                    else:
-                        result["final_status"] = status
-                        
+                    
+                    # If logical check failed, we might want to flag it
+                    if not grounded:
+                        # Agentic Retry for Logic Failure
+                        raise ValueError(f"Logic Check Failed: {ground_msg}")
+                    
+                    result["final_status"] = status
                     return result
                 else:
-                    raise ValueError("JSON parse failed")
+                    raise ValueError(f"JSON parse failed: {parse_error}")
                     
             except Exception as e:
+                # Agentic Self-Correction Loop
                 current_try += 1
-                correction_context += f"\n\n[System]: Previous attempt failed ({str(e)}). Please ensure Output is VALID JSON only."
+                correction_context += f"\\n\\n[System]: Previous attempt failed ({str(e)}). Please ensure Output is VALID JSON only and logic is consistent."
+                if verbose:
+                    print(f"   🔄 Agent Retry #{current_try}: {e}")
         
         result["pipeline_status"] = "FAILED"
         result["final_status"] = "SYSTEM_ERROR"
@@ -2743,11 +2767,13 @@ def launch_agentic_app():
                     
                     # Quick Temp Save (V8 Agent takes path)
                     import tempfile
-                    tpath = "temp_query.jpg"
-                    image.save(tpath)
+                    # Save PIL image to temp file
+                    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                        image.save(tmp.name)
+                        tpath = tmp.name
                     
                     # V8 Call: Pass voice_note directly to LLM Prompt
-                    res = agentic_inference_v8(model, processor, tpath, voice_context=voice_note, verbose=False)
+                    res = agentic_inference_v8(model, processor, tpath, voice_context=voice_note, verbose=True)
                     
                     silver = json_to_elderly_speech(res)
                     return res["final_status"], res, silver
