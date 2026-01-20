@@ -678,6 +678,13 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 "Your corrections help protect the next patient.*"
             )
             
+            # Wrapper for feedback logging
+            def log_feedback(image, model_json, feedback_type):
+                """RLHF Feedback Logger"""
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                return f"✅ Feedback logged at {timestamp}: {feedback_type}. (Simulated RLHF Step)"
+
             # Wired up inputs: Image + JSON Output + Feedback Type
             btn_correct.click(
                 fn=lambda img, out: log_feedback(img, out, "POSITIVE_ACCURATE"), 

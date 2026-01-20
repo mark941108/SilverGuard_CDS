@@ -464,7 +464,7 @@ print("🔧 Installing Dependencies...")
 !pip install -q -r requirements.txt
 !pip install -q torchaudio librosa soundfile
 
-# 5. Launch S-Tier Pipeline
+# 5. Launch MedGemma Impact Pipeline
 print("🚀 Launching MedGemma Impact Pipeline...")
 # This runs Data Gen -> Training -> Agent Demo sequentially
 !python KAGGLE_V4_COMPLETE.py

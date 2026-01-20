@@ -2440,14 +2440,14 @@ def upload_model_to_hf():
 
     # Check if we are running in interactive mode or just dry run
     try:
-        hf_username = input("👉 Please enter your Hugging Face Username: ").strip()
+        from kaggle_secrets import UserSecretsClient
+        user_secrets = UserSecretsClient()
+        hf_username = user_secrets.get_secret("HF_USERNAME")
         if not hf_username:
-             print("❌ No username provided. Skipping upload.")
-             return
+            hf_username = "mark941108" # Fallback/Default
     except:
-        print("⚠️ Non-interactive environment detected. Skipping input.")
-        print("   To upload, please hardcode your 'hf_username' in Cell 9.")
-        return
+        hf_username = "mark941108" # Fallback if secrets unavailable
+
 
     repo_name = "medgemma-pharmacist-guardian-v5"
     repo_id = f"{hf_username}/{repo_name}"
