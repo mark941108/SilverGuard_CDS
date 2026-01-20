@@ -2591,6 +2591,114 @@ def launch_agentic_app():
         print("❌ Please run Cell 3 (Training) first!")
         return
 
+    # ===== V8 NEW: Multimodal Agent (Vision + Voice Context) =====
+    # This is a specialized version of the agent pipeline that accepts voice context
+    def agentic_inference_v8(model, processor, img_path, voice_context="", verbose=True):
+        """
+        V8 Multimodal Agent: Injects Voice Context into the System Prompt
+        """
+        # Ensure model is in EVAL mode
+        if model.training: model.eval()
+        torch.cuda.empty_cache()
+        
+        result = {
+            "image": Path(img_path).name,
+            "pipeline_status": "RUNNING",
+            "input_gate": {},
+            "vlm_output": {},
+            "confidence": {},
+            "grounding": {},
+            "final_status": "UNKNOWN"
+        }
+        
+        # [1] Input Validation
+        quality_ok, quality_status, blur_score, quality_msg = check_image_quality(img_path)
+        result["input_gate"] = {"status": quality_status, "blur_score": blur_score, "message": quality_msg}
+        if not quality_ok:
+            result["pipeline_status"] = "REJECTED_INPUT"
+            result["final_status"] = "INVALID_IMAGE"
+            return result
+        
+        # [2] Agentic Loop
+        MAX_RETRIES = 2
+        current_try = 0
+        
+        # V8 Prompt: Explicitly mentions Voice Context
+        base_prompt = (
+            "You are 'AI Pharmacist Guardian', a **meticulous and risk-averse** clinical pharmacist in Taiwan. "
+            "You prioritize patient safety above all else. When uncertain, you MUST flag for human review rather than guessing. "
+            "Your patient is an elderly person (65+) who may have poor vision.\n\n"
+            "Task:\n"
+            "1. Extract: Patient info, Drug info (English name + Chinese function), Usage.\n"
+            "2. Safety Check: Cross-reference AGS Beers Criteria 2023. Flag HIGH_RISK if age>80 + high dose.\n"
+            "3. Cross-Check Context: Consider the provided CAREGIVER VOICE NOTE (if any) for allergies or specific conditions.\n"
+            "4. SilverGuard: Add a warm message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
+            "Output Constraints:\n"
+            "- Return ONLY a valid JSON object.\n"
+            "- 'safety_analysis.reasoning' MUST be in Traditional Chinese (繁體中文).\n"
+            "- Add 'silverguard_message' field using the persona of a caring grandchild (貼心晚輩).\n\n"
+            "JSON Example:\n"
+            "{\"extracted_data\": {...}, \"safety_analysis\": {\"status\": \"HIGH_RISK\", "
+            "\"reasoning\": \"病患88歲，... [語音警示] 照護者提到病患對阿斯匹靈過敏，但處方開立了 Aspirin！\"}, "
+            "\"silverguard_message\": \"阿嬤，這藥先不要吃喔...\"}"
+        )
+        
+        correction_context = ""
+        
+        while current_try <= MAX_RETRIES:
+            try:
+                img = Image.open(img_path).convert("RGB")
+                
+                # V8: Inject Voice Context
+                prompt_text = base_prompt
+                if voice_context:
+                    prompt_text += f"\n\n[📢 CAREGIVER VOICE NOTE]:\n\"{voice_context}\"\n(⚠️ CRITICAL: Check this note for allergies, past history, or observations. If the prescription conflicts with this note, flag as HIGH_RISK.)"
+                
+                prompt_text += correction_context
+                
+                inputs = processor(text=prompt_text, images=img, return_tensors="pt").to("cuda")
+                generated_ids = model.generate(
+                    **inputs, 
+                    max_new_tokens=1024,
+                    do_sample=False, # Deterministic for safety
+                    temperature=0.0,
+                    num_beams=1
+                )
+                generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+                
+                # Parse
+                parsed_json = extract_and_parse_json(generated_text)
+                
+                if parsed_json:
+                    # Grounding Check
+                    grounding_result = verify_data_grounding(parsed_json)
+                    parsed_json["grounding_verification"] = grounding_result
+                    
+                    # Validation success logic (Simplified for V8 demo)
+                    result["vlm_output"] = {"raw": generated_text, "parsed": parsed_json}
+                    result["pipeline_status"] = "SUCCESS"
+                    
+                    # Determine Status
+                    safety = parsed_json.get("safety_analysis", {})
+                    status = safety.get("status", "UNKNOWN")
+                    # If high risk or hallucination, flag
+                    if grounding_result["status"] == "FAIL":
+                        result["final_status"] = "HALLUCINATION_DETECTED"
+                    else:
+                        result["final_status"] = status
+                        
+                    return result
+                else:
+                    raise ValueError("JSON parse failed")
+                    
+            except Exception as e:
+                current_try += 1
+                correction_context += f"\n\n[System]: Previous attempt failed ({str(e)}). Please ensure Output is VALID JSON only."
+        
+        result["pipeline_status"] = "FAILED"
+        result["final_status"] = "SYSTEM_ERROR"
+        return result
+
     with gr.Blocks(theme=gr.themes.Soft()) as demo:
         gr.Markdown("# 🏥 AI Pharmacist Guardian (Agentic Workflow)")
         
@@ -2611,34 +2719,20 @@ def launch_agentic_app():
                 
                 # Wrapper
                 def run_full_flow(image, audio):
-                    note = ""
+                    voice_note = ""
                     if audio:
                         text, ok = transcribe_audio(audio)
-                        if ok: note = f"Patient Note: {text}"
+                        if ok: 
+                            voice_note = text
+                            print(f"🎤 Voice Context: {voice_note}")
                     
-                    # Reuse global inference function
-                    # Ensure agentic_inference is robust to input format
-                    # Since existing functions take file path, we might need to save PIL or change function
-                    # For Kaggle demo, let's just assume we pass the image object if supported, 
-                    # OR save to temp because `agentic_inference` used paths in Cell 4.
-                    
-                    # Quick Temp Save
+                    # Quick Temp Save (V8 Agent takes path)
                     import tempfile
                     tpath = "temp_query.jpg"
                     image.save(tpath)
                     
-                    # Inject note? `agentic_inference` signature in KAGGLE_V4 needs check.
-                    # If it doesn't support notes, we just run standard.
-                    # IMPORTANT: I did not update `agentic_inference` in KAGGLE_V4 to take text.
-                    # So for this demo cell, we will just print the note and run vision.
-                    
-                    res = agentic_inference(model, processor, tpath, verbose=False)
-                    
-                    # Post-process note
-                    if note and "allergy" in note.lower():
-                         # Simple demo logic injection
-                         res["final_status"] = "HUMAN_REVIEW_NEEDED"
-                         res["vlm_output"]["parsed"]["safety_analysis"]["reasoning"] += f" [VOICE ALERT: {note}]"
+                    # V8 Call: Pass voice_note directly to LLM Prompt
+                    res = agentic_inference_v8(model, processor, tpath, voice_context=voice_note, verbose=False)
                     
                     silver = json_to_elderly_speech(res)
                     return res["final_status"], res, silver
