@@ -27,7 +27,13 @@ if "Please_Replace" in ADAPTER_MODEL or not ADAPTER_MODEL:
     print("❌ CRITICAL: ADAPTER_MODEL_ID not configured!")
     print("   Please set ADAPTER_MODEL_ID in HuggingFace Space Settings > Repository secrets")
     print("   Example: yuan-dao/medgemma-pharmacist-guardian-v5")
+    print("   Example: yuan-dao/medgemma-pharmacist-guardian-v5")
     raise ValueError("ADAPTER_MODEL_ID environment variable must be set before deployment.")
+
+# V8.1 Offline Mode Toggle (For Air-Gapped / Privacy-First deployment)
+OFFLINE_MODE = os.environ.get("OFFLINE_MODE", "False").lower() == "true"
+if OFFLINE_MODE:
+    print("🔒 OFFLINE_MODE Active: External APIs (OpenFDA, Google TTS) disabled.")
 
 print(f"⏳ Loading MedGemma Adapter: {ADAPTER_MODEL}...")
 
@@ -267,6 +273,9 @@ def check_drug_interaction(drug_a, drug_b):
         return CRITICAL_PAIRS[(name_b, name_a)]
         
     # 3. Live OpenFDA API Call (Agentic Step)
+    if OFFLINE_MODE:
+        return "⚠️ Offline Mode: Showing locally cached major interactions only. (Enable Online Mode for full OpenFDA check)"
+
     try:
         import requests
         # Query OpenFDA labeling endpoint
@@ -529,8 +538,9 @@ def run_inference(image, patient_notes=""):
     clean_text = clean_text.replace("👉", "").replace("📅", "").replace("💊", "")
     
     # === Tier 1: Try gTTS (requires internet, best quality) ===
-    try:
-        import socket
+    if not OFFLINE_MODE:
+        try:
+            import socket
         # Quick network check (1 second timeout)
         socket.setdefaulttimeout(1)
         socket.create_connection(("www.google.com", 80))

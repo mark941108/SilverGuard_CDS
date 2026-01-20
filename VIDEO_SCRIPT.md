@@ -43,8 +43,8 @@
 
 | 時間 | 畫面 | 旁白 (英文) |
 |------|------|-------------|
-| 0:20-0:30 | Kaggle Notebook 介面 + T4 GPU 標籤 + **"MedGemma 1.5"** Logo | *"Meet AI Pharmacist Guardian. Powered by Google's MedGemma 1.5 and SigLIP encoder, running 100% locally on a single T4 GPU."* |
-| 0:30-0:40 | 圖卡: **"No Cloud API for PHI"**, **"Hybrid Privacy"**, **"HIPAA-Compliant"** | *"Image analysis runs 100% locally—only non-sensitive TTS output uses the cloud."* |
+| 0:20-0:30 | Kaggle Notebook 介面 + T4 GPU 標籤 + **"MedGemma 1.5"** Logo | *"Meet AI Pharmacist Guardian. Core inference runs 100% locally on a single T4 GPU."* |
+| 0:30-0:40 | 圖卡: **"Zero PII Egress"**, **"Hybrid Privacy"**, **"HIPAA-Compliant"** | *"Image analysis and PHI extraction happen on-device. Only anonymized drug names query external safety DBs in Hybrid Mode."* |
 | 0:40-0:50 | 你的架構 Mermaid 圖 (Animated) | *"This is not just OCR. It's an Agentic Workflow with self-correction capability, built on the Gemma 3 architecture."* |
 
 **🎬 製作提示:**

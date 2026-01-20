@@ -25,6 +25,7 @@
 | **The Solution** | An **Offline Edge-AI Agent** that intercepts prescription errors from drug bag images |
 | **The "Secret Sauce"** | **Self-Correction Loop**: Agent detects logic flaws → modifies prompt → retries with lower temperature |
 | **Social Impact** | **SilverGuard**: Translates JSON alerts into elder-friendly TTS audio + large-font calendars |
+| **Privacy Claim** | **Hybrid Architecture**: Local PHI processing, anonymized external DB queries |
 | **Why MedGemma** | Medical reasoning to catch dosage errors that general VLMs miss, 100% local on T4 GPU |
 
 > **🏆 Target: Agentic Workflow Prize** — This is a TRUE Agent with retry behavior, not just conditional logic.
@@ -33,7 +34,7 @@
 
 | Evaluation Dimension | **🏥 AI Pharmacist Guardian** | ☁️ GPT-4o / Claude 3.5 (Cloud) | 👩‍⚕️ Human Pharmacist |
 |:---------------------|:------------------------------|:-------------------------------|:----------------------|
-| **Privacy (HIPAA/GDPR)** | ✅ **100% Local (Zero PII Leakage)** | ❌ **High Risk** (Data uploaded to cloud) | ✅ Safe |
+| **Privacy (HIPAA/GDPR)** | ✅ **Privacy-First (Zero PII Egress)** | ❌ **High Risk** (Data uploaded to cloud) | ✅ Safe |
 | **Edge Deployment** | ✅ **< 4GB VRAM** (Runs on old clinic PCs) | ❌ Impossible (Requires internet) | N/A |
 | **Cost per Prescription** | ✅ **< $0.001 USD** (Nearly free) | ⚠️ ~$0.03 USD (Expensive at scale) | ⚠️ Expensive (Labor) |
 | **Code-Switching (Mixed Script)** | ✅ **S-Tier** (Fine-tuned for EN/ZH) | 🟡 A-Tier (Occasional hallucinations) | ✅ Native |

@@ -1,5 +1,5 @@
 # AI Pharmacist Guardian + SilverGuard
-**Taiwan Elderly Medication Assistant: MedGemma Drug Bag Guardian**
+**MedGemma Guardian: An Agentic Safety Loop for Elderly Care**
 
 ---
 
