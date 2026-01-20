@@ -123,8 +123,8 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 | **Paper Crease** | ![Crease](assets/stress_test/06_paper_crease.png) | Folded label with dark line |
 | **Water Damage** | ![Water](assets/stress_test/07_water_damage.png) | Stain marks on paper |
 | **Skewed Angle** | ![Skew](assets/stress_test/08_skewed_angle.png) | 25° camera angle |
-| **Finger Occlusion** | ![Finger](assets/stress_test/09_finger_occlusion.png) | Partial finger over text |
-| **Faded/Old** | ![Faded](assets/stress_test/10_faded_old.png) | Aged, low-contrast print |
+| **Finger Occlusion** | ![Finger](assets/stress_test/09_occlusion.png) | Partial finger over text |
+| **Combined Hell** | ![Hell](assets/stress_test/10_combined_hell.png) | All distortions applied simultaneously |
 
 </details>
 
