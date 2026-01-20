@@ -236,17 +236,26 @@ def download_font(font_name, url):
     return font_name
 
 def get_font_paths():
-    # 🎯 Priority 1: Check Kaggle Input (for offline submission)
+    # 🎯 Priority 1: Check Kaggle Input (User Dataset)
     kaggle_bold = "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Bold.otf"
     kaggle_reg = "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Regular.otf"
     
     if os.path.exists(kaggle_bold) and os.path.exists(kaggle_reg):
         print("✅ Using fonts from Kaggle Input (Offline-Ready)")
         return kaggle_bold, kaggle_reg
+        
+    # 🎯 Priority 2: Check System Fonts (apt-get install fonts-noto-cjk)
+    sys_bold = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
+    sys_reg = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
     
-    # Priority 2: Download if not available
-    bold_url = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Bold.otf"
-    reg_url = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf"
+    if os.path.exists(sys_bold) and os.path.exists(sys_reg):
+        print("✅ Using system fonts (fonts-noto-cjk)")
+        return sys_bold, sys_reg
+
+    # 🎯 Priority 3: Download if not available (Fallback)
+    # Using a reliable mirroring source or direct github
+    bold_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Bold.otf"
+    reg_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf"
     
     bold_font_path = download_font("NotoSansTC-Bold.otf", bold_url)
     reg_font_path = download_font("NotoSansTC-Regular.otf", reg_url)
