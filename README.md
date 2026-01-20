@@ -17,7 +17,7 @@
 
 ---
 
-## ⚡ Judge TL;DR (30-Second Summary)
+## ⚡ Judges' Executive Summary (30-Second Insight)
 
 | Question | Answer |
 |----------|--------|
@@ -29,7 +29,7 @@
 
 > **🏆 Target: Agentic Workflow Prize** — This is a TRUE Agent with retry behavior, not just conditional logic.
 
-### 🏆 Why This Solution is Unbeatable
+### 🏆 Competitive Edge & Architecture
 
 | Evaluation Dimension | **🏥 AI Pharmacist Guardian** | ☁️ GPT-4o / Claude 3.5 (Cloud) | 👩‍⚕️ Human Pharmacist |
 |:---------------------|:------------------------------|:-------------------------------|:----------------------|
@@ -41,7 +41,7 @@
 | **24/7 Availability** | ✅ **Always On** | ✅ Always On | ❌ Limited by shifts |
 | **Scalability** | ✅ **One GPU → ∞ pharmacies** | ✅ Scalable (but costly) | ❌ Linear (hire more) |
 
-> **Key Insight:** GPT-4's fatal weaknesses in medical scenarios are **Privacy** and **Cost**. MedGemma Guardian is the *only* solution that achieves S-Tier privacy compliance while remaining free to operate.
+> **Key Insight:** GPT-4's critical limitations in clinical deployment are **Privacy** and **Cost**. MedGemma Guardian is the *only* solution that achieves S-Tier privacy compliance while remaining free to operate.
 
 ---
 
@@ -104,7 +104,7 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 > **Challenge:** Can MedGemma handle real-world "nightmare" scenarios? We generated **10 extreme edge cases** to stress-test the model's vision capabilities.
 
 <details>
-<summary><b>📷 Click to View All 10 Stress Test Images</b></summary>
+<summary><b>📷 Strong Robustness: Click to Expand Stress Test Gallery</b></summary>
 
 ### Image Quality Challenges
 
@@ -259,7 +259,7 @@ graph TD
 
 > **🔄 Agentic Implementation:** The code implements a TRUE retry loop (`while current_try <= MAX_RETRIES`). When logical consistency check fails or JSON parsing errors occur, the agent:
 > 1. Logs the failure reason
-> 2. Modifies the prompt with correction context (e.g., "Previous attempt failed: [reason]")
+> 2. **Dynamic Prompt Optimization**: Automatically injects error context into the next prompt iteration (e.g., "Previous attempt failed: [reason]")
 > 3. Retries with lower temperature (0.4 vs 0.6) for more focused output
 > 
 > This is **genuine self-correction behavior**, not just conditional branching.
@@ -300,7 +300,7 @@ graph TD
 
 ---
 
-## 📉 Clinical Validation & Failure Analysis
+## 📉 Clinical Validation & Deployment Strategy
 
 To ensure patient safety, we conducted rigorous stress testing using **adversarial examples**.
 
@@ -323,6 +323,15 @@ We explicitly tested the model against common real-world noise to define its **o
 | **OOD Input** | Uploading receipt instead of drug bag | **Input Gate:** VLM pre-check validates image type |
 | **Hallucination** | Model generates dosage not in image | **Grounding:** Cross-check extracted values against OCR trace |
 | **Low-Quality Scan** | Very old/damaged prescription | **Fallback:** Confidence < 80% → "Human Review Needed" |
+
+### 🔄 Post-Deployment: Active Learning Strategy
+
+> *"The model learns from what it doesn't know."*
+
+In a live clinical setting, we propose an **Active Learning Loop**:
+1. **Flagged Cases**: Prescriptions where the model requested "Human Review" are saved (anonymized).
+2. **Expert Labeling**: Pharmacists verify the correct data for these edge cases.
+3. **Continuous Fine-Tuning**: These high-value "failure examples" are added to the LoRA training set weekly, constantly improving the model's handling of real-world noise.
 
 ### 🛡️ Safety-First Design Philosophy
 
