@@ -1,192 +1,226 @@
 """
-Gallery of Horrors - Stress Test Image Generator
-=================================================
-Generates 10 "nightmare" prescription images to demonstrate MedGemma's robustness.
+Gallery of Horrors - Stress Test Image Generator (Taiwan Standard Edition)
+========================================================================
+Generates 10 "nightmare" prescription images that strictly adhere to 
+Taiwan "Pharmacist Act" (藥師法) labeling regulations.
 
-Usage (run locally or on Kaggle):
+Features:
+- Standard "門診藥袋" Layout
+- Full Chinese Fields (姓名, 病歷號, 調劑日期, 適應症)
+- QR Code (Smart Hospital Feature)
+- Drug Appearance Description
+- Noto Sans CJK TC Font (Professional Printing Style)
+
+Usage:
     python generate_stress_test.py
-    
-Output: assets/stress_test/*.png (10 images)
 """
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 import os
 import random
+import json
+import requests
+import qrcode
 import numpy as np
+from datetime import datetime, timedelta
 
 # Create output directory
 OUTPUT_DIR = "assets/stress_test"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Sample prescription data
-SAMPLE_DRUGS = [
-    {"name": "Metformin 500mg", "usage": "Take 1 tablet twice daily with meals", "chinese": "每日兩次，隨餐服用"},
-    {"name": "Aspirin 100mg", "usage": "Take 1 tablet daily", "chinese": "每日一次，飯後服用"},
-    {"name": "Lisinopril 10mg", "usage": "Take 1 tablet in the morning", "chinese": "每日早晨服用一錠"},
-    {"name": "Warfarin 5mg", "usage": "Take as directed by doctor", "chinese": "依醫師指示服用"},
-    {"name": "Atorvastatin 20mg", "usage": "Take 1 tablet at bedtime", "chinese": "睡前服用一錠"},
+# Image size matches Training Data
+IMG_SIZE = 896
+
+# ===== 1. Data & Config (Synced from KAGGLE_V4) =====
+
+HOSPITAL_INFO = {
+    "name": "MedGemma 智慧醫療示範醫院",
+    "address": "台北市信義區信義路五段7號",
+    "phone": "(02) 8765-4321",
+    "pharmacist": "王大明",
+    "checker": "李小美"
+}
+
+# Simplified Drug DB for Stress Test
+DRUG_DB = [
+    {"name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用", "usage": {"text_zh": "每日兩次 早晚飯後", "quantity": 56}},
+    {"name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "usage": {"text_zh": "每日一次 早餐飯後", "quantity": 28}},
+    {"name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後請立即就寢", "usage": {"text_zh": "每日一次 睡前服用", "quantity": 28}},
+    {"name_en": "Aspirin", "name_zh": "阿斯匹靈", "generic": "ASA", "dose": "100mg", "appearance": "白色圓形", "indication": "預防血栓", "warning": "胃潰瘍患者慎用", "usage": {"text_zh": "每日一次 早餐飯後", "quantity": 28}},
+    {"name_en": "Lipitor", "name_zh": "立普妥", "generic": "Atorvastatin", "dose": "20mg", "appearance": "白色橢圓形", "indication": "降血脂", "warning": "肌肉痠痛時需回診", "usage": {"text_zh": "每日一次 睡前服用", "quantity": 28}},
 ]
 
-def create_base_prescription(drug_info, width=600, height=400):
-    """Create a clean prescription label image"""
-    # Cream/white background with slight texture
-    img = Image.new('RGB', (width, height), color=(255, 252, 245))
+# ===== 2. Font Logic =====
+def download_font(font_name, url):
+    if not os.path.exists(font_name):
+        print(f"📥 Downloading font: {font_name}...")
+        try:
+            response = requests.get(url, timeout=30)
+            with open(font_name, 'wb') as f:
+                f.write(response.content)
+        except Exception as e:
+            print(f"⚠️ Font download failed: {e}")
+    return font_name
+
+def get_font_paths():
+    # Priority 1: System
+    sys_bold = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
+    sys_reg = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
+    if os.path.exists(sys_bold): return sys_bold, sys_reg
+
+    # Priority 2: Local Download
+    bold_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Bold.otf"
+    reg_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf"
+    return download_font("NotoSansTC-Bold.otf", bold_url), download_font("NotoSansTC-Regular.otf", reg_url)
+
+# ===== 3. Generator (Drawing) =====
+def generate_base_prescription(drug_idx):
+    drug = DRUG_DB[drug_idx % len(DRUG_DB)]
+    
+    # Generate random patient data
+    date_str = (datetime.now() - timedelta(days=random.randint(0, 30))).strftime("%Y/%m/%d")
+    chart_no = f"A{random.randint(100000, 999999)}"
+    rx_id = f"R{random.randint(202600000000, 202699999999)}"
+    
+    img = Image.new('RGB', (IMG_SIZE, IMG_SIZE), 'white')
     draw = ImageDraw.Draw(img)
     
-    # Try to use a default font, fallback to PIL default
+    # Load fonts
+    font_bold_path, font_reg_path = get_font_paths()
     try:
-        font_large = ImageFont.truetype("arial.ttf", 28)
-        font_med = ImageFont.truetype("arial.ttf", 20)
-        font_small = ImageFont.truetype("arial.ttf", 16)
+        ft_title = ImageFont.truetype(font_bold_path, 40)
+        ft_large = ImageFont.truetype(font_bold_path, 36)
+        ft_main = ImageFont.truetype(font_reg_path, 28) # Slightly larger for readability
+        ft_small = ImageFont.truetype(font_reg_path, 24)
+        ft_warn = ImageFont.truetype(font_bold_path, 24)
     except:
-        font_large = ImageFont.load_default()
-        font_med = ImageFont.load_default()
-        font_small = ImageFont.load_default()
+        ft_title = ImageFont.load_default()
+        ft_large = ImageFont.load_default()
+        ft_main = ImageFont.load_default()
+        ft_small = ImageFont.load_default()
+        ft_warn = ImageFont.load_default()
+
+    # --- Header ---
+    draw.text((40, 30), HOSPITAL_INFO["name"], font=ft_title, fill="#003366")
+    draw.text((560, 40), "門診藥袋", font=ft_title, fill="black") # Standard Title
     
-    # Draw prescription content
-    y_offset = 30
+    # QR Code (Smart Hospital)
+    qr = qrcode.make(json.dumps({"id": rx_id, "drug": drug["name_en"]})).resize((110, 110))
+    img.paste(qr, (740, 20))
     
-    # Hospital header
-    draw.text((20, y_offset), "🏥 Taiwan General Hospital", fill=(0, 80, 160), font=font_large)
-    y_offset += 50
+    draw.line([(30, 140), (866, 140)], fill="#003366", width=4)
     
-    # Patient info
-    draw.text((20, y_offset), f"Patient: WU CHEN-MING (吳振明)", fill=(0, 0, 0), font=font_med)
-    y_offset += 35
-    draw.text((20, y_offset), f"Age: 78 | DOB: 1948-05-12", fill=(80, 80, 80), font=font_small)
-    y_offset += 40
+    # --- Patient Info ---
+    # Row 1
+    draw.text((50, 160), "姓名: 吳振明", font=ft_large, fill="black")
+    draw.text((450, 165), f"病歷號: {chart_no}", font=ft_main, fill="black")
     
-    # Drug name (large, prominent)
-    draw.rectangle([(15, y_offset-5), (width-15, y_offset+45)], outline=(0, 100, 200), width=2)
-    draw.text((25, y_offset+5), f"💊 {drug_info['name']}", fill=(0, 0, 0), font=font_large)
-    y_offset += 60
+    # Row 2
+    draw.text((50, 210), "年齡: 78 歲", font=ft_large, fill="black")
+    draw.text((450, 215), f"調劑日: {date_str}", font=ft_main, fill="black")
     
-    # Usage instructions
-    draw.text((20, y_offset), f"Usage: {drug_info['usage']}", fill=(0, 0, 0), font=font_med)
-    y_offset += 35
-    draw.text((20, y_offset), f"用法: {drug_info['chinese']}", fill=(60, 60, 60), font=font_med)
-    y_offset += 45
+    draw.line([(30, 270), (866, 270)], fill="gray", width=2)
     
-    # Warning box
-    draw.rectangle([(15, y_offset), (width-15, y_offset+50)], fill=(255, 245, 230), outline=(255, 150, 0), width=2)
-    draw.text((25, y_offset+15), "⚠️ Keep out of reach of children", fill=(200, 100, 0), font=font_small)
+    # --- Drug Info ---
+    # English Name + Dose
+    draw.text((50, 290), f"{drug['name_en']} {drug['dose']}", font=ft_title, fill="black")
+    # Chinese Name + Generic
+    draw.text((50, 340), f"{drug['name_zh']} ({drug['generic']})", font=ft_main, fill="#444444")
+    # Quantity
+    draw.text((600, 290), f"總量: {drug['usage']['quantity']}", font=ft_large, fill="black")
     
+    # Appearance (New Field)
+    draw.text((50, 390), f"外觀: {drug['appearance']}", font=ft_main, fill="#006600") # Dark Green
+    
+    # --- Usage Box ---
+    draw.rectangle([(40, 440), (850, 540)], outline="black", width=3)
+    draw.text((60, 470), drug['usage']['text_zh'], font=ft_title, fill="black")
+    
+    # --- Indication & Warning ---
+    y_base = 580
+    draw.text((50, y_base), "適應症:", font=ft_main, fill="black")
+    draw.text((160, y_base), drug['indication'], font=ft_main, fill="black")
+    
+    draw.text((50, y_base+50), "⚠ 警語:", font=ft_warn, fill="red")
+    draw.text((160, y_base+50), drug['warning'], font=ft_main, fill="red")
+    
+    # Footer
+    draw.line([(30, 800), (866, 800)], fill="gray", width=1)
+    draw.text((50, 820), f"藥師: {HOSPITAL_INFO['pharmacist']}  核對: {HOSPITAL_INFO['checker']}", font=ft_small, fill="gray")
+    draw.text((50, 850), f"地址: {HOSPITAL_INFO['address']}  電話: {HOSPITAL_INFO['phone']}", font=ft_small, fill="gray")
+
     return img
 
-
+# ===== 4. Distortions (The Gallery of Horrors) =====
 def apply_extreme_blur(img, intensity="heavy"):
-    """Apply motion or gaussian blur"""
-    if intensity == "heavy":
-        return img.filter(ImageFilter.GaussianBlur(radius=8))
-    elif intensity == "motion":
-        # Simulate motion blur by box blur + directional offset
-        return img.filter(ImageFilter.BoxBlur(radius=6))
-    return img.filter(ImageFilter.GaussianBlur(radius=4))
-
+    if intensity == "heavy": return img.filter(ImageFilter.GaussianBlur(radius=8))
+    elif intensity == "motion": return img.filter(ImageFilter.BoxBlur(radius=6))
+    return img
 
 def apply_low_light(img):
-    """Simulate dark/underexposed image"""
-    enhancer = ImageEnhance.Brightness(img)
-    img = enhancer.enhance(0.35)  # Very dark
-    enhancer = ImageEnhance.Contrast(img)
-    return enhancer.enhance(0.7)
-
+    enhancer = ImageEnhance.Brightness(img); img = enhancer.enhance(0.4)
+    enhancer = ImageEnhance.Contrast(img); return enhancer.enhance(0.8)
 
 def apply_overexposure(img):
-    """Simulate washed out/overexposed image"""
-    enhancer = ImageEnhance.Brightness(img)
-    img = enhancer.enhance(1.8)
-    enhancer = ImageEnhance.Contrast(img)
-    return enhancer.enhance(0.5)
-
+    enhancer = ImageEnhance.Brightness(img); img = enhancer.enhance(1.8)
+    enhancer = ImageEnhance.Contrast(img); return enhancer.enhance(0.5)
 
 def apply_noise(img, amount=50):
-    """Add random noise/grain"""
     arr = np.array(img)
     noise = np.random.randint(-amount, amount, arr.shape, dtype=np.int16)
     arr = np.clip(arr.astype(np.int16) + noise, 0, 255).astype(np.uint8)
     return Image.fromarray(arr)
 
-
 def apply_crease(img):
-    """Simulate paper fold/crease with a dark line"""
     draw = ImageDraw.Draw(img)
     width, height = img.size
-    # Diagonal crease line
-    draw.line([(0, height//3), (width, height//2)], fill=(180, 170, 160), width=8)
-    # Make area around crease slightly darker
+    draw.line([(0, height//3), (width, height//2)], fill=(180, 180, 180), width=10)
     return img
-
 
 def apply_water_damage(img):
-    """Simulate water stain/damage"""
-    draw = ImageDraw.Draw(img)
+    draw = ImageDraw.Draw(img, 'RGBA')
     width, height = img.size
-    # Draw irregular water stain shapes
     for _ in range(3):
-        x = random.randint(0, width)
-        y = random.randint(0, height//2)
-        r = random.randint(40, 100)
-        draw.ellipse([(x-r, y-r), (x+r, y+r)], fill=(220, 210, 190, 128))
-    return img
-
+        x, y = random.randint(0, width), random.randint(0, height//2)
+        r = random.randint(60, 150)
+        draw.ellipse([(x-r, y-r), (x+r, y+r)], fill=(220, 210, 190, 80))
+    return img.convert('RGB')
 
 def apply_skew(img, angle=15):
-    """Rotate image to simulate camera angle"""
-    return img.rotate(angle, expand=True, fillcolor=(240, 240, 240))
+    return img.rotate(angle, expand=True, fillcolor="white")
 
-
-def apply_partial_occlusion(img):
-    """Simulate finger partially covering text"""
+def apply_occlusion(img):
     draw = ImageDraw.Draw(img)
     width, height = img.size
-    # Draw a finger-shaped ellipse
-    draw.ellipse([(width-150, height//2-60), (width+50, height//2+80)], fill=(210, 180, 160))
+    # Occlude drug name partially
+    draw.ellipse([(100, 280), (300, 350)], fill=(210, 180, 160)) # Finger-like tone
     return img
 
-
-def apply_faded_label(img):
-    """Simulate old, faded print"""
-    enhancer = ImageEnhance.Contrast(img)
-    img = enhancer.enhance(0.4)
-    enhancer = ImageEnhance.Color(img)
-    return enhancer.enhance(0.3)
-
-
-# Generate 10 nightmare images
 STRESS_TESTS = [
     ("01_extreme_blur", "Extreme Gaussian Blur", lambda img: apply_extreme_blur(img, "heavy")),
-    ("02_motion_blur", "Motion Blur (shaky hands)", lambda img: apply_extreme_blur(img, "motion")),
-    ("03_low_light", "Dark/Low Light Condition", apply_low_light),
-    ("04_overexposed", "Overexposed/Washed Out", apply_overexposure),
-    ("05_heavy_noise", "Heavy Noise/Grain", lambda img: apply_noise(img, 80)),
-    ("06_paper_crease", "Paper Fold/Crease", apply_crease),
-    ("07_water_damage", "Water Damage Simulation", apply_water_damage),
-    ("08_skewed_angle", "45° Camera Angle", lambda img: apply_skew(img, 25)),
-    ("09_finger_occlusion", "Partial Finger Occlusion", apply_partial_occlusion),
-    ("10_faded_old", "Faded/Old Label", apply_faded_label),
+    ("02_motion_blur", "Motion Blur", lambda img: apply_extreme_blur(img, "motion")),
+    ("03_low_light", "Dark/Low Light", apply_low_light),
+    ("04_overexposed", "Overexposed", apply_overexposure),
+    ("05_heavy_noise", "Heavy Noise", lambda img: apply_noise(img, 80)),
+    ("06_paper_crease", "Paper Crease", apply_crease),
+    ("07_water_damage", "Water Damage", apply_water_damage),
+    ("08_skewed_angle", "Skewed 25°", lambda img: apply_skew(img, 25)),
+    ("09_occlusion", "Finger Occlusion", apply_occlusion),
+    ("10_combined_hell", "Combined (Blur+Noise+Dark)", lambda img: apply_noise(apply_low_light(apply_extreme_blur(img, "heavy")), 40)),
 ]
 
-
 if __name__ == "__main__":
-    print("🎭 Generating Gallery of Horrors (10 Stress Test Images)...")
+    print("🎭 Generating 'Gallery of Horrors' (Taiwan Standard Edition)...")
     print("=" * 60)
+    
+    # Ensure fonts valid
+    get_font_paths()
     
     for i, (filename, description, transform_fn) in enumerate(STRESS_TESTS):
-        # Pick a random drug for variety
-        drug = SAMPLE_DRUGS[i % len(SAMPLE_DRUGS)]
+        print(f"  👉 Generating {filename}...")
+        base = generate_base_prescription(i)
+        stressed = transform_fn(base)
+        stressed.save(os.path.join(OUTPUT_DIR, f"{filename}.png"))
         
-        # Create clean base image
-        base_img = create_base_prescription(drug)
-        
-        # Apply distortion
-        stressed_img = transform_fn(base_img)
-        
-        # Save
-        output_path = os.path.join(OUTPUT_DIR, f"{filename}.png")
-        stressed_img.save(output_path)
-        print(f"  ✅ {filename}.png - {description}")
-    
     print("=" * 60)
-    print(f"🎉 Done! Images saved to: {OUTPUT_DIR}/")
-    print("\n📋 Next step: Add these to README.md as 'Robustness Gallery'")
+    print(f"🎉 Done! 10 Taiwan-Compliant Stress Test Images saved to {OUTPUT_DIR}/")
