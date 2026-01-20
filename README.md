@@ -415,23 +415,59 @@ Leveraging MedGemma 1.5's **Longitudinal Analysis** capabilities:
 
 ## 🚀 Quick Start
 
-### Running on Kaggle
+### Running on Kaggle (Safe Mode)
 
-1. Create a new Kaggle Notebook
-2. Enable GPU accelerator (T4)
-3. Add HuggingFace Token to Secrets
-4. Copy and execute cells from `KAGGLE_V4_COMPLETE.py`
+To avoid path errors (FileNotFoundError) and ensure all dependencies are loaded correctly, usage of the **"Root Execution Strategy"** is required.
 
-### Cell Execution Order
+**Step 1:** Create a new Kaggle Notebook  
+**Step 2:** Add your `GITHUB_TOKEN` and `HUGGINGFACE_TOKEN` to Kaggle Secrets.  
+**Step 3:** Paste and run this **Bootstrap Script** in the first cell:
+
+```python
+from kaggle_secrets import UserSecretsClient
+import os
+import shutil
+
+# 1. GitHub Auth
+user_secrets = UserSecretsClient()
+try:
+    gh_token = user_secrets.get_secret("GITHUB_TOKEN")
+    print("✅ GITHUB_TOKEN Found")
+except:
+    print("❌ GITHUB_TOKEN Not Found! Check Add-ons > Secrets")
+    gh_token = ""
+
+# 2. Clone Repository
+repo_url = f"https://{gh_token}@github.com/mark941108/SilverGuard.git"
+print("📦 Cloning SilverGuard...")
+!rm -rf SilverGuard
+!git clone {repo_url}
+
+# 3. ROOT MIGRATION (Crucial for Absolute Paths)
+# Moves files from ./SilverGuard subclass to /kaggle/working/ root
+print("📂 Moving files to Root (Preventing Path Trap)...")
+!cp -r SilverGuard/* .
+!cp SilverGuard/requirements.txt . 2>/dev/null || :
+
+# 4. Install Dependencies
+print("🔧 Installing Dependencies...")
+!pip install -q -r requirements.txt
+!pip install -q torchaudio librosa soundfile
+
+# 5. Launch S-Tier Pipeline
+print("🚀 Launching MedGemma Impact Pipeline...")
+# This runs Data Gen -> Training -> Agent Demo sequentially
+!python KAGGLE_V4_COMPLETE.py
 ```
-Cell 1: Environment Setup
-Cell 2: Data Generation (600 images + Risk Injection)
-Cell 3: QLoRA Training (MedGemma 1.5-4B)
-Cell 4: Agentic Pipeline Testing (Input Gate → Confidence → Grounding)
-Cell 5: HIGH_RISK Demo (Screenshot this!)
-Cell 6: Gradio Demo (Standard)
-Cell 7: SilverGuard Elder-Friendly Output (TTS + Calendar) 👴
-Cell 10: 🚀 S-Tier Agentic Demo (MedASR Voice + OpenFDA + Vision) 🌟
+
+### Pipeline Stages (Automated)
+The script `KAGGLE_V4_COMPLETE.py` automates the entire flow:
+```
+Stage 1: Environment Setup & Auth
+Stage 2: Data Generation (600 images + Taiwan Standard Risk Injection)
+Stage 3: QLoRA Fine-Tuning (MedGemma 1.5-4B)
+Stage 4: Agentic Pipeline Testing & Validation
+Stage 5: High Risk Demo & SilverGuard UI (Cell 7/10)
 ```
 
 ---
