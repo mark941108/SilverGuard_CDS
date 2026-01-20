@@ -783,7 +783,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
 #     # === Button Event Handlers ===
 #     # === Button Event Handlers ===
     
-#     # V7.3 S-Tier MLOps: Initializing Hugging Face Dataset Saver (Real Data Flywheel)
+#     # V7.3 Feedback Loop Integration: Initializing Hugging Face Dataset Saver (Real Data Flywheel)
 #     hf_saver = None
 #     try:
 #         if HF_TOKEN:

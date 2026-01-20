@@ -37,12 +37,12 @@
 | **Privacy (HIPAA/GDPR)** | ✅ **Privacy-First (Zero PII Egress)** | ❌ **High Risk** (Data uploaded to cloud) | ✅ Safe |
 | **Edge Deployment** | ✅ **< 4GB VRAM** (Runs on old clinic PCs) | ❌ Impossible (Requires internet) | N/A |
 | **Cost per Prescription** | ✅ **< $0.001 USD** (Nearly free) | ⚠️ ~$0.03 USD (Expensive at scale) | ⚠️ Expensive (Labor) |
-| **Code-Switching (Mixed Script)** | ✅ **S-Tier** (Fine-tuned for EN/ZH) | 🟡 A-Tier (Occasional hallucinations) | ✅ Native |
+| **Code-Switching (Mixed Script)** | ✅ **Native-Grade** (Fine-tuned for EN/ZH) | 🟡 A-Tier (Occasional hallucinations) | ✅ Native |
 | **Safety Mechanism** | ✅ **Agentic Self-Correction + Refuse When Uncertain** | ⚠️ Black Box (Hard to control hallucinations) | ✅ Professional Judgment |
 | **24/7 Availability** | ✅ **Always On** | ✅ Always On | ❌ Limited by shifts |
 | **Scalability** | ✅ **One GPU → ∞ pharmacies** | ✅ Scalable (but costly) | ❌ Linear (hire more) |
 
-> **Key Insight:** GPT-4's critical limitations in clinical deployment are **Privacy** and **Cost**. MedGemma Guardian is the *only* solution that achieves S-Tier privacy compliance while remaining free to operate.
+> **Key Insight:** GPT-4's critical limitations in clinical deployment are **Privacy** and **Cost**. MedGemma Guardian ensures robust privacy compliance with local PHI processing.
 
 ---
 
@@ -277,7 +277,7 @@ graph TD
 
 > **⚠️ Sim2Real Gap Acknowledgment (Critical Limitation):** This model is trained **exclusively on synthetic data** (programmatically generated images). However, we have upgraded the generator to strictly follow the **Taiwan Pharmacist Act (藥師法)** labeling standards—including **Noto Sans CJK TC fonts**, **Dispensing Date**, and **Drug Appearance** fields—to maximize structural realism. The features "Appearance" and "Chart No" are now included to match hospital standards.
 
-> **📚 Prototype Scope (12 Drugs Only):** The `DRUG_DATABASE` contains only **12 medications** across 6 categories. This is a **deliberate POC (Proof of Concept) design**, not a production system. If an unknown drug is encountered, the Mock-RAG will return "NOT_FOUND" and trigger human review. In production (Phase 4), this local dictionary would be replaced by real-time queries to RxNorm/Micromedex APIs. **For Agentic Workflow Prize evaluation:** We prioritize demonstrating the *safety architecture* over knowledge breadth—the pipeline correctly *admits its limitations* rather than inventing answers.
+> **📚 Prototype Scope (12 Drugs Only):** The `DRUG_DATABASE` contains only **12 medications** across 6 categories. This is a **deliberate POC (Proof of Concept) design**, not a production system. If an unknown drug is encountered, the Mock-RAG will return "NOT_FOUND" and trigger human review. In production (Phase 4), this local dictionary would be replaced by real-time queries to RxNorm/Micromedex APIs. We prioritize demonstrating the *safety architecture* over knowledge breadth—the pipeline correctly *admits its limitations* rather than inventing answers.
 
 ### Model Configuration
 | Parameter | Value |

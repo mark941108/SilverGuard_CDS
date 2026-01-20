@@ -2508,9 +2508,9 @@ model = AutoModelForImageTextToText.from_pretrained(base_model_id, device_map="a
 model = PeftModel.from_pretrained(model, adapter_model_id)
 ```
 """
-        print(f"\n✅ SUCCESS! Model uploaded to: https://huggingface.co/{repo_id}")
-        print("💡 Bonus Requirement Met: Open-weight model tracing to HAI-DEF model.")
-        print(f"📄 Don't forget to create a model card on HF website with the content above!")
+        print(f"\n[INFO] Model uploaded to: https://huggingface.co/{repo_id}")
+        print("[INFO] Bonus Requirement Met: Open-weight model tracing to HAI-DEF model.")
+        print(f"[INFO] Please create a model card on HF website with the content above.")
         
     except Exception as e:
         print(f"❌ Upload failed: {e}")
@@ -2526,12 +2526,12 @@ model = PeftModel.from_pretrained(model, adapter_model_id)
 # CELL 10: FINAL AGENTIC DEMO (MedASR + OpenFDA + MedGemma)
 # ============================================================================
 """
-Cell 10: The Full Agentic Application (Impact Edition)
+Cell 10: The Full Agentic Application (Multimodal Edition)
 ======================================================
 Combines all HAI-DEF components into a single interface:
-1. 👂 MedASR: Caregiver Voice Log (Google MedASR)
-2. 👁️ MedGemma: Prescription Analysis (Gemma 3)
-3. 🛠️ Tool Use: OpenFDA Drug Interaction Checker
+1. MedASR: Caregiver Voice Log (Google MedASR)
+2. MedGemma: Prescription Analysis (Gemma 3)
+3. Tool Use: OpenFDA Drug Interaction Checker
 """
 
 import gradio as gr
