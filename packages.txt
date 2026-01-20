@@ -1,4 +1,4 @@
 espeak-ng
+libespeak1
 ffmpeg
 libsndfile1
-
