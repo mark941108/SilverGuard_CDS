@@ -450,6 +450,14 @@ def inject_medical_risk(case_data):
         # V7.1 NEW: Aspirin 分辨測試 (50% PASS, 50% HIGH_RISK)
         elif trap_type == "aspirin_check":
             drug = next(d for d in DRUG_DATABASE["Cardiac"] if d["name_en"] == "Aspirin").copy()
+            
+            # V7 Fix: Add usage instruction (missing caused KeyError)
+            u = USAGE_MAPPING["QD_breakfast_after"]
+            drug["usage_instruction"] = {
+                "timing_zh": u["text_zh"], "timing_en": u["text_en"],
+                "grid_time": u["grid_time"], "grid_food": u["grid_food"], "quantity": 28
+            }
+            
             case_data["drug"] = drug
             case_data["patient"]["age"] = 85
             case_data["patient"]["dob"] = "1941-03-15"
@@ -471,6 +479,14 @@ def inject_medical_risk(case_data):
         # V7.1: Zolpidem 10mg 過量 (FDA 老年建議 5mg)
         elif trap_type == "zolpidem_overdose":
             drug = DRUG_DATABASE["Sedative"][0].copy()  # Stilnox
+            
+            # V7 Fix: Add usage instruction
+            u = USAGE_MAPPING["QD_bedtime"]
+            drug["usage_instruction"] = {
+                "timing_zh": u["text_zh"], "timing_en": u["text_en"],
+                "grid_time": u["grid_time"], "grid_food": u["grid_food"], "quantity": 28
+            }
+            
             case_data["drug"] = drug
             case_data["patient"]["age"] = 82
             case_data["patient"]["dob"] = "1944-06-10"
