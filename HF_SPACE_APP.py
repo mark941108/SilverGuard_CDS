@@ -400,7 +400,8 @@ def run_inference(image, patient_notes=""):
     patient_context = ""
     if patient_notes and patient_notes.strip():
         patient_context = f"\n\n**CRITICAL Patient Note (from voice input)**: \"{patient_notes}\"\n"
-        patient_context += "⚠️ Cross-check this note against the prescription. Flag HIGH_RISK if any drug in the image matches the patient's stated allergies or conditions.\n"
+        patient_context += "⚠️ CONTEXT: This note is provided by a MIGRANT CAREGIVER (e.g., from Philippines/Indonesia) speaking in English. "
+        patient_context += "Please interpret their input carefully. Flag HIGH_RISK if the concept matches a contraindication (e.g., 'allergic to aspirin').\n"
     
     # 1. Enhanced Prompting (V6.3: Synced with Kaggle - Full Prompt with JSON Example)
     prompt = (
@@ -615,9 +616,16 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                     input_img = gr.Image(type="pil", label="📸 Upload Drug Bag Photo")
                     
                     # V8 NEW: MedASR Voice Input (Reframed as Caregiver Tool)
-                    gr.Markdown("### 🎤 Caregiver Voice Log (Optional)")
-                    gr.Markdown("*For family/pharmacist to log patient info. Speak clearly in English for best accuracy.*")
-                    voice_input = gr.Audio(sources=["microphone"], type="filepath", label="🎙️ Record caregiver note (e.g., 'Patient is allergic to Aspirin')")
+                    # V8.5 NEW: Migrant Caregiver Narrative
+                    gr.Markdown("### 🎤 Migrant Caregiver Voice Log (Empowerment Feature)")
+                    gr.Markdown("*Designed for foreign caregivers (e.g., Philippines/Indonesia) who communicate in English. Logs patient conditions for AI safety checks.*")
+                    
+                    with gr.Row():
+                        # Pre-canned examples for reliable demo
+                        voice_ex1 = gr.Button("🔊 Ex 1: 'Allergic to Aspirin'")
+                        voice_ex2 = gr.Button("🔊 Ex 2: 'History of Kidney Failure'")
+                    
+                    voice_input = gr.Audio(sources=["microphone"], type="filepath", label="🎙️ Record Note (English)")
                     transcription_display = gr.Textbox(label="📝 Transcription (Google MedASR)", interactive=False, placeholder="Caregiver voice note will appear here...")
                     
                     btn = gr.Button("🔍 Analyze & Safety Check", variant="primary", size="lg")
@@ -637,33 +645,44 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                     json_output = gr.JSON(label="📊 Extracted Data & Reasoning Chain")
             
             # --- Tab 1 Event Wiring ---
-            # V8 NEW: Wrapper function that transcribes audio then runs inference
-            def analyze_with_voice(image, audio_path):
+            # V8.5 NEW: Hybrid Wrapper - Accepts Audio OR Text (from buttons)
+            def analyze_with_voice(image, audio_path, text_override):
                 """
-                1. Transcribe voice note using MedASR (if provided)
-                2. Run MedGemma inference with image + patient notes
-                3. Return all outputs including transcription display
+                1. If valid audio_path, transcribe it.
+                2. If text_override exists (from buttons), use it.
+                3. Run Inference.
                 """
-                # Step 1: Transcribe if audio provided
                 transcription = ""
-                if audio_path:
-                    transcription, success = transcribe_audio(audio_path)
-                    if success:
-                        print(f"🎤 Patient Note: {transcription}")
-                    else:
-                        transcription = "(Voice transcription failed, proceeding without patient note)"
                 
-                # Step 2: Run MedGemma inference with patient notes
+                # Case A: Actual Voice Input
+                if audio_path:
+                    t, success = transcribe_audio(audio_path)
+                    if success:
+                        transcription = t
+                
+                # Case B: Text Override (Example Buttons or Manual Edit)
+                # If we have override and no new audio, use override
+                if not transcription and text_override:
+                    transcription = text_override
+
+                print(f"🎤 Final Patient Note: {transcription}")
+                
+                # Step 2: Run MedGemma
                 status, json_out, silver, audio = run_inference(image, patient_notes=transcription)
                 
-                # Return 5 outputs: transcription + original 4
                 return transcription, status, json_out, silver, audio
             
+            # Main Analyze Button
+            # NOTE: We pass transcription_display as input too, to capture button clicks!
             btn.click(
                 fn=analyze_with_voice, 
-                inputs=[input_img, voice_input], 
+                inputs=[input_img, voice_input, transcription_display], 
                 outputs=[transcription_display, status_output, json_output, silver_output, audio_output]
             )
+            
+            # Example Button Wiring (Populates the text box)
+            voice_ex1.click(lambda: "Patient is allergic to Aspirin.", outputs=transcription_display)
+            voice_ex2.click(lambda: "Patient has history of kidney failure (eGFR < 30).", outputs=transcription_display)
             
             # Feedback Loop (Reinforcement Learning)
             gr.Markdown("---")
