@@ -1,5 +1,5 @@
 <!-- 🖼️ HERO IMAGE -->
-![AI Pharmacist Guardian](13151545-f304-440c-9575-ce41a8072579.jpg)
+![AI Pharmacist Guardian](hero image.jpg)
 
 # 🏥 AI Pharmacist Guardian + 👴 SilverGuard
 
@@ -50,8 +50,9 @@
 **AI Pharmacist Guardian** + **SilverGuard** is a human-centered healthcare AI that:
 
 1. **📷 Visual Recognition** - Extract prescription from drug bag images (end-to-end VLM, no OCR)
-2. **🔍 Safety Analysis** - Detect medication risks for elderly patients
-3. **👴 SilverGuard Mode** - TTS voice readout + Large-font UI for cognitively impaired users
+2. **🎤 Voice Context** - Integrate caregiver audio logs (MedASR) for deeper safety checks
+3. **🔍 Safety Analysis** - Detect medication risks for elderly patients
+4. **👴 SilverGuard Mode** - TTS voice readout + Large-font UI for cognitively impaired users
 
 ### 🌏 Strategic Testbed: Why Taiwan?
 
@@ -211,12 +212,13 @@ This project implements an **Agentic Workflow** design, deploying MedGemma as an
 graph TD
     subgraph Perception["Perception Layer"]
         A["📸 Drug Bag Image"] --> B{"Input Gate: Valid?"}
+        V["🎤 Caregiver Voice"] --> D["Multimodal Fusion"]
         B -- No --> X["⛔ Reject: OOD/Blurry"]
     end
 
     subgraph Reasoning["🧠 MedGemma Agent"]
         B -- Yes --> C["Vision Encoder"]
-        C --> D["Chain-of-Thought Reasoning"]
+        C --> D
         D --> E{"Logical Consistency Check"}
         E -- "Logic Flaw Detected" --> F["🔄 Self-Correction"]
         F --> D
@@ -272,7 +274,7 @@ graph TD
 - **Risk Injection**: **4 Risk Patterns** (Elderly Overdose, Wrong Timing, Drug Interaction, Renal Risk)
 - **Augmentation**: Albumentations (Perspective, Rotate, Brightness, Noise)
 
-> **⚠️ Sim2Real Gap Acknowledgment (Critical Limitation):** This model is trained **exclusively on synthetic data** (programmatically generated images with perfect fonts and layouts). Real-world scenarios (handwritten notes, wrinkled packaging, poor lighting, unusual fonts) will likely cause significant performance degradation. **This is expected and acknowledged.** The Agentic Workflow is specifically designed to mitigate this—when confidence < 80%, the system **refuses to guess and flags for human pharmacist review**. We believe "refusing to answer" is safer than "hallucinating an answer."
+> **⚠️ Sim2Real Gap Acknowledgment (Critical Limitation):** This model is trained **exclusively on synthetic data** (programmatically generated images). However, we have upgraded the generator to strictly follow the **Taiwan Pharmacist Act (藥師法)** labeling standards—including **Noto Sans CJK TC fonts**, **Dispensing Date**, and **Drug Appearance** fields—to maximize structural realism. The features "Appearance" and "Chart No" are now included to match hospital standards.
 
 > **📚 Prototype Scope (12 Drugs Only):** The `DRUG_DATABASE` contains only **12 medications** across 6 categories. This is a **deliberate POC (Proof of Concept) design**, not a production system. If an unknown drug is encountered, the Mock-RAG will return "NOT_FOUND" and trigger human review. In production (Phase 4), this local dictionary would be replaced by real-time queries to RxNorm/Micromedex APIs. **For Agentic Workflow Prize evaluation:** We prioritize demonstrating the *safety architecture* over knowledge breadth—the pipeline correctly *admits its limitations* rather than inventing answers.
 
@@ -427,8 +429,9 @@ Cell 2: Data Generation (600 images + Risk Injection)
 Cell 3: QLoRA Training (MedGemma 1.5-4B)
 Cell 4: Agentic Pipeline Testing (Input Gate → Confidence → Grounding)
 Cell 5: HIGH_RISK Demo (Screenshot this!)
-Cell 6: Gradio Demo (Optional)
+Cell 6: Gradio Demo (Standard)
 Cell 7: SilverGuard Elder-Friendly Output (TTS + Calendar) 👴
+Cell 10: 🚀 S-Tier Agentic Demo (MedASR Voice + OpenFDA + Vision) 🌟
 ```
 
 ---
