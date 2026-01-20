@@ -1,5 +1,5 @@
 <!-- 🖼️ HERO IMAGE -->
-![AI Pharmacist Guardian](hero image.jpg)
+![AI Pharmacist Guardian](assets/hero_image.jpg)
 
 # 🏥 AI Pharmacist Guardian + 👴 SilverGuard
 
