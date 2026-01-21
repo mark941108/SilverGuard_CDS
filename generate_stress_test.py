@@ -190,7 +190,7 @@ def apply_paper_texture(img):
     """
     Simulates crumpled paper texture using procedural noise overlay.
     Strategy: Generates a grayscale noise layer, blurs it to create 'folds', 
-    and blends it with the original image using 'multiply' mode logic.
+    and blends it with the original image using a multiply-like effect.
     """
     width, height = img.size
     # 1. Generate base noise map
@@ -204,33 +204,13 @@ def apply_paper_texture(img):
     fold_img = fold_img.filter(ImageFilter.GaussianBlur(radius=15))
     
     # 3. Blend logic (simulating Apply mode)
-    # Convert original to RGBA to allow blending
+    # Convert original to RGBA to allow blending logic
     img = img.convert("RGBA")
-    
-    # Create overlay
-    overlay = Image.new('RGBA', img.size, (0,0,0,0))
-    draw = ImageDraw.Draw(overlay)
-    
-    # In manual pixel manipulation or complex blending, we'd multiply.
-    # Here, we'll just alpha blend the fold map as a shadow layer
-    # Simply put: Darker folds
-    
-    # Convert fold_img to valid mask/layer
-    # Using PIL's math to multiply intensity would be best but simple alpha blend is robust here
-    # Let's use image composition:
-    
-    # Create a texture layer:
-    # Use the fold image to darken the base image
-    # We can multiply the arrays
-    
     img_arr = np.array(img).astype(float)
     fold_arr = np.array(fold_img).astype(float) / 255.0
+    fold_arr = np.expand_dims(fold_arr, axis=2) # Broadcast
     
-    # Expand dims for broadcasting (H, W, 1) if using just fold_arr
-    fold_arr = np.expand_dims(fold_arr, axis=2)
-    
-    # Multiply: Darkens grid lines based on folds
-    # Keep alpha channel intact if present, or just operate on RGB
+    # Multiply: Darkens image based on folds
     img_rgb = img_arr[:,:,:3] * fold_arr
     
     # Re-combine
@@ -243,7 +223,7 @@ def apply_skew(img, angle=15):
 def apply_occlusion(img):
     draw = ImageDraw.Draw(img)
     width, height = img.size
-    # Occlude drug name partially
+    # Occlude drug name partially (simulating a finger)
     draw.ellipse([(100, 280), (300, 350)], fill=(210, 180, 160)) # Finger-like tone
     return img
 

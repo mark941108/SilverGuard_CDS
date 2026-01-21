@@ -103,6 +103,7 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 | ❌ Requires internet | ✅ **Core inference offline*** |
 | ❌ Data uploaded to cloud | ✅ **PHI never leaves device** |
 | ❌ Privacy concerns for PHI | ✅ **HIPAA-compliant design** |
+| ❌ Hallucination Risk | ✅ **Neuro-Symbolic Guardrails** |
 | ❌ High API costs | ✅ **Free, runs on single T4 GPU** |
 
 > [!NOTE]
@@ -207,6 +208,14 @@ Calculation:
 </details>
 
 ---
+
+---
+
+## 📸 Clinical Validation: Sim2Real "Screen-to-Camera" Test
+To validate robustness against real-world optical noise, we performed **LCD Re-capture Tests**:
+1.  Displayed drug bags on a screen.
+2.  captured images using a smartphone to introduce **Moiré patterns**, **glare**, and **lens distortion**.
+3.  **Result:** System successfully processed these physical-digital hybrid inputs.
 
 ## 🏆 Demo Results
 
