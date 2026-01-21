@@ -1343,10 +1343,19 @@ def agentic_inference(model, processor, img_path, verbose=True):
         "- Return ONLY a valid JSON object.\n"
         "- 'safety_analysis.reasoning' MUST be in Traditional Chinese (繁體中文).\n"
         "- Add 'silverguard_message' field using the persona of a caring grandchild (貼心晚輩).\n\n"
-        "JSON Example:\n"
-        "{\"extracted_data\": {...}, \"safety_analysis\": {\"status\": \"HIGH_RISK\", "
-        "\"reasoning\": \"病患88歲，Glucophage 2000mg 劑量過高，依 Beers Criteria 恐有風險。\"}, "
-        "\"silverguard_message\": \"阿嬤，修但幾咧！這包藥劑量太重了，先不要吃，趕快問藥師喔！\"}"
+        "### ONE-SHOT EXAMPLE (Reflect this Authenticity):\n"
+        "{\n"
+        "  \"extracted_data\": {\n"
+        "    \"patient\": {\"name\": \"王大明\", \"age\": 88},\n"
+        "    \"drug\": {\"name\": \"Glucophage\", \"name_zh\": \"庫魯化\", \"dose\": \"500mg\"},\n"
+        "    \"usage\": \"每日兩次，飯後服用 (BID)\"\n"
+        "  },\n"
+        "  \"safety_analysis\": {\n"
+        "    \"status\": \"WARNING\",\n"
+        "    \"reasoning\": \"病患88歲，腎功能隨年齡下降。Glucophage (Metformin) 雖為一線用藥，但需注意 GFR 數值。建議請家屬確認近期腎功能檢查報告，避免乳酸中毒風險。\"\n"
+        "  },\n"
+        "  \"silverguard_message\": \"阿公，這是降血糖的藥（庫魯化）。醫生交代要『呷飽才吃』喔！如果覺得肚子不舒服、想吐，要趕快跟我們說。\"\n"
+        "}"
     )
     
     correction_context = ""  # Will be populated on retry

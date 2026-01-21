@@ -200,23 +200,34 @@ DRUG_DATABASE = {
 }
 
 def retrieve_drug_info(drug_name: str) -> dict:
-    """RAG Interface"""
+    """RAG Interface (Mock for Hackathon)"""
     drug_lower = drug_name.lower().strip()
     names_to_search = [drug_lower]
     if drug_lower in DRUG_ALIASES:
         names_to_search.append(DRUG_ALIASES[drug_lower]) 
-
+    
+    # Check Database
     for cat, drugs in DRUG_DATABASE.items():
         for drug in drugs:
             name_en_lower = drug.get("name_en", "").lower()
             generic_lower = drug.get("generic", "").lower()
+            
             for search_name in names_to_search:
                 if (search_name in name_en_lower or search_name in generic_lower or
                     name_en_lower in search_name or generic_lower in search_name):
+                    
                     result = drug.copy()
                     result["found"] = True
                     return result
-    return {"found": False, "class": "Unknown", "risk": "Manual Review Required"}
+
+    # ⚠️ Catch-All for Unknown Drugs (The Safe Fallback)
+    return {
+        "found": False, 
+        "class": "Unknown", 
+        "name_en": drug_name,
+        "warning": "⚠️ UNKNOWN DRUG DETECTED. SYSTEM CANNOT VERIFY SAFETY.",
+        "risk": "UNKNOWN_DRUG"
+    }
 
 # ============================================================================
 # 💊 OpenFDA Drug Interaction Checker
@@ -335,25 +346,33 @@ def run_inference(image, patient_notes=""):
         patient_context = f"\n\n**CRITICAL Patient Note (from voice input)**: \"{patient_notes}\"\n"
         patient_context += "⚠️ CONTEXT: This note is provided by a MIGRANT CAREGIVER (e.g., from Philippines/Indonesia) speaking in English. "
         patient_context += "Please interpret their input carefully. Flag HIGH_RISK if the concept matches a contraindication (e.g., 'allergic to aspirin').\n"
-    
-    # Base Prompt
+    # V6 Enhanced Prompt: Dual-Persona (Clinical + SilverGuard) with Conservative Constraint
     base_prompt = (
         "You are 'AI Pharmacist Guardian', a **meticulous and risk-averse** clinical pharmacist in Taiwan. "
         "You prioritize patient safety above all else. When uncertain, you MUST flag for human review rather than guessing. "
         "Your patient is an elderly person (65+) who may have poor vision.\n\n"
-        f"{patient_context}"
         "Task:\n"
         "1. Extract: Patient info, Drug info (English name + Chinese function), Usage.\n"
         "2. Safety Check: Cross-reference AGS Beers Criteria 2023. Flag HIGH_RISK if age>80 + high dose.\n"
-        "3. SilverGuard: Add a warm message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
+        "3. Cross-Check Context: Consider the provided CAREGIVER VOICE NOTE (if any) for allergies or specific conditions.\n"
+        "4. SilverGuard: Add a warm message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
         "Output Constraints:\n"
         "- Return ONLY a valid JSON object.\n"
         "- 'safety_analysis.reasoning' MUST be in Traditional Chinese (繁體中文).\n"
         "- Add 'silverguard_message' field using the persona of a caring grandchild (貼心晚輩).\n\n"
-        "JSON Example:\n"
-        "{\"extracted_data\": {...}, \"safety_analysis\": {\"status\": \"HIGH_RISK\", "
-        "\"reasoning\": \"病患88歲，Glucophage 2000mg 劑量過高，依 Beers Criteria 恐有風險。\"}, "
-        "\"silverguard_message\": \"阿嬤，修但幾咧！這包藥劑量太重了，先不要吃，趕快問藥師喔！\"}"
+        "### ONE-SHOT EXAMPLE (Reflect this Authenticity):\n"
+        "{\n"
+        "  \"extracted_data\": {\n"
+        "    \"patient\": {\"name\": \"王大明\", \"age\": 88},\n"
+        "    \"drug\": {\"name\": \"Glucophage\", \"name_zh\": \"庫魯化\", \"dose\": \"500mg\"},\n"
+        "    \"usage\": \"每日兩次，飯後服用 (BID)\"\n"
+        "  },\n"
+        "  \"safety_analysis\": {\n"
+        "    \"status\": \"WARNING\",\n"
+        "    \"reasoning\": \"病患88歲，腎功能隨年齡下降。Glucophage (Metformin) 雖為一線用藥，但需注意 GFR 數值。建議請家屬確認近期腎功能檢查報告，避免乳酸中毒風險。\"\n"
+        "  },\n"
+        "  \"silverguard_message\": \"阿公，這是降血糖的藥（庫魯化）。醫生交代要『呷飽才吃』喔！如果覺得肚子不舒服、想吐，要趕快跟我們說。\"\n"
+        "}"
     )
 
     # ===== AGENTIC LOOP =====
@@ -583,24 +602,35 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                     )
                     
                     status_output = gr.Textbox(label="🛡️ Safety Status", elem_id="risk-header")
-                    silver_html = gr.HTML(label="👵 SilverGuard UI") # Change to HTML for styling
+                    
+                    # 👵 SilverGuard UI Priority (Per Blind Spot Scan)
+                    silver_html = gr.HTML(label="👵 SilverGuard UI") 
                     audio_output = gr.Audio(label="🔊 Voice Alert")
-                    json_output = gr.JSON(label="📊 Agent Reasoning")
-            
-            def analyze_with_voice(image, audio_path, text_override, target_lang):
+                    
+                    # 📉 HIDE COMPLEX LOGIC (Accordion)
+                    with gr.Accordion("📊 Developer Logs (Agent Reasoning)", open=False):
+                        json_output = gr.JSON(label="Agent Reasoning")
+
+            def analyze_with_voice(image, audio_path, text_override, target_lang, progress=gr.Progress()):
                 transcription = ""
+                
+                # Step 1: Voice Input
                 if audio_path:
+                    progress(0.1, desc="🎤 Analyzing Voice Note...")
                     t, success = transcribe_audio(audio_path)
                     if success: transcription = t
                 if not transcription and text_override: transcription = text_override
                 print(f"🎤 Context: {transcription} | Lang: {target_lang}")
                 
-                # 1. Run Inference
+                # Step 2: Inference (this is the slow part)
+                progress(0.3, desc="🧠 MedGemma Agent Thinking...")
                 status, res_json, speech, audio_path_old = run_inference(image, patient_notes=transcription)
                 
-                # 2. Run SilverGuard UI Gen (with Language)
+                # Step 3: UI Gen
+                progress(0.8, desc="👵 Generating SilverGuard UI...")
                 html_view, audio_path_new = silverguard_ui(res_json, target_lang=target_lang)
                 
+                progress(1.0, desc="✅ Complete!")
                 return transcription, status, res_json, html_view, audio_path_new
             
             btn.click(
