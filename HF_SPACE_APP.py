@@ -111,7 +111,7 @@ ENABLE_TTS = True      # Enable Text-to-Speech
 
 # Agent Settings
 MAX_RETRIES = 2
-TEMP_CREATIVE = 0.6    # First pass: Diversity
+TEMP_CREATIVE = 0.2    # First pass: Strict Determinism (Code Red Fix)
 TEMP_STRICT = 0.2      # Retry pass: Deterministic (Unified with Kaggle V5)
 
 # ============================================================================
@@ -302,7 +302,12 @@ def logical_consistency_check(extracted_data):
             drug_info = retrieve_drug_info(drug_name)
             if not drug_info.get("found", False): issues.append(f"Drug not in knowledge base: {drug_name}")
     except: pass
-    return issues
+        if "UNKNOWN_DRUG" in str(issues):
+            # V6.4 FIX: Critical Safety - Do NOT retry on unknown drugs (Infinite Loop Trap)
+            return True, f"⚠️ UNKNOWN_DRUG detected. Manual Review Required. (Logic Check Passed to prevent retry)"
+        
+        return False, f"邏輯檢查異常: {', '.join(issues)}"
+    return True, "邏輯一致性檢查通過"
 
 def json_to_elderly_speech(result_json):
     """Generates the TTS script for SilverGuard"""
@@ -536,20 +541,29 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
             tts.save(audio_path)
             tts_mode = "online"
             print("🔊 TTS: Online Mode (gTTS)")
-        except: pass
+        except Exception as e:
+            print(f"⚠️ Online TTS failed: {e}")
             
     # Tier 2: pyttsx3 (Offline)
     if tts_mode == "none":
         try:
             import pyttsx3
             import tempfile
-            engine = pyttsx3.init()
+            # V6.5 FIX: Robust Offline Fallback (Dependency Hell Protection)
+            try:
+                engine = pyttsx3.init()
+            except OSError:
+                print("❌ pyttsx3 init failed (missing espeak?), skipping offline TTS")
+                raise ImportError("espeak not found")
+
             voices = engine.getProperty('voices')
             for voice in voices:
                 if 'zh' in voice.id.lower() or 'chinese' in voice.name.lower():
                     engine.setProperty('voice', voice.id)
                     break
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f: audio_path = f.name
+            
+            # V6 Deploy Fix: Use /tmp
+            audio_path = "/tmp/tts_output.wav"
             engine.save_to_file(clean_text, audio_path)
             engine.runAndWait()
             tts_mode = "offline"

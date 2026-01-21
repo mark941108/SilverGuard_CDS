@@ -1201,6 +1201,10 @@ def logical_consistency_check(extracted_data, safety_analysis):
         issues.append("推理內容未提及藥名")
     
     if issues:
+        # V6.4 FIX: Critical Safety - Do NOT retry on unknown drugs (Infinite Loop Trap)
+        if any("藥物未在知識庫中" in issue for issue in issues):
+             return True, f"⚠️ UNKNOWN_DRUG detected. Manual Review Required. (Logic Check Passed to prevent retry)"
+        
         return False, f"邏輯檢查異常: {', '.join(issues)}"
     return True, "邏輯一致性檢查通過"
 
@@ -1389,7 +1393,8 @@ def agentic_inference(model, processor, img_path, verbose=True):
             
             # Adjust temperature on retry (Start Creative 0.6 -> Retry Strict 0.2)
             # V6 Optimization: Lowered to 0.2 to force maximum determinism on correction (Unified with V5 Standard)
-            temperature = 0.6 if current_try == 0 else 0.2
+            # USER CODE RED: Global Temperature Lock at 0.2
+            temperature = 0.2
             
             with torch.no_grad():
                 outputs = model.generate(
