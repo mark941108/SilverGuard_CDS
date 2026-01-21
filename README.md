@@ -277,6 +277,8 @@ mindmap
 
 ### 🏗️ Complete Workflow Architecture
 
+<div translate="no">
+
 ```mermaid
 graph TD
     %% --- Global Style (Google Tech Theme) ---
@@ -349,6 +351,8 @@ graph TD
     %% --- Link Styles ---
     linkStyle default stroke:#607d8b,stroke-width:1.5px,fill:none
 ```
+
+</div>
 
 **Key Agentic Features:**
 - **Input Gating**: Rejects non-prescription images (receipts, random photos) before processing
