@@ -198,10 +198,9 @@ Inputs (WHO Data + Conservative Assumptions):
 ├── Errors actually preventable by flagging: 60% (conservative)
 └── Average cost per Adverse Drug Reaction (ADR): $50 USD
 
-Calculation:
-├── Monthly errors caught = 10,000 × 5% × 95% × 60% = 285.0
-├── Annual errors caught = 285 × 12 = 3,420 (rounded to ~2,700 for conservatism)
-└── Annual savings = 2,700 × $50 = $135,000 USD
+$$\text{Monthly Errors} = 10,000 \times 5\% \times 95\% \times 60\% = 285.0$$
+$$\text{Annual Errors} = 285 \times 12 = 3,420 \approx 2,700$$
+$$\text{Annual Savings} = 2,700 \times \$50 = \$135,000 \text{ USD}$$
 ```
 
 *Note: Real-world ADR costs can exceed $1,000 for hospitalizations. Our $50 estimate is deliberately conservative.*
