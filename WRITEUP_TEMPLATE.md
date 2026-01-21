@@ -39,74 +39,74 @@ Our solution, **AI Pharmacist Guardian**, utilizes a **Neuro-Symbolic Architectu
 ```mermaid
 graph TD
     %% --- Global Style (Google Tech Theme) ---
-    classDef default font-family:Arial,font-size:14px;
-    classDef input fill:#f8f9fa,stroke:#adb5bd,stroke-width:2px,rx:10,ry:10,color:#495057;
-    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px,rx:5,ry:5,color:#0d47a1;
-    classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,rx:5,ry:5,color:#f57f17;
-    classDef decision fill:#fff3e0,stroke:#ff9800,stroke-width:2px,rhombus,color:#e65100;
-    classDef success fill:#e8f5e9,stroke:#4caf50,stroke-width:2px,color:#1b5e20;
-    classDef warning fill:#fff8e1,stroke:#ffc107,stroke-width:2px,color:#ff6f00;
-    classDef danger fill:#ffebee,stroke:#ef5350,stroke-width:2px,color:#b71c1c;
-    classDef ui fill:#e0f2f1,stroke:#009688,stroke-width:2px,stroke-dasharray: 0,color:#004d40;
-    
+    classDef default font-family:Arial,font-size:14px
+    classDef input fill:#f8f9fa,stroke:#adb5bd,stroke-width:2px,rx:10,ry:10,color:#495057
+    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px,rx:5,ry:5,color:#0d47a1
+    classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,rx:5,ry:5,color:#f57f17
+    classDef decision fill:#fff3e0,stroke:#ff9800,stroke-width:2px,rhombus,color:#e65100
+    classDef success fill:#e8f5e9,stroke:#4caf50,stroke-width:2px,color:#1b5e20
+    classDef warning fill:#fff8e1,stroke:#ffc107,stroke-width:2px,color:#ff6f00
+    classDef danger fill:#ffebee,stroke:#ef5350,stroke-width:2px,color:#b71c1c
+    classDef ui fill:#e0f2f1,stroke:#009688,stroke-width:2px,stroke-dasharray: 0,color:#004d40
+
     %% --- Main Flow ---
-    
+
     subgraph P ["👁️ Perception Layer (Input Gate)"]
         direction TB
-        A(["📸 Drug Bag Image"]) ::: input;
-        V(["🎤 Caregiver Voice"]) ::: input;
+        A(["📸 Drug Bag Image"]) ::: input
+        V(["🎤 Caregiver Voice"]) ::: input
         
-        Gate{{"🛡️ Quality Check"}} ::: decision;
-        Reject["⛔ Reject: OOD / Blur"] ::: danger;
+        Gate{{"🛡️ Quality Check"}} ::: decision
+        Reject["⛔ Reject: OOD / Blur"] ::: danger
         
-        A --> Gate;
-        Gate -- "Pass" --> VE["📐 Vision Encoder (SigLIP)"] ::: process;
-        Gate -- "Fail" --> Reject;
+        A --> Gate
+        Gate -- "Pass" --> VE["📐 Vision Encoder (SigLIP)"] ::: process
+        Gate -- "Fail" --> Reject
     end
 
     subgraph R ["🧠 MedGemma Agent (Reasoning Loop)"]
         direction TB
-        VE --> Fusion["🧬 Multimodal Fusion"] ::: process;
-        V --> Fusion;
+        VE --> Fusion["🧬 Multimodal Fusion"] ::: process
+        V --> Fusion
         
-        Fusion --> LogicCheck{{"⚙️ Logical Consistency"}} ::: logic;
+        Fusion --> LogicCheck{{"⚙️ Logical Consistency"}} ::: logic
         
         %% Agentic Self-Correction Loop
-        Correction["🔄 Self-Correction\n(Temp 0.6 → 0.2)"] ::: logic;
-        LogicCheck -- "Flaw Detected" --> Correction;
-        Correction -.-> Fusion;
+        Correction["🔄 Self-Correction\n(Temp 0.6 → 0.2)"] ::: logic
+        LogicCheck -- "Flaw Detected" --> Correction
+        Correction -.-> Fusion
         
-        SafetyAssess["📝 Safety Assessment"] ::: process;
-        LogicCheck -- "Consistent" --> SafetyAssess;
+        SafetyAssess["📝 Safety Assessment"] ::: process
+        LogicCheck -- "Consistent" --> SafetyAssess
     end
 
     subgraph D ["⚖️ Decision Layer"]
         direction TB
-        ConfCheck{{"📊 Confidence > 80%?"}} ::: decision;
+        ConfCheck{{"📊 Confidence > 80%?"}} ::: decision
         
-        Human["🚩 Human Review Needed"] ::: warning;
-        JSON["📄 Structured JSON"] ::: process;
+        Human["🚩 Human Review Needed"] ::: warning
+        JSON["📄 Structured JSON"] ::: process
         
-        SafetyAssess --> ConfCheck;
-        ConfCheck -- "No" --> Human;
-        ConfCheck -- "Yes" --> JSON;
+        SafetyAssess --> ConfCheck
+        ConfCheck -- "No" --> Human
+        ConfCheck -- "Yes" --> JSON
         
-        JSON --> PASS["🟢 PASS"] ::: success;
-        JSON --> WARN["🟡 WARNING"] ::: warning;
-        JSON --> HIGH["🔴 HIGH_RISK"] ::: danger;
+        JSON --> PASS["🟢 PASS"] ::: success
+        JSON --> WARN["🟡 WARNING"] ::: warning
+        JSON --> HIGH["🔴 HIGH_RISK"] ::: danger
     end
 
     subgraph I ["👴 SilverGuard UI (Impact)"]
         direction LR
-        TTS["🗣️ TTS Audio\n(Dialect Support)"] ::: ui;
-        Cal["📅 Visual Calendar\n(Large Font)"] ::: ui;
+        TTS["🗣️ TTS Audio\n(Dialect Support)"] ::: ui
+        Cal["📅 Visual Calendar\n(Large Font)"] ::: ui
         
-        JSON -.-o TTS;
-        JSON -.-o Cal;
+        JSON -.-o TTS
+        JSON -.-o Cal
     end
 
     %% --- Link Styles ---
-    linkStyle default stroke:#607d8b,stroke-width:1.5px,fill:none;
+    linkStyle default stroke:#607d8b,stroke-width:1.5px,fill:none
 ```
 *(Figure 1: The Engineering Grade Agentic Architecture)*
 

@@ -58,31 +58,31 @@ Use this Mermaid code in [Mermaid Live Editor](https://mermaid.live/) to generat
 ```mermaid
 graph LR
     %% --- Dark Mode / High Contrast Style ---
-    classDef input fill:#37474f,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef core fill:#1565c0,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef gate fill:#e65100,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef out fill:#2e7d32,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef risk fill:#c62828,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef input fill:#37474f,stroke:#fff,stroke-width:2px,color:#fff
+    classDef core fill:#1565c0,stroke:#fff,stroke-width:2px,color:#fff
+    classDef gate fill:#e65100,stroke:#fff,stroke-width:2px,color:#fff
+    classDef out fill:#2e7d32,stroke:#fff,stroke-width:2px,color:#fff
+    classDef risk fill:#c62828,stroke:#fff,stroke-width:2px,color:#fff
 
     %% Nodes
-    Img([📸 Image]) ::: input --> Gate{🛡️ Gate} ::: gate
-    Voice([🎤 Voice]) ::: input --> Fusion
+    Img(["📸 Image"]) ::: input --> Gate{"🛡️ Gate"} ::: gate
+    Voice(["🎤 Voice"]) ::: input --> Fusion
     
-    Gate -- ❌ --> Reject([⛔ Stop]) ::: risk
-    Gate -- ✅ --> Enc[Vision Encoder] ::: core
+    Gate -- "❌" --> Reject(["⛔ Stop"]) ::: risk
+    Gate -- "✅" --> Enc["Vision Encoder"] ::: core
     
-    Enc --> Fusion[🧬 Fusion] ::: core
-    Fusion --> Logic{⚙️ Check} ::: gate
+    Enc --> Fusion["🧬 Fusion"] ::: core
+    Fusion --> Logic{"⚙️ Check"} ::: gate
     
-    Logic -- 🔄 Retry --> Fusion
-    Logic -- ✅ OK --> Safe[📝 Analysis] ::: core
+    Logic -- "🔄 Retry" --> Fusion
+    Logic -- "✅ OK" --> Safe["📝 Analysis"] ::: core
     
-    Safe --> Conf{📊 Conf?} ::: gate
-    Conf -- ❌ Low --> Human([🚩 Human]) ::: risk
-    Conf -- ✅ High --> JSON[📄 JSON] ::: out
+    Safe --> Conf{"📊 Conf?"} ::: gate
+    Conf -- "❌ Low" --> Human(["🚩 Human"]) ::: risk
+    Conf -- "✅ High" --> JSON["📄 JSON"] ::: out
     
-    JSON --> UI_TTS[🗣️ TTS] ::: input
-    JSON --> UI_Cal[📅 Calendar] ::: input
+    JSON --> UI_TTS["🗣️ TTS"] ::: input
+    JSON --> UI_Cal["📅 Calendar"] ::: input
 ```
 
 ---
