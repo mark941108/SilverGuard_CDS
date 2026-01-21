@@ -507,9 +507,8 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         color = "#c8e6c9" # Green
         icon = "✅"
         
-    # 3. 生成 TTS (使用對應語言)
-    tts_text = f"{display_status}. {lang_pack['CONSULT']}."
-    audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
+    # 3. 生成 HTML (Audio handled by run_inference)
+    audio_path = None 
     
     html = f"""
     <div style="background-color: {color}; padding: 20px; border-radius: 15px; border: 3px solid #333;">
@@ -526,6 +525,7 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
 
 # --- GRADIO INTERFACE UPDATE ---
 # ... (User must verify manual Gradio block update below) ...
+    # --- GRADIO INTERFACE UPDATE ---
     # TTS Logic (Hybrid)
     final_status = result_json.get("safety_analysis", {}).get("status", "UNKNOWN")
     speech_text = json_to_elderly_speech(result_json)
