@@ -355,6 +355,7 @@ We explicitly tested the model against common real-world noise to define its **o
 | **OOD Input** | Uploading receipt instead of drug bag | **Input Gate:** VLM pre-check validates image type |
 | **Hallucination** | Model generates dosage not in image | **Grounding:** Cross-check extracted values against OCR trace |
 | **Low-Quality Scan** | Very old/damaged prescription | **Fallback:** Confidence < 80% → "Human Review Needed" |
+| **Paper Crease** | Folded label with dark line | **Distortion Robustness:** Training Augmentation (Elastic Transform) handles folds |
 
 ### 🔄 Post-Deployment: Active Learning Strategy
 
