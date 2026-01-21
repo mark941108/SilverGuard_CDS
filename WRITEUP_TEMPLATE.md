@@ -39,8 +39,9 @@ Our solution, **AI Pharmacist Guardian**, utilizes a **Neuro-Symbolic Architectu
 
 ## Technical Details
 
-> **1. Zero-Budget Edge Architecture (The "Constraints as Features" Philosophy)**  
-> To ensure feasibility in rural clinics, I enforced a strict constraint: **No Paid APIs, No Cloud Dependencies.**  
+> **1. The Privacy Moat (Edge AI vs Cloud)**  
+> To ensure feasibility in rural clinics and protect PHI, I enforced a strict constraint: **No Paid APIs, No Cloud Dependencies.**  
+> * **Strategic Advantage:** While competitors integrate with complex EMRs (high privacy risk), SilverGuard runs on a **Disconnected T4 GPU**, ensuring patient data *never* leaves the clinic. This is our "Privacy Moat."  
 > * **Hardware:** Runs entirely on a free-tier **T4 GPU (16GB VRAM)**.  
 > * **Optimization:** Utilizes **4-bit quantization (NF4)** for MedGemma and offloads the ASR (Speech) model to the CPU. This heterogeneous computing strategy achieves <$0.001 inference cost per prescription.
 > 
@@ -157,6 +158,7 @@ This project validates the **logic pipeline**. Sim2Real transfer is the next pha
 | **gTTS Cloud Dependency** | Hybrid Privacy Architecture: PHI (patient data, images) stays local; only non-sensitive synthesized text uses TTS API. |
 | **MAX_RETRIES = 2** | Latency trade-off: Limits edge-deployment inference time while maintaining Agentic self-correction. |
 | **Synthetic Training Data** | Privacy-by-design: No real patient data used. Model robustness validated via augmentation (blur, noise). |
+| **Minimal Knowledge Base (12 Drugs)** | **Edge Optimization:** Kept small for instant lookup on T4. Architecture is modular; `retrieve_drug_info` is an Interface Pattern ready for hot-swapping with ChromaDB (Phase 4). |
 
 ---
 
@@ -164,7 +166,7 @@ This project validates the **logic pipeline**. Sim2Real transfer is the next pha
 
 | Phase | Target Market | Objective | Timeline |
 |-------|---------------|-----------|----------|
-| **Phase 1** | 🇹🇼 Taiwan | Deploy in 5 community pharmacies to stress-test mixed-script (EN/ZH) parsing | Q2 2026 |
+| **Phase 1** | 🇹🇼 Taiwan | Deploy in 5 community pharmacies. **Dialect-Ready Architecture:** Codebase includes stubs for `locale="zh-tw-hokkien"`, ready to plug in local dialect models once trained. | Q2 2026 |
 | **Phase 2** | 🇺🇸 US Hispanic | Swap output layer to **Spanish (Español)** to serve **60M+ Hispanic population** facing similar language barriers in healthcare | Q4 2026 |
 | **Phase 3** | 🌍 Global South | Port quantized model to **Android (Google MediaPipe)** for offline use by home care nurses in **rural Africa** (no internet required) | 2027 |
 | **Phase 4** | 🏥 Enterprise | Replace hardcoded `DRUG_DATABASE` with **RAG (Retrieval-Augmented Generation)** connecting to **RxNorm/Micromedex** APIs for real-time drug interaction checking | 2027 |

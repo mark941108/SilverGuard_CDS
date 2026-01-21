@@ -146,14 +146,9 @@
 ## 📜 完整英文旁白腳本 (複製貼上到 ElevenLabs)
 
 ```text
-[Scene 1: Hook - 0:00-0:20]
-I am an Energy Engineering student, not a doctor.
-In my field, 'system stability' is everything.
-So when I saw how fragile medication safety is for the elderly...
-I decided to build a system that doesn't just read text—it protects life.
-
 [Scene 1: Hook - 0:00-0:30]
-In 2025, Taiwan becomes a 'Super-Aged Society'. My grandparents, like millions of others, struggle to read complex prescriptions. One wrong dose can be fatal. Global medication errors cost 42 billion dollars a year. But standard OCR solutions miss the context, and standard LLMs... well, they hallucinate.
+This could kill an 88-year-old. But standard AI thinks it's safe. In 2025, as Taiwan enters a 'Super-Aged Society', we need something better than a chatbot. We need a Guardian.
+I'm [Your Name], and I built an Agent that catches what Google and GPT-4 miss.
 
 [Scene 2: Solution - 0:30-1:00]
 Meet AI Pharmacist Guardian.
@@ -162,20 +157,20 @@ This is our "Privacy Moat": Unlike cloud APIs that leak sensitive PHI, our Edge 
 It utilizes a Hybrid Architecture: Neural perception for reading, Symbolic logic for safety.
 
 [Scene 3: Agentic Loop - 1:00-2:00]
+Real-world data is messy. Standard models hallucinate on blur. So we stress-tested our Agent against a 'Gallery of Horrors'.
 Watch as we feed it a 'Nightmare Case'—blurry, dark, and confusing. A standard model would fail here.
 But my Agent acts like a human pharmacist. It triggers a Self-Correction Loop, realizing the dosage is lethal for an 88-year-old.
 It doesn't just guess; it reasons, reflects, and retries.
 It reduces temperature to 0.2 for deterministic reasoning, and retries.
 And there it is—HIGH_RISK correctly flagged. This is true Agentic Intelligence: observe, evaluate, adapt, retry.
+And when it's not sure? It doesn't guess. It calls a human. Safety is knowing when to stop.
 
 [Scene 4: SilverGuard & Health Equity - 2:00-2:40]
-Complex JSON is meaningless to elderly patients. That's why we built SilverGuard.
-Large 28px+ fonts, high-contrast colors designed for WCAG 2.1 Triple-A accessibility...
-But we didn't stop there. For Taiwan's 250,000 migrant caregivers, we added a "Language Bridge".
-Verified medical alerts in Indonesian and Vietnamese. Ensuring safety has no language barrier.
+Complex JSON saves no one. SilverGuard translates code into care. Large fonts, WCAG accessibility, and distinct audio alerts.
+And for the 250,000 migrant caregivers in Taiwan, we built a Language Bridge. Safety in their native tongue.
 We don't just detect errors—we bridge the communication gap for the most vulnerable.
 
-[Scene 5: Call to Action - 2:30-2:50]
+[Scene 5: Call to Action - 2:40-2:50]
 Built by one student, running on free hardware, designed for every forgotten elder. This is AI Pharmacist Guardian: Turning personal regret into public safety.
 ```
 

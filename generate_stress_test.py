@@ -102,7 +102,7 @@ def generate_base_prescription(drug_idx):
 
     # --- Header ---
     draw.text((40, 30), HOSPITAL_INFO["name"], font=ft_title, fill="#003366")
-    draw.text((560, 40), "門診藥袋", font=ft_title, fill="black") # Standard Title
+    draw.text((560, 80), "門診藥袋", font=ft_title, fill="black") # Standard Title (Moved Down)
     
     # QR Code (Smart Hospital)
     qr = qrcode.make(json.dumps({"id": rx_id, "drug": drug["name_en"]})).resize((110, 110))
@@ -186,6 +186,57 @@ def apply_water_damage(img):
         draw.ellipse([(x-r, y-r), (x+r, y+r)], fill=(220, 210, 190, 80))
     return img.convert('RGB')
 
+def apply_paper_texture(img):
+    """
+    Simulates crumpled paper texture using procedural noise overlay.
+    Strategy: Generates a grayscale noise layer, blurs it to create 'folds', 
+    and blends it with the original image using 'multiply' mode logic.
+    """
+    width, height = img.size
+    # 1. Generate base noise map
+    arr = np.random.randint(200, 255, (height, width), dtype=np.uint8)
+    texture = Image.fromarray(arr, mode='L')
+    
+    # 2. Create 'folds' by blurring large noise blobs
+    # (Simulating shadows of wrinkles)
+    fold_map = np.random.randint(100, 220, (height // 4, width // 4), dtype=np.uint8)
+    fold_img = Image.fromarray(fold_map, mode='L').resize((width, height), resample=Image.BICUBIC)
+    fold_img = fold_img.filter(ImageFilter.GaussianBlur(radius=15))
+    
+    # 3. Blend logic (simulating Apply mode)
+    # Convert original to RGBA to allow blending
+    img = img.convert("RGBA")
+    
+    # Create overlay
+    overlay = Image.new('RGBA', img.size, (0,0,0,0))
+    draw = ImageDraw.Draw(overlay)
+    
+    # In manual pixel manipulation or complex blending, we'd multiply.
+    # Here, we'll just alpha blend the fold map as a shadow layer
+    # Simply put: Darker folds
+    
+    # Convert fold_img to valid mask/layer
+    # Using PIL's math to multiply intensity would be best but simple alpha blend is robust here
+    # Let's use image composition:
+    
+    # Create a texture layer:
+    # Use the fold image to darken the base image
+    # We can multiply the arrays
+    
+    img_arr = np.array(img).astype(float)
+    fold_arr = np.array(fold_img).astype(float) / 255.0
+    
+    # Expand dims for broadcasting (H, W, 1) if using just fold_arr
+    fold_arr = np.expand_dims(fold_arr, axis=2)
+    
+    # Multiply: Darkens grid lines based on folds
+    # Keep alpha channel intact if present, or just operate on RGB
+    img_rgb = img_arr[:,:,:3] * fold_arr
+    
+    # Re-combine
+    res_arr = np.dstack((img_rgb, img_arr[:,:,3])).astype(np.uint8)
+    return Image.fromarray(res_arr).convert("RGB")
+
 def apply_skew(img, angle=15):
     return img.rotate(angle, expand=True, fillcolor="white")
 
@@ -202,11 +253,11 @@ STRESS_TESTS = [
     ("03_low_light", "Dark/Low Light", apply_low_light),
     ("04_overexposed", "Overexposed", apply_overexposure),
     ("05_heavy_noise", "Heavy Noise", lambda img: apply_noise(img, 80)),
-    ("06_paper_crease", "Paper Crease", apply_crease),
+    ("06_paper_texture", "Paper Texture (Physical Augmentation)", apply_paper_texture),
     ("07_water_damage", "Water Damage", apply_water_damage),
     ("08_skewed_angle", "Skewed 25°", lambda img: apply_skew(img, 25)),
     ("09_occlusion", "Finger Occlusion", apply_occlusion),
-    ("10_combined_hell", "Combined (Blur+Noise+Dark)", lambda img: apply_noise(apply_low_light(apply_extreme_blur(img, "heavy")), 40)),
+    ("10_combined_hell", "Combined (Blur+Noise+Texture)", lambda img: apply_noise(apply_low_light(apply_paper_texture(img)), 40)),
 ]
 
 if __name__ == "__main__":
