@@ -18,6 +18,7 @@
 [![Edge AI](https://img.shields.io/badge/Edge%20AI-Runs%20Offline-orange)]()
 [![Health Equity](https://img.shields.io/badge/Health%20Equity-Multilingual%20Caregiver%20Support-FF4081)]()
 [![Tech Stack](https://img.shields.io/badge/Tech-peft%20%7C%20bitsandbytes%20%7C%20transformers-blueviolet)]()
+[![Docker](https://img.shields.io/badge/Docker-Compatible-blue?logo=docker)]()
 
 ---
 
@@ -29,7 +30,15 @@
 1.  **Run All Cells**: Execute the notebook from top to bottom.
 2.  **Cell 5 (Agentic Workflow)**: This cell runs the core MedGemma agent. It will output a JSON safety analysis.
 3.  **Cell 7 (SilverGuard UI)**: This cell generates the elder-friendly calendar UI and TTS audio.
+3.  **Cell 7 (SilverGuard UI)**: This cell generates the elder-friendly calendar UI and TTS audio.
 4.  **Screenshot**: Capture a screenshot of the terminal output (Cell 5) and the SilverGuard UI (Cell 7) for the demo.
+
+### 🐳 Docker Reproducibility (Optional)
+For strict environment consistency, a `Dockerfile` is provided in the repository to replicate the exact CUDA/Python environment used for training.
+```bash
+docker build -t silverguard-agent .
+docker run --gpus all -it silverguard-agent
+```
 
 ---
 

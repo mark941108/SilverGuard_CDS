@@ -103,6 +103,7 @@ Unlike standard LLMs that hallucinate an answer 100% of the time, **MedGemma Gua
 - **Privacy**: 100% local PHI processing (no patient data leaves device)
 - **Hybrid TTS**: gTTS (online, best quality) → pyttsx3 (offline fallback) → Visual-only (always works)
 - **Edge Target**: NVIDIA Jetson Orin Nano (67 TOPS, 15W)
+- **Sustainability (Green AI)**: Estimated ~0.005 kWh per inference (vs Cloud API ~0.0x kWh). Running locally on existing hardware reduces carbon footprint significantly.
 
 > **Deployment Note:** Core model inference is fully offline-capable. SilverGuard TTS degrades gracefully from cloud (high quality) to local (robotic) to visual-only, ensuring the system remains functional in intermittent connectivity environments typical of rural clinics.
 

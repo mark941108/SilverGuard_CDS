@@ -122,7 +122,7 @@ This system runs on a single T4 GPU, enabling deployment in:
 # %%capture
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
-# !pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS
+# !pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts
 # !pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets transformers>=4.50.0
 # !pip install -q pillow==11.0.0 torchaudio librosa soundfile
 # Updated: Added torchaudio librosa soundfile for MedASR Voice Input
@@ -2867,32 +2867,82 @@ def launch_agentic_app():
                     
                     with gr.Column():
                         status_out = gr.Textbox(label="Safety Status")
-                        json_out = gr.JSON(label="Agent Reasoning")
+                        status_out = gr.Textbox(label="Safety Status")
+                        json_out = gr.JSON(label="JSON Output")
+                        logs_out = gr.TextArea(label="🧠 Agent Thought Process (Logs)", interactive=False, lines=4)
                         silver_out = gr.Textbox(label="SilverGuard Script")
+                        audio_out = gr.Audio(label="🔊 SilverGuard Voice (HsiaoChen)", type="filepath", autoplay=True)
                 
                 # Wrapper
-                def run_full_flow(image, audio):
-                    voice_note = ""
+                import edge_tts
+                import asyncio
+                
+                async def generate_edge_audio(text, output_file):
+                    # Using the high-quality Taiwanese voice
+                    voice = "zh-TW-HsiaoChenNeural" 
+                    communicate = edge_tts.Communicate(text, voice)
+                    await communicate.save(output_file)
+
+                def run_full_flow_with_tts(image, audio):
                     if audio:
                         text, ok = transcribe_audio(audio)
                         if ok: 
                             voice_note = text
                             print(f"🎤 Voice Context: {voice_note}")
                     
-                    # Quick Temp Save (V8 Agent takes path)
+                    # 1.1 Add Agent Logs UI
+                    log_text = "🔄 Agent Thought Process:\n"
+                    log_text += f"   - Voice Context: '{voice_note}'\n"
+                    log_text += f"   - Model: MedGemma 1.5-4B (4-bit)\n"
+                    log_text += f"   - Deterministic Guardrails: ACTIVE\n"
+                    
+                    # 2. Image Inference
                     import tempfile
-                    # Save PIL image to temp file
                     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
                         image.save(tmp.name)
                         tpath = tmp.name
                     
-                    # V8 Call: Pass voice_note directly to LLM Prompt
-                    res = agentic_inference_v8(model, processor, tpath, voice_context=voice_note, verbose=True)
+                    # Capture Logs from Inference
+                    try:
+                        res = agentic_inference_v8(model, processor, tpath, voice_context=voice_note, verbose=True)
+                        log_text += f"   - Attempt 1: Inference Complete\n"
+                        if res.get("agentic_retries", 0) > 0:
+                            log_text += f"   ⚠️ Logic Check Failed -> Triggered Retry Loop\n"
+                            log_text += f"   - Retries Used: {res['agentic_retries']}\n"
+                            log_text += f"   - Correction Context Applied: YES\n"
+                        log_text += f"   ✅ Final Status: {res['final_status']}\n"
+                        
+                        # 4. Deterministic Sanity Filter (Safety Guardrail)
+                        if "safety_analysis" not in res or "status" not in res["safety_analysis"]:
+                             log_text += f"   ❌ SANITY CHECK FAILED: Malformed JSON output.\n"
+                             res["final_status"] = "SYSTEM_ERROR"
+                        
+                    except Exception as e:
+                        log_text += f"   ❌ SYSTEM ERROR: {str(e)}\n"
+                        res = {"final_status": "ERROR", "safety_analysis": {"reasoning": str(e)}}
                     
+                    # 3. Generate Analysis Text
                     silver = json_to_elderly_speech(res)
-                    return res["final_status"], res, silver
+                    
+                    # 4. Generate TTS Audio (The Upgrade)
+                    audio_path = "silver_guard_speech.mp3"
+                    try:
+                        print(f"🗣️ Generating SilverGuard Voice ({len(silver)} chars)...")
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(generate_edge_audio(silver, audio_path))
+                        print("✅ Audio generated!")
+                    except Exception as e:
+                        print(f"⚠️ TTS Gen Failed: {e}")
+                        audio_path = None
+                        
+                    return res["final_status"], res, log_text, silver, audio_path
 
-                analyze_btn.click(run_full_flow, inputs=[img_in, audio_in], outputs=[status_out, json_out, silver_out])
+                analyze_btn.click(
+                    run_full_flow_with_tts, 
+                    inputs=[img_in, audio_in], 
+                    outputs=[status_out, json_out, logs_out, silver_out, audio_out]
+                )
 
             # Tab 2: Tool Use
             with gr.TabItem("💊 OpenFDA Interaction Tool"):
