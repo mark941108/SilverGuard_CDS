@@ -295,7 +295,8 @@ DRUG_DATABASE = {
         {"code": "BC23456799", "name_en": "Diamicron", "name_zh": "岱蜜克龍", "generic": "Gliclazide", "dose": "30mg", "appearance": "白色長條形", "indication": "降血糖", "warning": "飯前30分鐘服用", "default_usage": "QD_breakfast_before"},
     ],
     # --- Confusion Cluster 3: CNS (Hydralazine vs Hydroxyzine) ---
-    "Insomnia": [
+    # --- Confusion Cluster 3: CNS (Hydralazine vs Hydroxyzine) ---
+    "Sedative": [
         {"code": "BC23456794", "name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後立即就寢", "default_usage": "QD_bedtime"},
         # ⚠️ LASA DEFENSE: Hydralazine (BP) vs Hydroxyzine (Allergy)
         {"code": "BC23456801", "name_en": "Hydralazine", "name_zh": "阿普利素", "generic": "Hydralazine", "dose": "25mg", "appearance": "黃色圓形", "indication": "高血壓", "warning": "不可隨意停藥", "default_usage": "TID_meals_after"},
