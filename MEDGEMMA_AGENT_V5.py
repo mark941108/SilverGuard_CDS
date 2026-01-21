@@ -199,13 +199,13 @@ except ImportError:
     import cv2
 
 # ===== 配置 =====
-OUTPUT_DIR = Path("medgemma_training_data_v4")
+OUTPUT_DIR = Path("medgemma_training_data_v5")
 IMG_SIZE = 896
 NUM_SAMPLES = 600
 EASY_MODE_COUNT = 300
 HARD_MODE_COUNT = 300
 
-print(f"🚀 MedGemma V4 Impact Edition")
+print(f"🚀 MedGemma V5 Impact Edition")
 print(f"目標: {NUM_SAMPLES} 張 (含 30% 安全邏輯注入)")
 
 # ===== 醫院資訊 =====
@@ -572,7 +572,7 @@ def inject_medical_risk(case_data):
 def get_augmentations():
     return A.Compose([
         A.Perspective(scale=(0.02, 0.06), p=0.5),
-        A.Rotate(limit=2, border_mode=cv2.BORDER_CONSTANT, value=255, p=0.5),
+        A.Rotate(limit=2, border_mode=cv2.BORDER_CONSTANT, cval=255, p=0.5),
         A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
         A.ISONoise(color_shift=(0.01, 0.02), intensity=(0.1, 0.2), p=0.3),
     ])
@@ -1725,8 +1725,9 @@ def demo_agentic_high_risk():
     print("   [5] 📢 Final Decision + Human Alert")
 
     # 1. 讀取標註檔找出 High Risk 的 ID
-    json_path = "/kaggle/working/medgemma_training_data_v4/dataset_v4_full.json" # V5 Fix: Use FULL dataset
-    img_dir = "/kaggle/working/medgemma_training_data_v4"
+    # 1. 讀取標註檔找出 High Risk 的 ID
+    json_path = "/kaggle/working/medgemma_training_data_v5/dataset_v5_full.json" # V5 Fix: Use FULL dataset
+    img_dir = "/kaggle/working/medgemma_training_data_v5"
     
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)

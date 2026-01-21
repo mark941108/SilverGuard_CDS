@@ -183,6 +183,10 @@ This project validates the **logic pipeline**. Sim2Real transfer is the next pha
 | **MAX_RETRIES = 2** | Latency trade-off: Limits edge-deployment inference time while maintaining Agentic self-correction. |
 | **Synthetic Training Data** | Privacy-by-design: No real patient data used. Model robustness validated via augmentation (blur, noise). |
 | **Minimal Knowledge Base (12 Drugs)** | **Edge Optimization:** Kept small for instant lookup on T4. Architecture is modular; `retrieve_drug_info` is an Interface Pattern ready for hot-swapping with ChromaDB (Phase 4). |
+| **Simple OOD Detection** | Current keyword check (>=3 hits) may fail on non-prescription text (e.g., shopping lists). **Future:** Phase 2 will train a lightweight MobileNet binary classifier for robust Out-of-Distribution rejection. |
+
+## 🚀 Roadmap: Bridging the Sim2Real Gap
+> *"Current model is trained on synthetic data. Future Phase 3 involves fine-tuning on real-world de-identified dataset from NTUT hospital partners."*
 
 ## 🏁 Conclusion for Judges
 
