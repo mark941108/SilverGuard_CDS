@@ -295,7 +295,18 @@ To prove the system works in the real world despite training on synthetic data, 
 
 ---
 
-## Citation
+
+## 📚 Citation
+
+```bibtex
+@misc{silverguard2024,
+  title={SilverGuard: AI Pharmacist Guardian},
+  author={Mark Chen},
+  year={2026},
+  publisher={Kaggle MedGemma Impact Challenge},
+  note={V5.0 Impact Edition}
+}
+```
 
 ```
 Yuan-dao Wang. AI Pharmacist Guardian: The MedGemma Impact Challenge.

@@ -616,7 +616,7 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
 custom_css = "#risk-header {color: #d32f2f; font-weight: bold; font-size: 1.2em;}"
 
 with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
-    gr.Markdown("# 🏥 AI Pharmacist Guardian + SilverGuard (Live Demo)")
+    gr.Markdown("# 🏥 AI Pharmacist Guardian (V5.0 Impact Edition) + SilverGuard (Live Demo)")
     gr.Markdown(
         "> ⚡ **Fast Mode**: Demo runs single-pass by default. "
         "Full Agentic Loop active when logic checks fail.\n"

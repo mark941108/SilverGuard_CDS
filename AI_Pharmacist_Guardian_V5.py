@@ -130,7 +130,7 @@ This system runs on a single T4 GPU, enabling deployment in:
 # %%
 # ===== 驗證安裝並登入 =====
 print("="*80)
-print("🚀 AI Pharmacist Guardian V5.0 - 環境設置")
+print("🚀 Launching AI Pharmacist Guardian (V5.0 Impact Edition)...0 - 環境設置")
 print("="*80)
 
 print("\n[1/2] HuggingFace 登入...")
