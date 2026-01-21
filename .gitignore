@@ -50,6 +50,5 @@ temp_query.jpg
 Thumbs.db
 
 # Internal Dev Docs (Local Only)
-VIDEO_SCRIPT.md
-WRITEUP_TEMPLATE.md
+
 .agent/

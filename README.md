@@ -270,43 +270,75 @@ mindmap
 
 ```mermaid
 graph TD
-    subgraph Perception["Perception Layer"]
-        A["📸 Drug Bag Image"] --> B{"Input Gate: Valid?"}
-        V["🎤 Caregiver Voice"] --> D["Multimodal Fusion"]
-        B -- No --> X["⛔ Reject: OOD/Blurry"]
-    end
-
-    subgraph Reasoning["🧠 MedGemma Agent"]
-        B -- Yes --> C["Vision Encoder"]
-        C --> D
-        D --> E{"Logical Consistency Check"}
-        E -- "Logic Flaw Detected" --> F["🔄 Self-Correction"]
-        F --> D
-        E -- "Consistent" --> G["Safety Assessment"]
-    end
-
-    subgraph Action["Decision Layer"]
-        G --> H{"Confidence Check"}
-        H -- ">80%" --> I["✅ Structured JSON"]
-        H -- "<80%" --> J["⚠️ Human Review Flag"]
+    %% --- Global Style (Google Tech Theme) ---
+    classDef default font-family:Arial,font-size:14px;
+    classDef input fill:#f8f9fa,stroke:#adb5bd,stroke-width:2px,rx:10,ry:10,color:#495057;
+    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px,rx:5,ry:5,color:#0d47a1;
+    classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,rx:5,ry:5,color:#f57f17;
+    classDef decision fill:#fff3e0,stroke:#ff9800,stroke-width:2px,rhombus,color:#e65100;
+    classDef success fill:#e8f5e9,stroke:#4caf50,stroke-width:2px,color:#1b5e20;
+    classDef warning fill:#fff8e1,stroke:#ffc107,stroke-width:2px,color:#ff6f00;
+    classDef danger fill:#ffebee,stroke:#ef5350,stroke-width:2px,color:#b71c1c;
+    classDef ui fill:#e0f2f1,stroke:#009688,stroke-width:2px,stroke-dasharray: 0,color:#004d40;
+    
+    %% --- Main Flow ---
+    
+    subgraph P ["👁️ Perception Layer (Input Gate)"]
+        direction TB
+        A([📸 Drug Bag Image]) ::: input
+        V([🎤 Caregiver Voice]) ::: input
         
-        I --> K["🟢 PASS"]
-        I --> L["🟡 WARNING"]
-        I --> M["🔴 HIGH_RISK"]
+        Gate{{"🛡️ Quality Check"}} ::: decision
+        Reject["⛔ Reject: OOD / Blur"] ::: danger
+        
+        A --> Gate
+        Gate -- "Pass" --> VE["📐 Vision Encoder (SigLIP)"] ::: process
+        Gate -- "Fail" --> Reject
     end
 
-    subgraph Impact["👴 SilverGuard UI"]
-        I --> N["🗣️ TTS Audio"]
-        I --> O["📅 Visual Calendar"]
+    subgraph R ["🧠 MedGemma Agent (Reasoning Loop)"]
+        direction TB
+        VE --> Fusion["🧬 Multimodal Fusion"] ::: process
+        V --> Fusion
+        
+        Fusion --> LogicCheck{{"⚙️ Logical Consistency"}} ::: logic
+        
+        %% Agentic Self-Correction Loop
+        Correction["🔄 Self-Correction\n(Temp 0.6 → 0.2)"] ::: logic
+        LogicCheck -- "Flaw Detected" --> Correction
+        Correction -.-> Fusion
+        
+        SafetyAssess["📝 Safety Assessment"] ::: process
+        LogicCheck -- "Consistent" --> SafetyAssess
     end
 
-    style B fill:#e1bee7,stroke:#333
-    style D fill:#bbdefb,stroke:#333,stroke-width:2px
-    style E fill:#fff9c4,stroke:#fbc02d,stroke-dasharray:5 5
-    style F fill:#ffeb3b,stroke:#f57c00,stroke-width:2px
-    style J fill:#ffccbc,stroke:#d84315
-    style M fill:#ffcdd2,stroke:#c62828
-    style K fill:#c8e6c9,stroke:#2e7d32
+    subgraph D ["⚖️ Decision Layer"]
+        direction TB
+        ConfCheck{{"📊 Confidence > 80%?"}} ::: decision
+        
+        Human["🚩 Human Review Needed"] ::: warning
+        JSON["📄 Structured JSON"] ::: process
+        
+        SafetyAssess --> ConfCheck
+        ConfCheck -- "No" --> Human
+        ConfCheck -- "Yes" --> JSON
+        
+        JSON --> PASS["🟢 PASS"] ::: success
+        JSON --> WARN["🟡 WARNING"] ::: warning
+        JSON --> HIGH["🔴 HIGH_RISK"] ::: danger
+    end
+
+    subgraph I ["👴 SilverGuard UI (Impact)"]
+        direction LR
+        TTS["🗣️ TTS Audio\n(Dialect Support)"] ::: ui
+        Cal["📅 Visual Calendar\n(Large Font)"] ::: ui
+        
+        JSON -.-o TTS
+        JSON -.-o Cal
+    end
+
+    %% --- Link Styles ---
+    linkStyle default stroke:#607d8b,stroke-width:1.5px,fill:none;
 ```
 
 **Key Agentic Features:**
