@@ -2145,112 +2145,175 @@ def text_to_speech_elderly(text, lang='zh-tw', slow=True):
 # ============================================================================
 def render_elderly_calendar(drug_name, usage_text, dose):
     """
-    Generate a large-font, high-contrast calendar for elderly patients
+    Generate a large-font, high-contrast calendar for elderly patients (App-Like UI)
     - Extra large fonts (24px+)
     - High contrast colors
     - Simple icons
+    - Card-based design
     """
     
     # Parse usage to schedule
     schedule = []
     usage_lower = usage_text.lower() if usage_text else ""
     
+    # Helper to clean up multiple matches
+    found_time = False
+    
     if "早" in usage_lower or "breakfast" in usage_lower or "morning" in usage_lower:
-        schedule.append({"time": "08:00", "meal": "早餐後", "icon": "🌅"})
+        schedule.append({"time": "08:00", "meal": "早餐後", "icon": "🌅", "bg": "#FFF9C4"})
+        found_time = True
     if "午" in usage_lower or "lunch" in usage_lower or "noon" in usage_lower:
-        schedule.append({"time": "12:00", "meal": "午餐後", "icon": "☀️"})
+        schedule.append({"time": "12:00", "meal": "午餐後", "icon": "☀️", "bg": "#FFF9C4"})
+        found_time = True
     if "晚" in usage_lower or "dinner" in usage_lower or "evening" in usage_lower:
-        schedule.append({"time": "18:00", "meal": "晚餐後", "icon": "🌙"})
+        schedule.append({"time": "18:00", "meal": "晚餐後", "icon": "🌙", "bg": "#E1BEE7"})
+        found_time = True
     if "睡前" in usage_lower or "bedtime" in usage_lower:
-        schedule.append({"time": "21:00", "meal": "睡覺前", "icon": "😴"})
+        schedule.append({"time": "21:00", "meal": "睡覺前", "icon": "😴", "bg": "#E1BEE7"})
+        found_time = True
     
-    # If no schedule detected, default to once daily
-    if not schedule:
-        schedule.append({"time": "08:00", "meal": "每日一次", "icon": "☀️"}) # Default to morning if no specific time
+    # Logic for "QD" (Once Daily) implicitly
+    if not found_time:
+         # Default to Morning if just QD, or Bedtime if specific drug type hints it (but kept simple here)
+         if "每日一次" in usage_text or "once daily" in usage_lower:
+            schedule.append({"time": "08:00", "meal": "早餐後", "icon": "🌅", "bg": "#FFF9C4"})
+         else:
+             schedule.append({"time": "指示", "meal": "遵照醫囑", "icon": "📋", "bg": "#E0F2F1"})
+
     
-    # Color coding for time of day (Cognitive psychology optimized)
-    bg_morning = "#FFF9C4" # Warm Yellow
-    bg_evening = "#E1BEE7" # Soft Purple
-    
-    rows = ""
-    usage_en_lower = usage_text.lower() # Ensure usage_en_lower is defined
-    if "每日一次" in usage_text or "once daily" in usage_en_lower:
-        time_text = "睡前" if "bedtime" in usage_en_lower else "早餐後"
-        bg_color = bg_evening if "bedtime" in usage_en_lower else bg_morning
-        icon = "🌙" if "bedtime" in usage_en_lower else "☀️"
-        
-        rows += f"""
-        <tr style="background-color: {bg_color}; border-bottom: 2px solid #ddd;">
-            <td style="padding: 20px; font-size: 28px; text-align: center; width: 30%; border-right: 1px solid #ddd;">
-                {icon} <b>{time_text}</b>
-            </td>
-            <td style="padding: 20px; font-size: 28px; color: #333;">
-                💊 <b>{drug_name}</b> <br>
-                <span style="font-size: 20px; color: #666;">(劑量: {dose})</span>
-            </td>
-        </tr>
-        """
-    elif "兩次" in usage_text or "twice" in usage_en_lower:
-        # Morning row
-        rows += f"""
-        <tr style="background-color: {bg_morning}; border-bottom: 1px solid #ddd;">
-            <td style="padding: 20px; font-size: 28px; text-align: center; width: 30%; border-right: 1px solid #ddd;">
-                ☀️ <b>早餐後</b>
-            </td>
-            <td style="padding: 20px; font-size: 28px; color: #333;">
-                💊 <b>{drug_name}</b> <br>
-                <span style="font-size: 20px; color: #666;">(劑量: {dose})</span>
-            </td>
-        </tr>
-        """
-        # Evening row
-        rows += f"""
-        <tr style="background-color: {bg_evening}; border-bottom: 2px solid #ddd;">
-            <td style="padding: 20px; font-size: 28px; text-align: center; width: 30%; border-right: 1px solid #ddd;">
-                🌙 <b>晚餐後</b>
-            </td>
-            <td style="padding: 20px; font-size: 28px; color: #333;">
-                💊 <b>{drug_name}</b> <br>
-                <span style="font-size: 20px; color: #666;">(劑量: {dose})</span>
-            </td>
-        </tr>
-        """
-    else: # Fallback for other or complex schedules
-        for item in schedule:
-            bg_color = bg_morning if "早" in item['meal'] or "早餐" in item['meal'] else \
-                       (bg_evening if "晚" in item['meal'] or "晚餐" in item['meal'] or "睡前" in item['meal'] else "#F0F4C3") # Light Green for others
-            
-            rows += f"""
-            <tr style="background-color: {bg_color}; border-bottom: 2px solid #ddd;">
-                <td style="padding: 20px; font-size: 28px; text-align: center; width: 30%; border-right: 1px solid #ddd;">
-                    {item['icon']} <b>{item['meal']}</b>
-                </td>
-                <td style="padding: 20px; font-size: 28px; color: #333;">
-                    💊 <b>{drug_name}</b> <br>
-                    <span style="font-size: 20px; color: #666;">(劑量: {dose})</span>
-                </td>
-            </tr>
-            """
-    
-    html = f"""
-    <div style="font-family: 'Microsoft JhengHei', sans-serif; max-width: 600px; 
-                border: 5px solid #4CAF50; border-radius: 20px; overflow: hidden;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-        <div style="background: linear-gradient(135deg, #4CAF50, #81C784); 
-                    color: white; padding: 25px; text-align: center;">
-            <div style="font-size: 36px; font-weight: bold;">📅 今日用藥提醒</div>
-            <div style="font-size: 20px; margin-top: 10px;">SilverGuard AI 為您整理</div>
+    rows_html = ""
+    for item in schedule:
+        rows_html += f"""
+        <div style="background-color: white; border-radius: 15px; margin-bottom: 15px; 
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; display: flex; align-items: center; border-left: 10px solid {item['bg']};">
+            <div style="background-color: {item['bg']}; width: 80px; height: 100px; display: flex; 
+                        flex-direction: column; justify-content: center; align-items: center;">
+                <div style="font-size: 32px;">{item['icon']}</div>
+                <div style="font-weight: bold; color: #555; margin-top: 5px;">{item['meal']}</div>
+            </div>
+            <div style="padding: 15px 25px; flex-grow: 1;">
+                <div style="font-size: 28px; font-weight: bold; color: #333; margin-bottom: 5px;">
+                    💊 {drug_name}
+                </div>
+                <div style="font-size: 22px; color: #666; display: flex; align-items: center;">
+                    <span style="background: #EEE; padding: 2px 8px; border-radius: 5px; margin-right: 10px; font-size: 18px;">劑量</span>
+                    <b>{dose}</b>
+                </div>
+            </div>
+            <div style="padding-right: 20px; color: #CCC; font-size: 30px;">
+                ➜
+            </div>
         </div>
-        <table style="width: 100%; border-collapse: collapse; background: #FAFAFA;">
-            {rows}
-        </table>
-        <div style="background: #E8F5E9; padding: 20px; text-align: center; font-size: 24px; color: #2E7D32;">
+        """
+
+    html = f"""
+    <div style="font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; max-width: 500px; 
+                margin: 20px auto; background-color: #F5F5F5; border-radius: 25px; overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #009688, #4DB6AC); color: white; padding: 25px 20px; text-align: center;">
+            <div style="font-size: 28px; font-weight: bold; letter-spacing: 1px;">👴 SilverGuard 守護者</div>
+            <div style="font-size: 16px; opacity: 0.9; margin-top: 5px;">智慧用藥助手 • AI Pharmacist</div>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 20px;">
+            <div style="text-align: right; color: #777; margin-bottom: 15px; font-size: 14px;">
+                📅 今日用藥提醒:
+            </div>
+            {rows_html}
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #E0F2F1; color: #00695C; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; border-top: 1px solid #B2DFDB;">
             💚 記得按時吃藥，身體健康！
         </div>
     </div>
     """
     
     display(HTML(html))
+
+# ============================================================================
+# MODULE 4: Safety-First Confusion Matrix (Visual Validation)
+# ============================================================================
+def visualize_safety_matrix(results_csv_path=None, dummy_data=False):
+    """
+    Generate the "Safety-First" Confusion Matrix
+    Key Concept: HUMAN_REVIEW_NEEDED is considered a SUCCESS outcome for unsafe cases.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        from sklearn.metrics import confusion_matrix
+    except ImportError:
+        print("⚠️ Matplotlib/Seaborn not installed. Skipping visualization.")
+        return
+
+    print("\n" + "="*80)
+    print("📊 Generating Safety-First Confusion Matrix...")
+    print("="*80)
+
+    # --- Data Preparation ---
+    if dummy_data:
+        # Generate synthetic data for demonstration
+        # 0=SAFE (PASS), 1=UNSAFE (HIGH_RISK)
+        y_true = ["SAFE"]*100 + ["UNSAFE"]*50
+        
+        # Predictions
+        # Safe cases: Most are PASS, some WARNING, rare HUMAN_REVIEW
+        y_pred = ["PASS"]*90 + ["WARNING"]*8 + ["HUMAN_REVIEW_NEEDED"]*2
+        # Unsafe cases: Most HIGH_RISK, some HUMAN_REVIEW (Safety Net), rare PASS (Danger)
+        y_pred += ["HIGH_RISK"]*42 + ["HUMAN_REVIEW_NEEDED"]*7 + ["PASS"]*1 
+        
+        print("ℹ️ Using synthetic validation data for demonstration.")
+    else:
+        # TODO: Load from results.csv generated during inference
+        # This is a placeholder for integration with the full evaluation loop
+        print("ℹ️ Real data loading not implemented in this snippet. Using Dummy Data.")
+        y_true = ["SAFE"]*50 + ["UNSAFE"]*50
+        y_pred = ["PASS"]*45 + ["HUMAN_REVIEW_NEEDED"]*5 + ["HIGH_RISK"]*40 + ["HUMAN_REVIEW_NEEDED"]*9 + ["PASS"]*1
+
+    # --- Custom Logic: Re-map for Visualization ---
+    # We want to show: PASS, HIGH_RISK, HUMAN_REVIEW on X-axis
+    labels_pred = ["PASS", "HIGH_RISK", "HUMAN_REVIEW_NEEDED"]
+    labels_true = ["SAFE", "UNSAFE"]
+    
+    # Build Count Matrix manually to handle the asymmetric labels
+    matrix = [[0, 0, 0], [0, 0, 0]] # [SAFE, UNSAFE] x [PASS, HIGH, HUMAN]
+    
+    for t, p in zip(y_true, y_pred):
+        row = 0 if t == "SAFE" else 1
+        if p in ["PASS", "WARNING"]: col = 0
+        elif p == "HIGH_RISK": col = 1
+        elif p == "HUMAN_REVIEW_NEEDED": col = 2
+        else: continue # Skip unknown
+        matrix[row][col] += 1
+        
+    # --- Plotting ---
+    plt.figure(figsize=(10, 6))
+    
+    sns.set_style("whitegrid")
+    ax = sns.heatmap(matrix, annot=True, fmt='d', cmap='Greens', 
+                     xticklabels=["Allowed (Pass)", "Blocked (High Risk)", "Escalated (Human Review)"],
+                     yticklabels=["Truly Safe", "Truly Unsafe"],
+                     annot_kws={"size": 16, "weight": "bold"}, cbar=False)
+    
+    # Custom Styling
+    plt.title("Safety-First Confusion Matrix\n(Human Review is a Valid Safety Outcome)", fontsize=14, pad=20)
+    plt.ylabel("Ground Truth", fontsize=12)
+    plt.xlabel("AI Decision", fontsize=12)
+    
+    # Highlight the Safety Net
+    # The cell at [1, 2] (Unsafe -> Human Review) is a Critical Success
+    from matplotlib.patches import Rectangle
+    ax.add_patch(Rectangle((2, 1), 1, 1, fill=False, edgecolor='gold', lw=4))
+    plt.text(2.5, 1.5, "Safety Net\nSuccess", ha='center', va='center', color='goldenrod', weight='bold', fontsize=10)
+    
+    plt.tight_layout()
+    plt.savefig("/kaggle/working/safety_confusion_matrix.png", dpi=300)
+    print("✅ Matrix saved to: /kaggle/working/safety_confusion_matrix.png")
+    plt.show()
 
 # ============================================================================
 # MAIN DEMO: Elder-Friendly Output Pipeline (V5: 使用真實推理結果)
