@@ -53,56 +53,56 @@ graph TD
     
     subgraph P ["👁️ Perception Layer (Input Gate)"]
         direction TB
-        A([📸 Drug Bag Image]) ::: input
-        V([🎤 Caregiver Voice]) ::: input
+        A(["📸 Drug Bag Image"]) ::: input;
+        V(["🎤 Caregiver Voice"]) ::: input;
         
-        Gate{{"🛡️ Quality Check"}} ::: decision
-        Reject["⛔ Reject: OOD / Blur"] ::: danger
+        Gate{{"🛡️ Quality Check"}} ::: decision;
+        Reject["⛔ Reject: OOD / Blur"] ::: danger;
         
-        A --> Gate
-        Gate -- "Pass" --> VE["📐 Vision Encoder (SigLIP)"] ::: process
-        Gate -- "Fail" --> Reject
+        A --> Gate;
+        Gate -- "Pass" --> VE["📐 Vision Encoder (SigLIP)"] ::: process;
+        Gate -- "Fail" --> Reject;
     end
 
     subgraph R ["🧠 MedGemma Agent (Reasoning Loop)"]
         direction TB
-        VE --> Fusion["🧬 Multimodal Fusion"] ::: process
-        V --> Fusion
+        VE --> Fusion["🧬 Multimodal Fusion"] ::: process;
+        V --> Fusion;
         
-        Fusion --> LogicCheck{{"⚙️ Logical Consistency"}} ::: logic
+        Fusion --> LogicCheck{{"⚙️ Logical Consistency"}} ::: logic;
         
         %% Agentic Self-Correction Loop
-        Correction["🔄 Self-Correction\n(Temp 0.6 → 0.2)"] ::: logic
-        LogicCheck -- "Flaw Detected" --> Correction
-        Correction -.-> Fusion
+        Correction["🔄 Self-Correction\n(Temp 0.6 → 0.2)"] ::: logic;
+        LogicCheck -- "Flaw Detected" --> Correction;
+        Correction -.-> Fusion;
         
-        SafetyAssess["📝 Safety Assessment"] ::: process
-        LogicCheck -- "Consistent" --> SafetyAssess
+        SafetyAssess["📝 Safety Assessment"] ::: process;
+        LogicCheck -- "Consistent" --> SafetyAssess;
     end
 
     subgraph D ["⚖️ Decision Layer"]
         direction TB
-        ConfCheck{{"📊 Confidence > 80%?"}} ::: decision
+        ConfCheck{{"📊 Confidence > 80%?"}} ::: decision;
         
-        Human["🚩 Human Review Needed"] ::: warning
-        JSON["📄 Structured JSON"] ::: process
+        Human["🚩 Human Review Needed"] ::: warning;
+        JSON["📄 Structured JSON"] ::: process;
         
-        SafetyAssess --> ConfCheck
-        ConfCheck -- "No" --> Human
-        ConfCheck -- "Yes" --> JSON
+        SafetyAssess --> ConfCheck;
+        ConfCheck -- "No" --> Human;
+        ConfCheck -- "Yes" --> JSON;
         
-        JSON --> PASS["🟢 PASS"] ::: success
-        JSON --> WARN["🟡 WARNING"] ::: warning
-        JSON --> HIGH["🔴 HIGH_RISK"] ::: danger
+        JSON --> PASS["🟢 PASS"] ::: success;
+        JSON --> WARN["🟡 WARNING"] ::: warning;
+        JSON --> HIGH["🔴 HIGH_RISK"] ::: danger;
     end
 
     subgraph I ["👴 SilverGuard UI (Impact)"]
         direction LR
-        TTS["🗣️ TTS Audio\n(Dialect Support)"] ::: ui
-        Cal["📅 Visual Calendar\n(Large Font)"] ::: ui
+        TTS["🗣️ TTS Audio\n(Dialect Support)"] ::: ui;
+        Cal["📅 Visual Calendar\n(Large Font)"] ::: ui;
         
-        JSON -.-o TTS
-        JSON -.-o Cal
+        JSON -.-o TTS;
+        JSON -.-o Cal;
     end
 
     %% --- Link Styles ---
