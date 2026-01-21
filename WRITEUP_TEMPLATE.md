@@ -30,6 +30,9 @@ Our solution, **AI Pharmacist Guardian**, utilizes a **Neuro-Symbolic Architectu
 2.  **Logic Guardrails (Symbolic)**: Regex and Rule-based checks for absolute dose safety.
 3.  **Self-Correction Loop**: An agentic retry mechanism that dynamically injects error context and lowers temperature (0.6 → 0.2) to "think before speaking."
 
+![Agentic Architecture Diagram]([Insert Link to Architecture Diagram])
+*(Figure 1: The Agentic Loop architecture showing the Feedback & Refusal mechanism)*
+
 ### SilverGuard (Social Impact)
 - 🗣️ TTS voice readout for visually impaired
 - 📅 Large-font calendar (28px+) for cognitively impaired
@@ -47,6 +50,9 @@ Our solution, **AI Pharmacist Guardian**, utilizes a **Neuro-Symbolic Architectu
 > 
 > **2. Adversarial Stress-Testing (The "Anti-Fragile" Approach)**  
 > I did not pamper the model with perfect data. I built a custom **"Gallery of Horrors" Generator** (`generate_stress_test.py`) to attack the system with extreme blur, occlusion, and low-light noise. The Agentic Loop was tuned against these edge cases to ensure robustness in the chaotic real world.
+>
+> ![Gallery of Horrors Comparison]([Insert Link to Before/After Stress Test Image])
+> *(Figure 2: Left - Extreme Blur Input; Right - Successful Agent Extraction)*
 
 > **🛡️ Adversarial Defense Strategy (Visual Security)**  
 > To counter "Visual Prompt Injection" (e.g., malicious stickers on drug bags), we implement a **Dual-Stream Verification** design (Phase 3). By cross-referencing OCR traces with the Vision Encoder's output, we can detect semantic mismatch attacks.  
@@ -103,7 +109,7 @@ Unlike standard LLMs that hallucinate an answer 100% of the time, **MedGemma Gua
 - **Privacy**: 100% local PHI processing (no patient data leaves device)
 - **Hybrid TTS**: gTTS (online, best quality) → pyttsx3 (offline fallback) → Visual-only (always works)
 - **Edge Target**: NVIDIA Jetson Orin Nano (67 TOPS, 15W)
-- **Sustainability (Green AI)**: Estimated ~0.005 kWh per inference (vs Cloud API ~0.0x kWh). Running locally on existing hardware reduces carbon footprint significantly.
+- **Sustainability (Green AI)**: Estimated ~0.005 kWh per inference (vs Cloud API ~0.0x kWh). Running locally on existing hardware eliminates the carbon cost of data transmission and massive data center cooling.
 
 > **Deployment Note:** Core model inference is fully offline-capable. SilverGuard TTS degrades gracefully from cloud (high quality) to local (robotic) to visual-only, ensuring the system remains functional in intermittent connectivity environments typical of rural clinics.
 
