@@ -302,9 +302,12 @@ def logical_consistency_check(extracted_data):
             drug_info = retrieve_drug_info(drug_name)
             if not drug_info.get("found", False): issues.append(f"Drug not in knowledge base: {drug_name}")
     except: pass
-        if "UNKNOWN_DRUG" in str(issues):
-            # V6.4 FIX: Critical Safety - Do NOT retry on unknown drugs (Infinite Loop Trap)
-            return True, f"⚠️ UNKNOWN_DRUG detected. Manual Review Required. (Logic Check Passed to prevent retry)"
+
+    # --- Final Issue Aggregation ---
+    if issues:
+        # V6.4 FIX: Critical Safety - Do NOT retry on unknown drugs (Infinite Loop Trap)
+        if any("Drug not in knowledge base" in issue for issue in issues):
+             return True, f"⚠️ UNKNOWN_DRUG detected. Manual Review Required. (Logic Check Passed to prevent retry)"
         
         return False, f"邏輯檢查異常: {', '.join(issues)}"
     return True, "邏輯一致性檢查通過"
