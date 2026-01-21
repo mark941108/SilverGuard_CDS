@@ -107,6 +107,19 @@ def transcribe_audio(audio_path):
 ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/MedGemma-SilverGuard-V5")
 BASE_MODEL = "google/medgemma-1.5-4b-it"
 
+def text_to_speech(text, lang='zh-tw'):
+    try:
+        from gtts import gTTS
+        import tempfile
+        tts = gTTS(text=text, lang=lang, slow=True)
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+            filename = f.name
+        tts.save(filename)
+        return filename
+    except Exception as e:
+        print(f"TTS Error: {e}")
+        return None
+
 # Feature Flags
 OFFLINE_MODE = False   # Set True if no internet (will disable APIs)
 ENABLE_TTS = True      # Enable Text-to-Speech
@@ -507,8 +520,9 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         color = "#c8e6c9" # Green
         icon = "✅"
         
-    # 3. 生成 HTML (Audio handled by run_inference)
-    audio_path = None 
+    # 3. 生成 TTS (使用對應語言)
+    tts_text = f"{display_status}. {lang_pack['CONSULT']}."
+    audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
     
     html = f"""
     <div style="background-color: {color}; padding: 20px; border-radius: 15px; border: 3px solid #333;">
@@ -522,6 +536,8 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
     </div>
     """
     return html, audio_path
+
+
 
 # --- GRADIO INTERFACE UPDATE ---
 # ... (User must verify manual Gradio block update below) ...
@@ -649,8 +665,12 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 progress(0.8, desc="👵 Generating SilverGuard UI...")
                 html_view, audio_path_new = silverguard_ui(res_json, target_lang=target_lang)
                 
+                # Smart Audio Selector: Use Localized TTS if Translation Active, else Rich LLM TTS
+                final_audio = audio_path_new if target_lang != "zh-TW" else audio_path_old
+                if not final_audio: final_audio = audio_path_old # Fallback
+                
                 progress(1.0, desc="✅ Complete!")
-                return transcription, status, res_json, html_view, audio_path_new
+                return transcription, status, res_json, html_view, final_audio
             
             btn.click(
                 fn=analyze_with_voice, 
