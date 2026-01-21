@@ -30,6 +30,12 @@ Our solution, **AI Pharmacist Guardian**, utilizes a **Neuro-Symbolic Architectu
 2.  **Logic Guardrails (Symbolic)**: Regex and Rule-based checks for absolute dose safety.
 3.  **Self-Correction Loop**: An agentic retry mechanism that dynamically injects error context and lowers temperature (0.6 → 0.2) to "think before speaking."
 
+> **Agentic Highlight:** *"Standard LLMs guess; our Agent reflects and corrects itself using dynamic prompt injection."*
+>*  **Attempt 1 (Temp 0.6):** Creativity enabled for semantic understanding.
+>*  **Logic Flaw Detected:** System catches unsafe dosage via regex.
+>*  **Start Retry Loop:** Prompt modified with specific error context.
+>*  **Attempt 2 (Temp 0.2):** Temperature lowered for deterministic, safe output.
+
 ![Agentic Architecture Diagram]([Insert Link to Architecture Diagram])
 *(Figure 1: The Agentic Loop architecture showing the Feedback & Refusal mechanism)*
 
@@ -41,6 +47,11 @@ Our solution, **AI Pharmacist Guardian**, utilizes a **Neuro-Symbolic Architectu
 ---
 
 ## Technical Details
+
+> **0. Multimodal Context Fusion (V8 Upgrade)**
+> While standard OCR models process text in isolation, **MedGemma Guardian V8** integrates **Visual Perception** with **Auditory Context**.
+> *   **Scenario:** Image shows "Aspirin" (Correct), but Voice Log says "Patient has history of ulcers".
+> *   **Agent Behavior:** The system detects the cross-modal conflict and escalates the risk level to **HIGH_RISK**, proving it understands *context* beyond just reading pixels.
 
 > **1. The Privacy Moat (Edge AI vs Cloud)**  
 > To ensure feasibility in rural clinics and protect PHI, I enforced a strict constraint: **No Paid APIs, No Cloud Dependencies.**  
@@ -57,6 +68,12 @@ Our solution, **AI Pharmacist Guardian**, utilizes a **Neuro-Symbolic Architectu
 > **🛡️ Adversarial Defense Strategy (Visual Security)**  
 > To counter "Visual Prompt Injection" (e.g., malicious stickers on drug bags), we implement a **Dual-Stream Verification** design (Phase 3). By cross-referencing OCR traces with the Vision Encoder's output, we can detect semantic mismatch attacks.  
 > * **Mitigation:** Input images undergo randomized re-scaling/cropping (Sim2Real robustness) to disrupt adversarial patches.
+
+> **🛡️ Active Refusal (Input Gating)**
+> A true Agent knows when to say "NO".
+> *   **Mechanism:** Before any expensive inference, the `Input Gate` analyzes image entropy (Laplacian Variance).
+> *   **Safety Decision:** If the image is blurry, non-medical (e.g., receipt), or occluded, the Agent **actively refuses** to process it.
+> *   **Philosophy:** *"A refusal is safer than a hallucination."*
 
 ## 3. Clinical Validation & Health Equity (HEAL Framework)
 
@@ -166,6 +183,12 @@ This project validates the **logic pipeline**. Sim2Real transfer is the next pha
 | **MAX_RETRIES = 2** | Latency trade-off: Limits edge-deployment inference time while maintaining Agentic self-correction. |
 | **Synthetic Training Data** | Privacy-by-design: No real patient data used. Model robustness validated via augmentation (blur, noise). |
 | **Minimal Knowledge Base (12 Drugs)** | **Edge Optimization:** Kept small for instant lookup on T4. Architecture is modular; `retrieve_drug_info` is an Interface Pattern ready for hot-swapping with ChromaDB (Phase 4). |
+
+## 🏁 Conclusion for Judges
+
+> **"This is not just a chatbot reading text; it is a deterministic system engineered to fail safely. It observes, reasons, checks its own logic, and acts to protect the patient."**
+
+---
 
 ---
 

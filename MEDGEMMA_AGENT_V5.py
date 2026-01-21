@@ -2782,9 +2782,12 @@ def launch_agentic_app():
                 img = Image.open(img_path).convert("RGB")
                 
                 # Dynamic Temperature for Agentic Retry
+                TEMP_CREATIVE = 0.6          # First attempt: Allow some reasoning flexibility
+                TEMP_DETERMINISTIC = 0.2     # Retries: Strict adherence to facts
+                
                 # Attempt 0: 0.6 (Creative/Standard)
                 # Attempt 1+: 0.2 (Conservative/Deterministic)
-                current_temp = 0.6 if current_try == 0 else 0.2
+                current_temp = TEMP_CREATIVE if current_try == 0 else TEMP_DETERMINISTIC
                 
                 # V8: Inject Voice Context
                 prompt_text = base_prompt

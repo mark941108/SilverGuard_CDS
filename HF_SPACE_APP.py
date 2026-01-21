@@ -111,8 +111,8 @@ ENABLE_TTS = True      # Enable Text-to-Speech
 
 # Agent Settings
 MAX_RETRIES = 2
-TEMP_CREATIVE = 0.2    # First pass: Strict Determinism (Code Red Fix)
-TEMP_STRICT = 0.2      # Retry pass: Deterministic (Unified with Kaggle V5)
+TEMP_CREATIVE = 0.6    # First pass: Creative/Reasoning
+TEMP_STRICT = 0.2      # Retry pass: Deterministic (Safety-First)
 
 # ============================================================================
 # 🧠 Helper Functions
@@ -416,7 +416,7 @@ def run_inference(image, patient_notes=""):
             final_prompt = base_prompt + correction_context
             inputs = processor(text=final_prompt, images=image, return_tensors="pt").to(model.device)
             input_len = inputs.input_ids.shape[1]
-            current_temp = 0.6 if current_try == 0 else 0.2
+            current_temp = TEMP_CREATIVE if current_try == 0 else TEMP_STRICT
             
             with torch.inference_mode():
                 generate_ids = model.generate(
