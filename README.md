@@ -259,7 +259,7 @@ mindmap
   root((AI Pharmacist))
     Perception
       Vision Encoder
-      OCR Trace
+      Visual Features
       Voice Context
     Reasoning
       MedGemma 1.5
@@ -323,14 +323,14 @@ graph TD
 
     subgraph D ["⚖️ Decision Layer"]
         direction TB
-        ConfCheck{{"📊 Confidence > 80%?"}} ::: decision
+        ConfCheck{{"📊 Logic & Confidence Check"}} ::: decision
         
         Human["🚩 Human Review Needed"] ::: warning
         JSON["📄 Structured JSON"] ::: process
         
         SafetyAssess --> ConfCheck
-        ConfCheck -- "No" --> Human
-        ConfCheck -- "Yes" --> JSON
+        ConfCheck -- "Fail" --> Human
+        ConfCheck -- "Pass" --> JSON
         
         JSON --> PASS["🟢 PASS"] ::: success
         JSON --> WARN["🟡 WARNING"] ::: warning
@@ -361,7 +361,7 @@ graph TD
 > **🔄 Agentic Implementation:** The code implements a TRUE retry loop (`while current_try <= MAX_RETRIES`). When logical consistency check fails or JSON parsing errors occur, the agent:
 > 1. Logs the failure reason
 > 2. **Dynamic Prompt Optimization**: Automatically injects error context into the next prompt iteration (e.g., "Previous attempt failed: [reason]")
-> 3. Retries with lower temperature (0.4 vs 0.6) for more focused output
+> 3. Retries with lower temperature (0.2 vs 0.6) for more focused output
 > 
 > This is **genuine self-correction behavior**, not just conditional branching.
 
@@ -419,11 +419,11 @@ We explicitly tested the model against common real-world noise to define its **o
 
 | Failure Mode | Symptom | Mitigation Strategy |
 |:-------------|:--------|:--------------------|
-| **Motion Blur** | Text "smearing" causes OCR errors (50mg → 5mg) | **Pre-processing:** Laplacian variance check rejects blurry images |
+| **Motion Blur** | Text "smearing" causes reading errors (50mg → 5mg) | **Pre-processing:** Laplacian variance check rejects blurry images |
 | **Severe Occlusion** | Thumb covering the "dosage" area | **Logic Check:** Missing entity → `WARNING: Incomplete Data` |
 | **OOD Input** | Uploading receipt instead of drug bag | **Input Gate:** VLM pre-check validates image type |
-| **Hallucination** | Model generates dosage not in image | **Grounding:** Cross-check extracted values against OCR trace |
-| **Low-Quality Scan** | Very old/damaged prescription | **Fallback:** Confidence < 80% → "Human Review Needed" |
+| **Hallucination** | Model generates dosage not in image | **Grounding:** Cross-check extracted values against visual text features |
+| **Low-Quality Scan** | Very old/damaged prescription | **Fallback:** Logic Check Failed / Low Conf → "Human Review Needed" |
 | **Paper Crease (紙張摺痕)** | Folded label with dark line (折疊標籤，帶有深色線條) | **Distortion Robustness:** Training Augmentation (Elastic Transform) handles folds |
 | **Water Damage (水災損害)** | Stain marks on paper (紙上的污漬) | **Invariance:** Sim2Real noise masking technique |
 
