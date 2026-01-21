@@ -2624,9 +2624,9 @@ def upload_model_to_hf():
         user_secrets = UserSecretsClient()
         hf_username = user_secrets.get_secret("HF_USERNAME")
         if not hf_username:
-            hf_username = "mark941108" # Fallback/Default
+            hf_username = os.environ.get("HF_USERNAME", "mark941108") # Fallback/Default
     except:
-        hf_username = "mark941108" # Fallback if secrets unavailable
+        hf_username = os.environ.get("HF_USERNAME", "mark941108") # Fallback if secrets unavailable
 
 
     repo_name = "MedGemma-SilverGuard-V5"
