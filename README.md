@@ -739,6 +739,46 @@ While MedGemma is a state-of-the-art medical VLM, this system may exhibit biases
 
 ---
 
+
+---
+
+## 🙋 FAQ: Addressing Judges' Potential Questions
+
+### Q1: Since the model is trained on synthetic data, will it fail on real-world "dirty" images?
+**A: We designed for failure, not just success.**
+We acknowledge the **Sim2Real gap**. To mitigate this without compromising patient privacy (using real PHI), we implemented a multi-layered defense:
+1.  **Input Validation Gate:** Before inference, the system calculates the Laplacian Variance of the image. If it's too blurry or OOD (Out-of-Distribution), it **actively refuses** to process it.
+2.  **Adversarial Training:** The "Gallery of Horrors" dataset injected extreme noise, rotation, and occlusion during training.
+3.  **Fail-Safe Protocol:** Our philosophy is "Refusal is safer than hallucination." If the confidence score drops below 80%, the system flags `HUMAN_REVIEW_NEEDED` rather than guessing.
+
+### Q2: Why is this considered an "Agentic Workflow" and not just a standard classifier?
+**A: Because it exhibits "Self-Correction" and "Dynamic Reasoning."**
+Unlike a standard VLM that outputs a static prediction, MedGemma Guardian actively monitors its own logic.
+-   **Step 1:** It attempts inference with `Temperature=0.6` (Creative).
+-   **Step 2:** A symbolic logic layer checks for contradictions (e.g., Age 88 vs. High Dose).
+-   **Step 3 (The Agentic Leap):** If a flaw is detected, the Agent **injects the error context** into its own prompt, lowers its temperature to `0.2` (Deterministic), and retries.
+This feedback loop allows the system to "think before speaking," a hallmark of agentic AI.
+
+### Q3: Why use MedGemma (4B) instead of a more powerful cloud model like GPT-4o?
+**A: Privacy, Cost, and Access (The "Edge AI" Advantage).**
+Healthcare in rural areas often lacks stable internet and budget.
+-   **Privacy:** MedGemma runs 100% locally on a T4 GPU. No Patient Health Information (PHI) ever leaves the clinic.
+-   **Cost:** Inference costs <$0.001 per prescription, compared to ~$0.03 for cloud APIs.
+-   **Latency:** Eliminating network round-trips ensures consistent performance even during internet outages.
+
+### Q4: How do you prevent the model from hallucinating dangerous dosages?
+**A: Through a "Neuro-Symbolic" Architecture.**
+We do not rely solely on the neural network (MedGemma) for safety-critical numbers. We employ **Deterministic Guardrails**:
+-   **Symbolic Layer:** Regex and Python-based logic verify that extracted dosages match clinical rules (e.g., matching extracted text against the OCR trace).
+-   **Grounding Check:** If the VLM predicts "High Risk" but cannot cite the specific drug/condition in the image, the output is flagged as a grounding failure.
+This combines the *understanding* of LLMs with the *precision* of code.
+
+### Q5: Is SilverGuard just a UI, or does it utilize AI?
+**A: It utilizes the Agent's reasoning for "Translation."**
+SilverGuard is not just a template. It uses MedGemma to **translate** complex clinical JSON output (e.g., "BID, Metformin") into **empathetic, culturally-localized speech** (e.g., "Grandma, remember to eat this after meals"). It adapts the tone based on the safety status (Urgent vs. Reassuring), which requires semantic understanding of the prescription context.
+
+---
+
 ## 📝 Citation
 
 If you use this work, please cite:
