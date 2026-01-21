@@ -376,6 +376,12 @@ def retrieve_drug_info(drug_name: str, category: str = None) -> dict:
     Production Note:
         Replace this with: `return rag_client.query(drug_name, sources=['rxnorm', 'micromedex'])`
     """
+    RAG Interface (Mock for Hackathon)
+    """
+    # --- PHASE 4 ARCHITECTURE STUB ---
+    # In production, this dictionary lookup is replaced by:
+    # return rag_client.query(collection="fda_labels", query=drug_name, top_k=1)
+    # ---------------------------------
     # Normalize input
     drug_name_lower = drug_name.lower().strip()
     

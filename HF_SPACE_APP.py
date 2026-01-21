@@ -216,6 +216,14 @@ DRUG_DATABASE = {
 
 def retrieve_drug_info(drug_name: str) -> dict:
     """RAG Interface (Mock for Hackathon)"""
+    # --- PHASE 4 ARCHITECTURE STUB (Scalability Feature) ---
+    # In production, this dictionary lookup is replaced by:
+    # return rag_client.query(
+    #     collection="fda_labels",
+    #     query=drug_name,
+    #     top_k=1
+    # )
+    # -----------------------------------------------------
     drug_lower = drug_name.lower().strip()
     names_to_search = [drug_lower]
     if drug_lower in DRUG_ALIASES:
@@ -454,7 +462,7 @@ def run_inference(image, patient_notes=""):
             if logic_issues:
                 print(f"⚠️ Logic Check Failed: {logic_issues}")
                 current_try += 1
-                correction_context += f"\n\n[System Feedback]: Failed check: {'; '.join(logic_issues)}. Please Correct JSON."
+                correction_context += f"\n\n[System Feedback]: 🔥 AGENT TRIGGERED: Logic Check Failed: {'; '.join(logic_issues)}. Please Correct JSON."
                 if current_try > MAX_RETRIES:
                     if "safety_analysis" not in result_json: result_json["safety_analysis"] = {}
                     result_json["safety_analysis"]["status"] = "HUMAN_REVIEW_NEEDED"
@@ -570,12 +578,15 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         try:
             import pyttsx3
             import tempfile
-            # V6.5 FIX: Robust Offline Fallback (Dependency Hell Protection)
+            
+            # V6.5 FIX: Fail-Safe TTS Initialization
+            # If system audio drivers (espeak/sapi5) are missing, this normally crashes the app.
+            # We catch it here to ensure "Silent Mode" works instead of a 500 Error.
             try:
                 engine = pyttsx3.init()
-            except OSError:
-                print("❌ pyttsx3 init failed (missing espeak?), skipping offline TTS")
-                raise ImportError("espeak not found")
+            except Exception as init_error:
+                print(f"⚠️ TTS Engine Failed (Missing Driver?): {init_error}. Switching to SILENT MODE.")
+                raise ImportError("TTS Driver Missing")  # Trigger outer except
 
             voices = engine.getProperty('voices')
             for voice in voices:
@@ -590,6 +601,9 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
             tts_mode = "offline"
             print("🔊 TTS: Offline Mode (pyttsx3)")
         except Exception as e:
+            print(f"⚠️ Offline TTS unavailable: {e}. Outputting silent response.")
+            audio_path = None # Safe Fallback
+            tts_mode = "visual_only"
             print(f"⚠️ Offline TTS failed: {e}")
             tts_mode = "visual_only"
     
@@ -643,7 +657,8 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                     audio_output = gr.Audio(label="🔊 Voice Alert")
                     
                     # 📉 HIDE COMPLEX LOGIC (Accordion)
-                    with gr.Accordion("📊 Developer Logs (Agent Reasoning)", open=False):
+                    # V5.5 UI Polish: Auto-expand logs to show Agent "Thinking" Process
+                    with gr.Accordion("📊 Developer Logs (Agentic Reasoning Trace)", open=True):
                         json_output = gr.JSON(label="Agent Reasoning")
 
             def analyze_with_voice(image, audio_path, text_override, target_lang, progress=gr.Progress()):
