@@ -355,7 +355,8 @@ We explicitly tested the model against common real-world noise to define its **o
 | **OOD Input** | Uploading receipt instead of drug bag | **Input Gate:** VLM pre-check validates image type |
 | **Hallucination** | Model generates dosage not in image | **Grounding:** Cross-check extracted values against OCR trace |
 | **Low-Quality Scan** | Very old/damaged prescription | **Fallback:** Confidence < 80% → "Human Review Needed" |
-| **Paper Crease** | Folded label with dark line | **Distortion Robustness:** Training Augmentation (Elastic Transform) handles folds |
+| **Paper Crease (紙張摺痕)** | Folded label with dark line (折疊標籤，帶有深色線條) | **Distortion Robustness:** Training Augmentation (Elastic Transform) handles folds |
+| **Water Damage (水災損害)** | Stain marks on paper (紙上的污漬) | **Invariance:** Sim2Real noise masking technique |
 
 ### 🔄 Post-Deployment: Active Learning Strategy
 
