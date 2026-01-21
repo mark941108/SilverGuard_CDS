@@ -3,6 +3,7 @@
 
 # 🏥 AI Pharmacist Guardian + 👴 SilverGuard
 
+> [!IMPORTANT]
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
 > Please add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN` before running.
 
@@ -104,9 +105,11 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 | ❌ Privacy concerns for PHI | ✅ **HIPAA-compliant design** |
 | ❌ High API costs | ✅ **Free, runs on single T4 GPU** |
 
-> ***Hybrid Privacy Architecture:** All sensitive operations (image analysis, patient data extraction, safety reasoning) run 100% locally. Only the optional SilverGuard TTS feature uses cloud API (gTTS) for voice synthesis—**no PHI is transmitted**. Visual fallback available for fully air-gapped environments.
+> [!NOTE]
+> **Hybrid Privacy Architecture:** All sensitive operations (image analysis, patient data extraction, safety reasoning) run 100% locally. Only the optional SilverGuard TTS feature uses cloud API (gTTS) for voice synthesis—**no PHI is transmitted**. Visual fallback available for fully air-gapped environments.
 
-> **Note on Medical Reasoning:** According to the [MedGemma Model Card](https://developers.google.com/health-ai-developer-foundations/medgemma/model-card), MedGemma is fine-tuned on medical text, question-answer pairs, and clinical data, aiming to reduce hallucinations common in general-purpose models (e.g., confusing dosage abbreviations like "QD" vs "QID"). However, clinical verification is always required.
+> [!IMPORTANT]
+> **Note on Medical Reasoning:** According to the [MedGemma Model Card](https://developers.google.com/health-ai-developer-foundations/medgemma/model-card), MedGemma is fine-tuned on medical text, question-answer pairs, and clinical data, aiming to reduce hallucinations. However, **clinical verification is always required.**
 
 ### Target Use Case
 
@@ -239,6 +242,31 @@ Calculation:
 ## 🛠️ Technical Architecture: Agentic Safety Loop
 
 This project implements an **Agentic Workflow** design, deploying MedGemma as an intelligent reasoning agent:
+
+### 🧠 Project Mindmap: The Agentic Brain
+
+```mermaid
+mindmap
+  root((AI Pharmacist))
+    Perception
+      Vision Encoder
+      OCR Trace
+      Voice Context
+    Reasoning
+      MedGemma 1.5
+      Zero-Shot CoT
+      Logic Checks
+    Action
+      JSON Output
+      Pass / Fail
+      Retry Loop
+    Impact
+      SilverGuard UI
+      TTS Audio
+      Green AI
+```
+
+### 🏗️ Complete Workflow Architecture
 
 ```mermaid
 graph TD
