@@ -99,6 +99,22 @@ def transcribe_audio(audio_path):
         return "", False
 
 # ============================================================================
+# 🔮 CONFIGURATION (V5 Impact Edition)
+# ============================================================================
+# ⚠️ LOAD FROM KAGGLE-TRAINED ADAPTER (Bonus Task: Open Weights)
+ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/medgemma-pharmacist-guardian-v5")
+BASE_MODEL = "google/medgemma-1.5-4b-it"
+
+# Feature Flags
+OFFLINE_MODE = False   # Set True if no internet (will disable APIs)
+ENABLE_TTS = True      # Enable Text-to-Speech
+
+# Agent Settings
+MAX_RETRIES = 2
+TEMP_CREATIVE = 0.6    # First pass: Diversity
+TEMP_STRICT = 0.2      # Retry pass: Deterministic (Unified with Kaggle V5)
+
+# ============================================================================
 # 🧠 Helper Functions
 # ============================================================================
 BLUR_THRESHOLD = 100

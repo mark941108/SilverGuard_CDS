@@ -680,14 +680,15 @@ def generate_image(case, output_path, difficulty):
     img = apply_augmentation(img, difficulty)
     img.save(output_path)
 
-# ===== 主程式 =====
+# ===== 主程式 (V5 Impact Edition) =====
 def main_cell2():
-    OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
+    OUTPUT_DIR_V5 = Path("/kaggle/working/medgemma_training_data_v5")
+    OUTPUT_DIR_V5.mkdir(exist_ok=True, parents=True)
     dataset = []
     stats = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0}
     
     print(f"\n{'='*60}")
-    print(f"🏭 MedSimplifier V4 Data Factory")
+    print(f"🏭 MedSimplifier V5 Data Factory (Impact Edition)")
     print(f"{'='*60}\n")
     
     for i in range(NUM_SAMPLES):
@@ -697,8 +698,8 @@ def main_cell2():
         stats[case["ai_safety_analysis"]["status"]] += 1
         
         difficulty = "hard" if i >= EASY_MODE_COUNT else "easy"
-        filename = f"medgemma_v4_{i:04d}.png"
-        generate_image(case, str(OUTPUT_DIR / filename), difficulty)
+        filename = f"medgemma_v5_{i:04d}.png"
+        generate_image(case, str(OUTPUT_DIR_V5 / filename), difficulty)
         
         human_prompt = (
             "You are an AI Pharmacist Assistant. Analyze this prescription:\n"
@@ -738,18 +739,18 @@ def main_cell2():
     
     print(f"📦 數據集切分: 訓練集 {len(train_data)} 筆, 測試集 {len(test_data)} 筆")
 
-    with open(OUTPUT_DIR / "dataset_v4_train.json", "w", encoding="utf-8") as f:
+    with open(OUTPUT_DIR_V5 / "dataset_v5_train.json", "w", encoding="utf-8") as f:
         json.dump(train_data, f, ensure_ascii=False, indent=2, cls=NpEncoder)
         
-    with open(OUTPUT_DIR / "dataset_v4_test.json", "w", encoding="utf-8") as f:
+    with open(OUTPUT_DIR_V5 / "dataset_v5_test.json", "w", encoding="utf-8") as f:
         json.dump(test_data, f, ensure_ascii=False, indent=2, cls=NpEncoder)
         
     # Keep full dataset for reference if needed
-    with open(OUTPUT_DIR / "dataset_v4_full.json", "w", encoding="utf-8") as f:
+    with open(OUTPUT_DIR_V5 / "dataset_v5_full.json", "w", encoding="utf-8") as f:
         json.dump(dataset, f, ensure_ascii=False, indent=2, cls=NpEncoder)
     
     print(f"\n{'='*60}")
-    print(f"🎉 V4 數據生成完成！")
+    print(f"🎉 V5 數據生成完成！")
     print(f"📊 風險分佈:")
     print(f"   🟢 PASS: {stats['PASS']}")
     print(f"   🟡 WARNING: {stats['WARNING']}")
@@ -762,10 +763,10 @@ if __name__ == "__main__":
 
 # %%
 # ============================================================================
-# CELL 3: V4 訓練代碼 (Safety-CoT 適配)
+# CELL 3: V5 訓練代碼 (Safety-CoT 適配)
 # ============================================================================
 """
-Cell 3: MedGemma QLoRA Fine-Tuning (V4 Impact Edition)
+Cell 3: MedGemma QLoRA Fine-Tuning (V5 Impact Edition)
 ======================================================
 
 🏆 FOR JUDGES: FAST TRACK (Skip Training ~54 min)
@@ -777,7 +778,7 @@ If you want to skip training and go directly to inference demo:
 
 Alternatively, the model WILL train from scratch in ~54 minutes on T4 GPU.
 
-適配 V4 數據集：
+適配 V5 數據集：
 1. ✅ Max Length = 1280: 容納 Safety Analysis
 2. ✅ Eval Batch Size = 1: 防止崩潰
 3. ✅ Safety-CoT Prompt 格式
@@ -801,9 +802,9 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 MODEL_ID = "google/medgemma-1.5-4b-it"
-DATA_PATH = "/kaggle/working/medgemma_training_data_v4/dataset_v4_train.json" # V5 Fix: Use Train Split
-IMAGE_DIR = "/kaggle/working/medgemma_training_data_v4"
-OUTPUT_DIR = "/kaggle/working/medgemma_lora_output_v4"
+DATA_PATH = "/kaggle/working/medgemma_training_data_v5/dataset_v5_train.json" # V5 Fix: Use Train Split
+IMAGE_DIR = "/kaggle/working/medgemma_training_data_v5"
+OUTPUT_DIR = "/kaggle/working/medgemma_lora_output_v5"
 
 PRETRAINED_LORA_PATH = None  # Set to path string to skip training
 
@@ -835,7 +836,7 @@ LORA_CONFIG = LoraConfig(
 )
 
 def load_custom_dataset(json_path, image_dir):
-    print(f"[INFO] Loading V4 dataset from {json_path}")
+    print(f"[INFO] Loading V5 dataset from {json_path}")
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     
@@ -850,7 +851,7 @@ def load_custom_dataset(json_path, image_dir):
     return Dataset.from_list(processed)
 
 @dataclass
-class MedGemmaCollatorV4:
+class MedGemmaCollatorV5:
     processor: AutoProcessor
     max_length: int = 1280
     
@@ -904,7 +905,7 @@ class MedGemmaCollatorV4:
 
 # ===== 訓練主程式 =====
 print("\n" + "="*80)
-print("🏆 MedGemma V4 Training (Impact Edition)")
+print("🏆 MedGemma V5 Training (Impact Edition)")
 print("="*80)
 
 print("[1/5] Loading processor...")
@@ -923,7 +924,7 @@ model.config.use_cache = False
 model = get_peft_model(model, LORA_CONFIG)
 model.print_trainable_parameters()
 
-print("[3/5] Loading V4 dataset...")
+print("[3/5] Loading V5 dataset...")
 dataset = load_custom_dataset(DATA_PATH, IMAGE_DIR)
 
 # ============================================================================
@@ -975,10 +976,10 @@ trainer = Trainer(
     model=model, args=args,
     train_dataset=dataset["train"],
     eval_dataset=dataset["test"],
-    data_collator=MedGemmaCollatorV4(processor, max_length=1280),
+    data_collator=MedGemmaCollatorV5(processor, max_length=1280),
 )
 
-print("[5/5] Starting V4 training...")
+print("[5/5] Starting V5 training...")
 print("="*80)
 
 if PRETRAINED_LORA_PATH and os.path.exists(PRETRAINED_LORA_PATH):
@@ -1006,7 +1007,7 @@ if PRETRAINED_LORA_PATH and os.path.exists(PRETRAINED_LORA_PATH):
 if not PRETRAINED_LORA_PATH:
     try:
         trainer.train()
-        print("\n🎉 V4 訓練完成！")
+        print("\n🎉 V5 訓練完成！")
         trainer.save_model(OUTPUT_DIR)
         processor.save_pretrained(OUTPUT_DIR)
         print(f"💾 模型已保存至: {OUTPUT_DIR}")
@@ -1018,10 +1019,10 @@ if not PRETRAINED_LORA_PATH:
 
 # %%
 # ============================================================================
-# CELL 4: V4 Agentic Inference Pipeline
+# CELL 4: V5 Agentic Inference Pipeline
 # ============================================================================
 """
-Cell 4: V4 Agentic Safety Check Pipeline
+Cell 4: V5 Agentic Safety Check Pipeline
 =========================================
 🏆 Agentic Workflow Features:
 1. ✅ Input Validation Gate (Blur Detection + OOD Check)
@@ -1377,9 +1378,9 @@ def agentic_inference(model, processor, img_path, verbose=True):
             # 🔥 V6.1 FIX: 記錄輸入長度，用於稍後切除 Input Echoing
             input_len = inputs.input_ids.shape[1]
             
-            # Adjust temperature on retry (Start Creative 0.6 -> Retry Strict 0.1)
-            # V6 Optimization: Lowered to 0.1 to force maximum determinism on correction
-            temperature = 0.6 if current_try == 0 else 0.1
+            # Adjust temperature on retry (Start Creative 0.6 -> Retry Strict 0.2)
+            # V6 Optimization: Lowered to 0.2 to force maximum determinism on correction (Unified with V5 Standard)
+            temperature = 0.6 if current_try == 0 else 0.2
             
             with torch.no_grad():
                 outputs = model.generate(
@@ -2270,15 +2271,15 @@ demo_elder_friendly_output()
 
 
 # ============================================================================
-# CELL 8: Evaluation Metrics (V7.1 Safety-First Metrics)
+# CELL 8: Evaluation Metrics (V5 Impact Edition)
 # ============================================================================
 """
-Cell 8: Formal Evaluation (V7.1)
+Cell 8: Formal Evaluation (V5 Impact Edition)
 ================================
 🎯 Purpose: 產生可驗證的 metrics，強調 "Safety Compliance Rate"
 🏆 Shows: 證明系統懂得 "When in doubt, call a human"
 
-V7.1 升級：
+V5 升級：
 - 新增 Safety Compliance Rate (HUMAN_REVIEW 計為成功)
 - 新增 Critical Risk Coverage (HIGH_RISK + HUMAN_REVIEW 都算覆蓋)
 """
@@ -2292,14 +2293,14 @@ def evaluate_agentic_pipeline():
         return
     
     # V5 Fix: Use Test Split (prevent data leakage)
-    json_path = "/kaggle/working/medgemma_training_data_v4/dataset_v4_test.json"
-    img_dir = "/kaggle/working/medgemma_training_data_v4"
+    json_path = "/kaggle/working/medgemma_training_data_v5/dataset_v5_test.json"
+    img_dir = "/kaggle/working/medgemma_training_data_v5"
     
     try:
         with open(json_path, "r", encoding="utf-8") as f:
             test_set = json.load(f)
     except FileNotFoundError:
-        print("❌ 找不到測試數據集 (dataset_v4_test.json)！請先執行 Cell 2")
+        print("❌ 找不到測試數據集 (dataset_v5_test.json)！請先執行 Cell 2")
         return
     
     y_true = []
@@ -2319,7 +2320,7 @@ def evaluate_agentic_pipeline():
         if (i + 1) % 20 == 0:
             print(f"   ✅ {i+1}/{len(test_set)} completed")
     
-    # ========== V7.1 SAFETY-FIRST METRICS ==========
+    # ========== V5 SAFETY-FIRST METRICS ==========
     # 標準準確率
     correct = sum(1 for t, p in zip(y_true, y_pred) if t == p)
     accuracy = correct / len(y_true)
@@ -2336,7 +2337,7 @@ def evaluate_agentic_pipeline():
     safety_rate = safety_success / len(y_true)
     
     print(f"\n{'='*60}")
-    print(f"📊 V7.1 EVALUATION RESULTS (Safety-First Edition)")
+    print(f"📊 V5 EVALUATION RESULTS (Impact Edition)")
     print(f"{'='*60}")
     
     # 這是我們要強調的數字

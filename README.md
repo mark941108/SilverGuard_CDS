@@ -21,6 +21,18 @@
 
 ---
 
+## 🚀 Quick Start
+
+> **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
+> Please add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN` before running.
+
+1.  **Run All Cells**: Execute the notebook from top to bottom.
+2.  **Cell 5 (Agentic Workflow)**: This cell runs the core MedGemma agent. It will output a JSON safety analysis.
+3.  **Cell 7 (SilverGuard UI)**: This cell generates the elder-friendly calendar UI and TTS audio.
+4.  **Screenshot**: Capture a screenshot of the terminal output (Cell 5) and the SilverGuard UI (Cell 7) for the demo.
+
+---
+
 ## 🌟 Key Features (Impact)
 *   **👵 SilverGuard Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Simulated Taiwanese Mandarin) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Clinically Verified Translations** (Indonesian/Vietnamese) for non-Chinese speaking caregivers.

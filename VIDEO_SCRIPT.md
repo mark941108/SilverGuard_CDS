@@ -63,14 +63,14 @@
 | 0:50-1:05 | **[畫面分割]** 左邊是模糊藥袋圖 (Noisy Data)，右邊是 Agent | *"Watch as we feed it a **'Nightmare Case'**—blurry, dark, and confusing. A standard model would fail here."* |
 | 1:05-1:15 | **[特效]** `Logic Flaw Detected` 出現時畫面**凍結** 👉 **出現「大腦思考」動畫** | *"But my Agent acts like a human pharmacist. It triggers a **Self-Correction Loop**, realizing the dosage is lethal for an 88-year-old."* |
 | 1:15-1:25 | **[動畫]** 顯示 Prompt 文字變化: `Adding Context: Please re-analyze...` | *"It doesn't just guess; it **reasons, reflects, and retries**."* |
-| 1:25-1:35 | **[特效]** 顯示溫度計動畫: **Temperature 0.6 ➔ 0.4** 🌡️ | *"It reduces temperature to 0.4 for deterministic reasoning, and retries."* |
+| 1:25-1:35 | **[特效]** 顯示溫度計動畫: **Temperature 0.6 ➔ 0.2** 🌡️ | *"It reduces temperature to 0.2 for deterministic reasoning, and retries."* |
 | 1:35-1:50 | **[左右對比]** 左邊: Attempt 1 (❌ Fail) vs 右邊: Attempt 2 (✅ Success) | *"And there it is—HIGH_RISK correctly flagged. This is true Agentic Intelligence: observe, evaluate, adapt, retry."* |
 
 **🎬 製作提示:**
 - **絕對不要只錄 Terminal 滾動！**
 - **Overlay (覆蓋層)**: 在 Terminal 上面蓋一個半透明圖層，用大字寫 **"Step 1: Self-Reflection Triggered"**。
 - **證據展示**: 務必用那張「有噪點、爛爛的」合成圖，不要用完美的圖，證明你的 Robustness。
-- **溫度細節**: 把 `Temperature 0.6 -> 0.4` 做成一個小動畫，這是技術亮點。
+- **溫度細節**: 把 `Temperature 0.6 -> 0.2` 做成一個小動畫，這是技術亮點。
 
 ---
 
@@ -162,7 +162,7 @@ It utilizes a Hybrid Architecture: Neural perception for reading, Symbolic logic
 Watch as we feed it a 'Nightmare Case'—blurry, dark, and confusing. A standard model would fail here.
 But my Agent acts like a human pharmacist. It triggers a Self-Correction Loop, realizing the dosage is lethal for an 88-year-old.
 It doesn't just guess; it reasons, reflects, and retries.
-It reduces temperature to 0.4 for deterministic reasoning, and retries.
+It reduces temperature to 0.2 for deterministic reasoning, and retries.
 And there it is—HIGH_RISK correctly flagged. This is true Agentic Intelligence: observe, evaluate, adapt, retry.
 
 [Scene 4: SilverGuard & Health Equity - 1:50-2:30]
