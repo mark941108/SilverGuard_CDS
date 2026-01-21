@@ -1,7 +1,7 @@
 <!-- 🖼️ HERO IMAGE -->
 ![AI Pharmacist Guardian](assets/hero_image.jpg)
 
-# 🏥 AI Pharmacist Guardian + 👴 SilverGuard
+# 🏥 AI Pharmacist Guardian V5.0 + 👴 SilverGuard
 
 > [!IMPORTANT]
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
@@ -24,6 +24,7 @@
 ---
 
 ## 🚀 Quick Start
+> **Current Version:** V5.0 Impact Edition (Stable)
 
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
 > Please add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN` before running.
@@ -587,7 +588,7 @@ Stage 5: High Risk Demo & SilverGuard UI (Cell 7/10)
 
 ```
 The MedGemma Impact Challenge/
-├── KAGGLE_V4_COMPLETE.py    # Complete training code (V5.0 Impact Edition)
+├── AI_Pharmacist_Guardian_V5.py    # Complete training code (V5.0 Impact Edition)
 ├── README.md                # This file
 ├── requirements.txt         # Dependencies
 └── medgemma_training_data_v5/

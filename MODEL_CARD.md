@@ -11,7 +11,7 @@ tags:
 - safety
 ---
 
-# Model Card for MedGemma Guardian (V7.1 Impact Edition)
+# Model Card for MedGemma Guardian (V5.0 Impact Edition)
 
 ## 📋 Model Details
 
@@ -22,7 +22,7 @@ MedGemma Guardian is a specialized **Agentic Vision-Language Model (VLM)** desig
 -   **Language(s):** English, Traditional Chinese (Taiwan Localization)
 -   **License:** CC-BY 4.0
 -   **Finetuned from model:** `google/medgemma-1.5-4b-it`
--   **Training Method:** QLoRA (4-bit quantization) with Rank 64, Alpha 32.
+-   **Training Method:** QLoRA (4-bit quantization) with Rank 16, Alpha 32.
 
 ## 🎯 Intended Use
 

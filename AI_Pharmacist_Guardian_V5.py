@@ -315,7 +315,7 @@ DRUG_DATABASE = {
     ],
 }
 
-# ===== V5.0 Fix: Drug Aliases Mapping (Fixed reverse lookup bug) =====
+# ===== V5.0 Impact Edition: Drug Aliases Mapping (Fixed reverse lookup bug) =====
 # PURPOSE: Allow searching by brand name OR generic name
 # FIX: Removed aliases that don't match DRUG_DATABASE (e.g., coumadin is NOT in our DB)
 # The lookup function will try BOTH original name AND alias
