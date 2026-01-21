@@ -295,7 +295,7 @@ def logical_consistency_check(extracted_data):
         age = int(age_val)
         if age < 0 or age > 120: issues.append(f"Invalid age: {age}")
         if age < 18: issues.append(f"Pediatric age ({age}) requires manual review")
-        if age > 80:
+        if age >= 65:
             dose = extracted_data.get("drug", {}).get("dose", "")
             import re
             dose_match = re.search(r'(\d+)\s*(?:mg|g|mcg)', dose, re.IGNORECASE)
