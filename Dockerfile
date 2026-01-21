@@ -21,9 +21,9 @@ COPY . .
 
 # Set Environment Variables
 # OFFLINE_MODE: Ensures the model runs without trying to phone home for datasets
-ENV OFFLINE_MODE=True
+ENV OFFLINE_MODE=False
 ENV CUDA_VISIBLE_DEVICES=0
 
 # Default command to run the inference service
 # (Note: In a real deployment, this might be a FastAPI app or the Gradio interface)
-CMD ["python", "AI_Pharmacist_Guardian_V5.py"]
+CMD ["python", "HF_SPACE_APP.py"]

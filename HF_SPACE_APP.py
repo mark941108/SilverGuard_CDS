@@ -20,6 +20,8 @@ import spaces # ZeroGPU support
 # It loads the fine-tuned adapter from Hugging Face Hub (Bonus 1) and runs inference.
 
 # 1. Configuration
+ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/MedGemma-SilverGuard-V5")
+# 1. Configuration
 HF_TOKEN = os.environ.get("HUGGINGFACE_TOKEN")
 
 BASE_MODEL = "google/medgemma-1.5-4b-it"
