@@ -12,8 +12,11 @@
 [![MedGemma](https://img.shields.io/badge/Model-MedGemma%201.5--4B-blue)](https://huggingface.co/google/medgemma-1.5-4b-it)
 [![License](https://img.shields.io/badge/License-CC%20BY%204.0-green)](https://creativecommons.org/licenses/by/4.0/)
 [![Kaggle](https://img.shields.io/badge/Kaggle-Agentic%20Workflow%20Prize-FFD700)](https://www.kaggle.com/competitions/med-gemma-impact-challenge)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
+[![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces)
 [![Privacy](https://img.shields.io/badge/Privacy-Local%20Only%20%2F%20No%20Cloud-purple)]()
 [![Edge AI](https://img.shields.io/badge/Edge%20AI-Runs%20Offline-orange)]()
+[![Tech Stack](https://img.shields.io/badge/Tech-peft%20%7C%20bitsandbytes%20%7C%20transformers-blueviolet)]()
 
 ---
 
@@ -414,12 +417,11 @@ Designed for cognitive accessibility in elderly patients:
 | **🚨 Alert System** | Clear PASS / WARNING / HIGH_RISK status |
 
 ### Future Roadmap (Agentic Memory & DDI)
-
-Leveraging MedGemma 1.5's **Longitudinal Analysis** capabilities:
-
-- **Phase 2 - Multi-Bag Sessions**: Context memory for Drug-Drug Interaction (DDI) checking
-- **Phase 3 - RAG Integration**: Connect to Micromedex/UpToDate databases
-- **Accessibility**: TTS voice alerts and large-font UI for elderly patients
+Leapfrogging to "Phase 4" Architecture (Post-Competition):
+- **Phase 2 - Multi-Bag Sessions**: Context memory for Drug-Drug Interaction (DDI) checking.
+- **Phase 3 - Dynamic RAG**: Integration with vector database (ChromaDB) to scale drug knowledge beyond the 12-drug POC.
+- **Phase 4 - Constitutional AI**: "Dual-Stream Verification" to prevent visual prompt injection attacks.
+- **Accessibility**: Support for 10+ dialects via MedASR-Large.
 
 ---
 

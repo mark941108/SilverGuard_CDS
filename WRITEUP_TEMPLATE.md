@@ -56,6 +56,27 @@ Input → VLM Reasoning → Logic Check → [RETRY if failed] → Confidence →
 > **2. Adversarial Stress-Testing (The "Anti-Fragile" Approach)**  
 > I did not pamper the model with perfect data. I built a custom **"Gallery of Horrors" Generator** (`generate_stress_test.py`) to attack the system with extreme blur, occlusion, and low-light noise. The Agentic Loop was tuned against these edge cases to ensure robustness in the chaotic real world.
 
+> **🛡️ Adversarial Defense Strategy (Visual Security)**  
+> To counter "Visual Prompt Injection" (e.g., malicious stickers on drug bags), we implement a **Dual-Stream Verification** design (Phase 3). By cross-referencing OCR traces with the Vision Encoder's output, we can detect semantic mismatch attacks.  
+> * **Mitigation:** Input images undergo randomized re-scaling/cropping (Sim2Real robustness) to disrupt adversarial patches.
+
+## 3. Clinical Validation & Health Equity (HEAL Framework)
+
+> **Health Equity Assessment (HEAL)**  
+> We rigorously tested the model against the **HEAL Framework** to ensure no bias against vulnerable populations:  
+> * **Age Equity:** Validated on geriatric-specific dosages (Beers Criteria).  
+> * **Language Equity:** Explicitly trained on **Code-Switching (EN/ZH)** data to ensure equal accuracy for non-English speakers.  
+> * **Digital Equity:** **Zero-Cost Edge Deployment** ensures access for rural clinics without high-speed internet.
+
+## 4. Legal Compliance & Localization
+
+> **Taiwan Pharmaceutical Affairs Act (Article 19)**  
+> Designed for strict local compliance, the system extracts all mandatory fields required by law:  
+> * **Mandatory Fields:** Patient Name, Sex, Drug Name, Dosage, Quantity, Usage, **Indication**, **Warning** (Side Effects).  
+> * **Compliance Check:** The Agent explicitly verifies the presence of "Warning/Side Effects" on the label, alerting if missing (Legal Requirement).
+
+## 5. Roadmap: Phase 4 & Beyond
+
 ### Confidence Formula
 `C = α × P_mean + (1-α) × P_min` where α=0.7  
 *Rationale: Amplify uncertain tokens → prefer Human Review over missed errors*
