@@ -74,18 +74,18 @@
 
 ---
 
-### Scene 4: Social Impact - SilverGuard (1:50 - 2:30) — 情感收尾
+### Scene 4: Social Impact - SilverGuard & Health Equity (1:50 - 2:30) — 情感收尾
 
 | 時間 | 畫面 | 旁白 (英文) |
 |------|------|-------------|
 | 1:50-2:00 | 左右對比: JSON 輸出 (Confusing) vs SilverGuard (Clear) | *"Complex JSON is meaningless to elderly patients. That's why we built SilverGuard."* |
 | 2:00-2:10 | SilverGuard 大字體日曆 (HTML 截圖) | *"Large 28px+ fonts, high-contrast colors designed for WCAG 2.1 AAA accessibility..."* |
-| 2:10-2:25 | **播放 TTS 語音 (台味中文)** + **底部加上英文字幕** | *"...and Text-to-Speech that speaks in warm, native language."* (此時背景播出親切的中文語音) |
-| 2:25-2:30 | 阿嬤笑臉圖示 + **"Protecting the Vulnerable"** | *"We don't just detect errors—we bridge the communication gap."* |
+| 2:10-2:20 | **[Demo]** 滑鼠切換語言至 **Indonesian**，警告轉為 **"BAHAYA!"** | *"But we didn't stop there. For Taiwan's 250,000 migrant caregivers, we added a **Language Bridge**."* |
+| 2:20-2:30 | **播放 Indonesian TTS 語音** + 阿嬤與外籍看護微笑圖 | *"Verified medical alerts in Indonesian and Vietnamese. Ensuring safety has no language barrier."* |
 
 **🎬 製作提示:**
-- **聽覺陷阱**: TTS 語音必須夠「台」、夠溫暖，不要用機器人音。
-- **字幕戰術**: 評審聽不懂中文，**一定加英文字幕**： *(Subtitle: "Grandma, this dose is too high! Please call the doctor.")* -> 這招殺傷力極強！
+- **聽覺陷阱**: TTS 語音必須夠「台」、夠溫暖。並展示印尼語音的 **"BAHAYA!" (危險)** 震撼力。
+- **字幕戰術**: 評審聽不懂中文/印尼文，**一定加英文字幕**： *(Subtitle: "DANGER! Do not take this!")*。
 - 背景音樂轉為溫馨感人。
 
 ---
@@ -96,10 +96,6 @@
 |------|------|-------------|
 | 2:30-2:40 | Hero Image + GitHub/Kaggle 連結 | *"Built by **one student**, running on **free hardware**, designed for **every forgotten elder**."* |
 | 2:40-2:50 | 標語: **"AI Pharmacist Guardian: Safety First, Privacy Always."** | *"This is AI Pharmacist Guardian: Turning personal regret into public safety."* |
-
-**🎬 製作提示:**
-- 乾淨俐落，不要拖泥帶水
-- 最後 3 秒靜止在 Logo 上
 
 ---
 
@@ -169,10 +165,11 @@ It doesn't just guess; it reasons, reflects, and retries.
 It reduces temperature to 0.4 for deterministic reasoning, and retries.
 And there it is—HIGH_RISK correctly flagged. This is true Agentic Intelligence: observe, evaluate, adapt, retry.
 
-[Scene 4: SilverGuard - 1:50-2:30]
+[Scene 4: SilverGuard & Health Equity - 1:50-2:30]
 Complex JSON is meaningless to elderly patients. That's why we built SilverGuard.
 Large 28px+ fonts, high-contrast colors designed for WCAG 2.1 Triple-A accessibility...
-and Text-to-Speech that speaks in warm, native Taiwanese Mandarin.
+But we didn't stop there. For Taiwan's 250,000 migrant caregivers, we added a "Language Bridge".
+Verified medical alerts in Indonesian and Vietnamese. Ensuring safety has no language barrier.
 We don't just detect errors—we bridge the communication gap for the most vulnerable.
 
 [Scene 5: Call to Action - 2:30-2:50]

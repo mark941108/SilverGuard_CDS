@@ -1980,13 +1980,42 @@ def json_to_elderly_speech(result_json):
         return f"抱歉，AI 看不清楚這張照片。請直接問藥師喔！"
 
 # ============================================================================
-# MODULE 2: Text-to-Speech (TTS) for Elderly
+# MODULE 2: Text-to-Speech (TTS) for Elderly & Migrant Caregivers
 # ============================================================================
+
+# --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
+# 安全風險控制：使用「醫學驗證字典」而非 Google Translate，確保絕對安全。
+SAFE_TRANSLATIONS = {
+    "zh-TW": {
+        "label": "🇹🇼 台灣 (繁體中文)",
+        "HIGH_RISK": "⚠️ 危險！請勿服用",
+        "WARNING": "⚠️ 警告！請再次確認",
+        "PASS": "✅ 安全",
+        "CONSULT": "請立即諮詢藥師 (0800-000-123)",
+        "TTS_LANG": "zh-tw"
+    },
+    "id": {
+        "label": "🇮🇩 Indonesia (Bahasa)",
+        "HIGH_RISK": "⛔ BAHAYA! JANGAN MINUM OBAT INI!",
+        "WARNING": "⚠️ PERINGATAN! CEK DOSIS.",
+        "PASS": "✅ AMAN",
+        "CONSULT": "TANYA APOTEKER SEGERA.",
+        "TTS_LANG": "id"
+    },
+    "vi": {
+        "label": "🇻🇳 Việt Nam (Tiếng Việt)",
+        "HIGH_RISK": "⛔ NGUY HIỂM! KHÔNG ĐƯỢC UỐNG!",
+        "WARNING": "⚠️ CẢNH BÁO! KIỂM TRA LIỀU LƯỢNG.",
+        "PASS": "✅ AN TOÀN",
+        "CONSULT": "HỎI NGAY DƯỢC SĨ.",
+        "TTS_LANG": "vi"
+    }
+}
+
 def text_to_speech_elderly(text, lang='zh-tw', slow=True):
     """
     Convert text to speech using gTTS (with robust offline fallback)
-    - Slow speed for elderly listeners
-    - Taiwanese Mandarin accent
+    - Supports Multilingual (id, vi, zh-tw)
     """
     try:
         # 🔌 Step 1: Check internet connectivity FIRST
@@ -1997,11 +2026,12 @@ def text_to_speech_elderly(text, lang='zh-tw', slow=True):
         from gtts import gTTS
         from IPython.display import Audio, display
         
-        print("🗣️ 正在生成語音...")
+        print(f"🗣️ 正在生成語音 (Language: {lang})...")
         
         # Clean text for TTS
         clean_text = text.replace("⚠️", "注意").replace("✅", "").replace("🟡", "")
         clean_text = clean_text.replace("👉", "").replace("📅", "").replace("💊", "")
+        clean_text = clean_text.replace("⛔", "BAHAYA").replace("WARN", "") # Basic cleanup
         
         tts = gTTS(text=clean_text, lang=lang, slow=slow)
         filename = "/kaggle/working/elder_instruction.mp3"

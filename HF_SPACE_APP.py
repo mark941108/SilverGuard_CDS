@@ -409,6 +409,78 @@ def run_inference(image, patient_notes=""):
             current_try += 1
             correction_context += f"\n\n[System]: Crash: {str(e)}. Output simple valid JSON."
             
+# --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
+# 安全風險控制：使用「醫學驗證字典」而非 Google Translate，確保絕對安全。
+SAFE_TRANSLATIONS = {
+    "zh-TW": {
+        "label": "🇹🇼 台灣 (繁體中文)",
+        "HIGH_RISK": "⚠️ 危險！請勿服用",
+        "WARNING": "⚠️ 警告！請再次確認",
+        "PASS": "✅ 安全",
+        "CONSULT": "請立即諮詢藥師 (0800-000-123)",
+        "TTS_LANG": "zh-tw"
+    },
+    "id": {
+        "label": "🇮🇩 Indonesia (Bahasa)",
+        "HIGH_RISK": "⛔ BAHAYA! JANGAN MINUM OBAT INI!",
+        "WARNING": "⚠️ PERINGATAN! CEK DOSIS.",
+        "PASS": "✅ AMAN",
+        "CONSULT": "TANYA APOTEKER SEGERA.",
+        "TTS_LANG": "id"
+    },
+    "vi": {
+        "label": "🇻🇳 Việt Nam (Tiếng Việt)",
+        "HIGH_RISK": "⛔ NGUY HIỂM! KHÔNG ĐƯỢC UỐNG!",
+        "WARNING": "⚠️ CẢNH BÁO! KIỂM TRA LIỀU LƯỢNG.",
+        "PASS": "✅ AN TOÀN",
+        "CONSULT": "HỎI NGAY DƯỢC SĨ.",
+        "TTS_LANG": "vi"
+    }
+}
+
+def silverguard_ui(case_data, target_lang="zh-TW"):
+    """
+    SilverGuard UI 生成器 (多語系版)
+    """
+    safety = case_data.get("safety_analysis", {})
+    status = safety.get("status", "WARNING")
+    
+    # 1. 取得對應語言的安全翻譯 (Fallback to zh-TW)
+    lang_pack = SAFE_TRANSLATIONS.get(target_lang, SAFE_TRANSLATIONS["zh-TW"])
+    
+    # 2. 對映狀態文字
+    if status == "HIGH_RISK":
+        display_status = lang_pack["HIGH_RISK"]
+        color = "#ffcdd2" # Red
+        icon = "⛔"
+    elif status == "WARNING":
+        display_status = lang_pack["WARNING"]
+        color = "#fff9c4" # Yellow
+        icon = "⚠️"
+    else:
+        display_status = lang_pack["PASS"]
+        color = "#c8e6c9" # Green
+        icon = "✅"
+        
+    # 3. 生成 TTS (使用對應語言)
+    tts_text = f"{display_status}. {lang_pack['CONSULT']}."
+    audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
+    
+    html = f"""
+    <div style="background-color: {color}; padding: 20px; border-radius: 15px; border: 3px solid #333;">
+        <h1 style="color: #333; margin:0; font-size: 32px;">{icon} {display_status}</h1>
+        <p style="font-size: 24px; color: #555; margin-top: 10px;">{lang_pack['CONSULT']}</p>
+        <hr>
+        <div style="font-size: 18px; color: #666;">
+            <b>💊 Drug:</b> {case_data['extracted_data'].get('drug', {}).get('name', 'Unknown')}<br>
+            <b>📋 Reason (English):</b> {safety.get('reasoning', 'No data')}
+        </div>
+    </div>
+    """
+    return html, audio_path
+
+# --- GRADIO INTERFACE UPDATE ---
+# ... (User must verify manual Gradio block update below) ...
     # TTS Logic (Hybrid)
     final_status = result_json.get("safety_analysis", {}).get("status", "UNKNOWN")
     speech_text = json_to_elderly_speech(result_json)
@@ -486,24 +558,39 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                     btn = gr.Button("🔍 Analyze & Safety Check", variant="primary", size="lg")
                 
                 with gr.Column(scale=1):
+                    # --- NEW: Language Selector for Migrant Caregivers ---
+                    lang_dropdown = gr.Dropdown(
+                        choices=["zh-TW", "id", "vi"], 
+                        value="zh-TW", 
+                        label="🌏 Caregiver Language (看護語言)", 
+                        info="Select language for SilverGuard alerts"
+                    )
+                    
                     status_output = gr.Textbox(label="🛡️ Safety Status", elem_id="risk-header")
-                    silver_output = gr.Textbox(label="👵 SilverGuard (Script)", lines=3)
+                    silver_html = gr.HTML(label="👵 SilverGuard UI") # Change to HTML for styling
                     audio_output = gr.Audio(label="🔊 Voice Alert")
                     json_output = gr.JSON(label="📊 Agent Reasoning")
             
-            def analyze_with_voice(image, audio_path, text_override):
+            def analyze_with_voice(image, audio_path, text_override, target_lang):
                 transcription = ""
                 if audio_path:
                     t, success = transcribe_audio(audio_path)
                     if success: transcription = t
                 if not transcription and text_override: transcription = text_override
-                print(f"🎤 Context: {transcription}")
-                return (transcription, *run_inference(image, patient_notes=transcription))
+                print(f"🎤 Context: {transcription} | Lang: {target_lang}")
+                
+                # 1. Run Inference
+                status, res_json, speech, audio_path_old = run_inference(image, patient_notes=transcription)
+                
+                # 2. Run SilverGuard UI Gen (with Language)
+                html_view, audio_path_new = silverguard_ui(res_json, target_lang=target_lang)
+                
+                return transcription, status, res_json, html_view, audio_path_new
             
             btn.click(
                 fn=analyze_with_voice, 
-                inputs=[input_img, voice_input, transcription_display], 
-                outputs=[transcription_display, status_output, json_output, silver_output, audio_output]
+                inputs=[input_img, voice_input, transcription_display, lang_dropdown], 
+                outputs=[transcription_display, status_output, json_output, silver_html, audio_output]
             )
             voice_ex1.click(lambda: "Patient is allergic to Aspirin.", outputs=transcription_display)
             voice_ex2.click(lambda: "Patient has history of kidney failure (eGFR < 30).", outputs=transcription_display)

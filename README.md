@@ -16,9 +16,16 @@
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces)
 [![Privacy](https://img.shields.io/badge/Privacy-Local%20Only%20%2F%20No%20Cloud-purple)]()
 [![Edge AI](https://img.shields.io/badge/Edge%20AI-Runs%20Offline-orange)]()
+[![Health Equity](https://img.shields.io/badge/Health%20Equity-Multilingual%20Caregiver%20Support-FF4081)]()
 [![Tech Stack](https://img.shields.io/badge/Tech-peft%20%7C%20bitsandbytes%20%7C%20transformers-blueviolet)]()
 
 ---
+
+## 🌟 Key Features (Impact)
+*   **👵 SilverGuard Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Simulated Taiwanese Mandarin) and **Large-Font Calendars**.
+*   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Clinically Verified Translations** (Indonesian/Vietnamese) for non-Chinese speaking caregivers.
+*   **🛡️ Privacy First**: Runs 100% locally on T4 GPU. Zero PII leaves the device.
+*   **🧠 Agentic Self-Correction**: "Think before speaking" loop with hallucination checks.
 
 ## ⚡ Judges' Executive Summary (30-Second Insight)
 

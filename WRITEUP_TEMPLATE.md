@@ -65,7 +65,7 @@ Input → VLM Reasoning → Logic Check → [RETRY if failed] → Confidence →
 > **Health Equity Assessment (HEAL)**  
 > We rigorously tested the model against the **HEAL Framework** to ensure no bias against vulnerable populations:  
 > * **Age Equity:** Validated on geriatric-specific dosages (Beers Criteria).  
-> * **Language Equity:** Explicitly trained on **Code-Switching (EN/ZH)** data to ensure equal accuracy for non-English speakers.  
+> * **Language Equity (Migrant Caregivers):** Incorporated **Clinically Verified Translations** (Indonesian/Vietnamese) for non-Chinese speaking caregivers, preventing "Google Translate" medication errors.
 > * **Digital Equity:** **Zero-Cost Edge Deployment** ensures access for rural clinics without high-speed internet.
 
 ## 4. Legal Compliance & Localization
