@@ -41,6 +41,8 @@ wandb/
 
 # Exclude generated datasets if any (keep assets/stress_test though)
 medgemma_training_data_v4/
+medgemma_training_data_v5/
+medgemma_lora_output_v5/
 temp_query.jpg
 
 # OS

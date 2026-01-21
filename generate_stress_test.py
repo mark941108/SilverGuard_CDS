@@ -31,7 +31,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # Image size matches Training Data
 IMG_SIZE = 896
 
-# ===== 1. Data & Config (Synced from KAGGLE_V4) =====
+# ===== 1. Data & Config (Synced from KAGGLE_V5) =====
 
 HOSPITAL_INFO = {
     "name": "MedGemma 智慧醫療示範醫院",

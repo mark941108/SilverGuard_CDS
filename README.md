@@ -549,10 +549,10 @@ The MedGemma Impact Challenge/
 ├── KAGGLE_V4_COMPLETE.py    # Complete training code (V5.0 Impact Edition)
 ├── README.md                # This file
 ├── requirements.txt         # Dependencies
-└── medgemma_training_data_v4/
-    ├── medgemma_v4_*.png    # Synthetic drug bag images
-    ├── dataset_v4_train.json  # Training split (90%)
-    └── dataset_v4_test.json   # Testing split (10%)
+└── medgemma_training_data_v5/
+    ├── medgemma_v5_*.png    # Synthetic drug bag images
+    ├── dataset_v5_train.json  # Training split (90%)
+    └── dataset_v5_test.json   # Testing split (10%)
 ```
 
 ---

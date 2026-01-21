@@ -23,7 +23,7 @@ import spaces # ZeroGPU support
 HF_TOKEN = os.environ.get("HUGGINGFACE_TOKEN")
 
 BASE_MODEL = "google/medgemma-1.5-4b-it"
-ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "Please_Replace_This_With_Your_Repo_ID")
+ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/MedGemma-SilverGuard-V5")
 
 if "Please_Replace" in ADAPTER_MODEL or not ADAPTER_MODEL:
     print("❌ CRITICAL: ADAPTER_MODEL_ID not configured!")
@@ -170,7 +170,7 @@ DRUG_ALIASES = {
     "crestor": "rosuvastatin",
 }
 
-# Sync from KAGGLE_V4_COMPLETE.py Cell 2
+# Sync from KAGGLE_V5_COMPLETE.py Cell 2
 DRUG_DATABASE = {
     "Hypertension": [
         {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after"},

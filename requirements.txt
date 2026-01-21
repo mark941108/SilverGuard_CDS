@@ -1,5 +1,5 @@
 # AI Pharmacist Guardian - Dependencies
-# For Kaggle V4 Training Pipeline
+# For Kaggle V5 Training Pipeline
 
 # Core ML (Enforce recent versions for Gemma 3 architecture)
 transformers>=4.50.0

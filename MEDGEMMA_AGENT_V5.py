@@ -130,7 +130,7 @@ This system runs on a single T4 GPU, enabling deployment in:
 # %%
 # ===== 驗證安裝並登入 =====
 print("="*80)
-print("🚀 MedGemma V4 Impact Edition - 環境設置")
+print("🚀 MedGemma V5 Impact Edition - 環境設置")
 print("="*80)
 
 print("\n[1/2] HuggingFace 登入...")
@@ -155,10 +155,10 @@ print("="*80)
 
 # %%
 # ============================================================================
-# CELL 2: V4 數據生成器 (Risk Injection + Safety-CoT)
+# CELL 2: V5 數據生成器 (Risk Injection + Safety-CoT)
 # ============================================================================
 """
-Cell 2: MedGemma V4 數據生成器 (Impact Edition)
+Cell 2: MedGemma V5 數據生成器 (Impact Edition)
 ===============================================
 🏆 獲獎級升級：
 1. ✅ Risk Injection (30% 危險處方)
@@ -1620,18 +1620,18 @@ def main_cell4():
         raise NameError("❌ 請先執行 Cell 3！")
     
     print("\n" + "="*80)
-    print("🤖 V4 Agentic Safety Check Pipeline")
+    print("🤖 V5 Agentic Safety Check Pipeline")
     print("    Implementing: Input Gate → Reasoning → Confidence → Grounding")
     print("="*80)
     
-    BASE_DIR = "/kaggle/working/medgemma_training_data_v4"
+    BASE_DIR = "/kaggle/working/medgemma_training_data_v5"
     
     test_images = [
-        f"{BASE_DIR}/medgemma_v4_0000.png",
-        f"{BASE_DIR}/medgemma_v4_0100.png",
-        f"{BASE_DIR}/medgemma_v4_0300.png",
-        f"{BASE_DIR}/medgemma_v4_0400.png",
-        f"{BASE_DIR}/medgemma_v4_0550.png",
+        f"{BASE_DIR}/medgemma_v5_0000.png",
+        f"{BASE_DIR}/medgemma_v5_0100.png",
+        f"{BASE_DIR}/medgemma_v5_0300.png",
+        f"{BASE_DIR}/medgemma_v5_0400.png",
+        f"{BASE_DIR}/medgemma_v5_0550.png",
     ]
     
     results = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0, "HUMAN_REVIEW": 0, "REJECTED": 0}
@@ -1888,11 +1888,11 @@ def create_gradio_demo():
         4. 🔍 Run grounding check (anti-hallucination)
         5. 📢 Output safety assessment
         
-        *For demo: Use images from `medgemma_training_data_v4/`*
+        *For demo: Use images from `medgemma_training_data_v5/`*
         """,
         examples=[
-            ["/kaggle/working/medgemma_training_data_v4/medgemma_v4_0000.png"],
-            ["/kaggle/working/medgemma_training_data_v4/medgemma_v4_0300.png"],
+            ["/kaggle/working/medgemma_training_data_v5/medgemma_v5_0000.png"],
+            ["/kaggle/working/medgemma_training_data_v5/medgemma_v5_0300.png"],
         ],
         theme="soft"
     )
@@ -2273,8 +2273,8 @@ def demo_elder_friendly_output():
     print("   3. 💬 口語化說明 (無專業術語)")
     
     # 1. 先找一個 HIGH_RISK 案例並執行真正的推理
-    json_path = "/kaggle/working/medgemma_training_data_v4/dataset_v4_full.json" # V5 Fix: Use FULL dataset
-    img_dir = "/kaggle/working/medgemma_training_data_v4"
+    json_path = "/kaggle/working/medgemma_training_data_v5/dataset_v5_full.json" # V5 Fix: Use FULL dataset
+    img_dir = "/kaggle/working/medgemma_training_data_v5"
     
     try:
         with open(json_path, "r", encoding="utf-8") as f:
