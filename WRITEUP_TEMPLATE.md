@@ -17,27 +17,18 @@
 
 ---
 
-## Problem Statement
+## 1. Problem Statement
+**"Medication errors cost $42 billion annually globaly."** — WHO
 
-> **The Personal Mission: Bridging a Missing Memory**  
-> My grandparents passed away when I was very young, leaving a void in my life where memories of caring for them should be. Now, as an engineer facing Taiwan's entry into a "Super-Aged Society" in 2025, I often ask: *"If they were here, would they be safe?"*  
-> This project is born from that personal reflection. I cannot go back to help them, but I can use technology to prevent the medication errors that threaten millions of other elders.  
-> 
-> **The Global Impact:**  
-> Medication errors cost **$42 billion annually** (WHO). By deploying an edge-based guardian, we aim to protect the most vulnerable demographic in resource-poor settings.
+Elderly patients (65+) are **7x more likely** to suffer adverse drug events due to poor vision and complex regimens. Existing solutions fail because **Standard OCR misses context, and standard LLMs hallucinate.**
 
-## Solution: MedGemma Agentic Workflow
+**Only an Agentic Workflow can balance perception with strict safety.**
 
-**AI Pharmacist Guardian** deploys **MedGemma 1.5-4B** as a self-correcting agent:
-
-```
-Input → VLM Reasoning → Logic Check → [RETRY if failed] → Confidence → Output/Human Flag
-```
-
-### Key Agentic Features
-- **Self-Correction Loop**: On logic failure, agent modifies prompt + retries with lower temperature
-- **Input Gate**: Rejects blurry/OOD images before processing
-- **Human-in-the-Loop**: Confidence <80% → "Human Review Needed"
+## 2. Technical Approach (Agentic Workflow)
+Our solution, **AI Pharmacist Guardian**, utilizes a **Neuro-Symbolic Architecture** that combines:
+1.  **MedGemma 1.5-4B (Neuro)**: For semantic understanding and VLM reasoning.
+2.  **Logic Guardrails (Symbolic)**: Regex and Rule-based checks for absolute dose safety.
+3.  **Self-Correction Loop**: An agentic retry mechanism that dynamically injects error context and lowers temperature (0.6 → 0.2) to "think before speaking."
 
 ### SilverGuard (Social Impact)
 - 🗣️ TTS voice readout for visually impaired

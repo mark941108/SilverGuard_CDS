@@ -152,20 +152,23 @@ In my field, 'system stability' is everything.
 So when I saw how fragile medication safety is for the elderly...
 I decided to build a system that doesn't just read text—it protects life.
 
-[Scene 2: Solution - 0:20-0:50]
+[Scene 1: Hook - 0:00-0:30]
+In 2025, Taiwan becomes a 'Super-Aged Society'. My grandparents, like millions of others, struggle to read complex prescriptions. One wrong dose can be fatal. Global medication errors cost 42 billion dollars a year. But standard OCR solutions miss the context, and standard LLMs... well, they hallucinate.
+
+[Scene 2: Solution - 0:30-1:00]
 Meet AI Pharmacist Guardian.
 Powered by Google's MedGemma 1.5, running 100% locally on a single T4 GPU.
 This is our "Privacy Moat": Unlike cloud APIs that leak sensitive PHI, our Edge AI architecture keeps patient data logically isolated and HIPAA-compliant.
 It utilizes a Hybrid Architecture: Neural perception for reading, Symbolic logic for safety.
 
-[Scene 3: Agentic Loop - 0:50-1:50]
+[Scene 3: Agentic Loop - 1:00-2:00]
 Watch as we feed it a 'Nightmare Case'—blurry, dark, and confusing. A standard model would fail here.
 But my Agent acts like a human pharmacist. It triggers a Self-Correction Loop, realizing the dosage is lethal for an 88-year-old.
 It doesn't just guess; it reasons, reflects, and retries.
 It reduces temperature to 0.2 for deterministic reasoning, and retries.
 And there it is—HIGH_RISK correctly flagged. This is true Agentic Intelligence: observe, evaluate, adapt, retry.
 
-[Scene 4: SilverGuard & Health Equity - 1:50-2:30]
+[Scene 4: SilverGuard & Health Equity - 2:00-2:40]
 Complex JSON is meaningless to elderly patients. That's why we built SilverGuard.
 Large 28px+ fonts, high-contrast colors designed for WCAG 2.1 Triple-A accessibility...
 But we didn't stop there. For Taiwan's 250,000 migrant caregivers, we added a "Language Bridge".

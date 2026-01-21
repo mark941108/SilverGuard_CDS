@@ -1284,6 +1284,7 @@ def parse_json_from_response(response):
 def agentic_inference(model, processor, img_path, verbose=True):
     """
     Complete Agentic Inference Pipeline
+    # HAI-DEF Architecture Implementation (Google Health AI Developer Foundations)
     Implements: Input Gate → VLM Reasoning → Confidence Check → Grounding → Output
     """
     # ⚠️ CRITICAL: Ensure model is in EVAL mode for inference
