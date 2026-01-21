@@ -4,7 +4,7 @@ from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndByte
 from peft import PeftModel
 from PIL import Image
 import json
-import os
+import edge_tts
 import re
 import spaces # ZeroGPU support
 

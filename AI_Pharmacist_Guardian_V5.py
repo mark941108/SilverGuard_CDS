@@ -696,7 +696,7 @@ def generate_image(case, output_path, difficulty):
 
 # ===== 主程式 (V5 Impact Edition) =====
 def main_cell2():
-    OUTPUT_DIR_V5 = Path("/kaggle/working/medgemma_training_data_v5")
+    OUTPUT_DIR_V5 = Path("./medgemma_training_data_v5")
     OUTPUT_DIR_V5.mkdir(exist_ok=True, parents=True)
     dataset = []
     stats = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0}
@@ -816,9 +816,9 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 MODEL_ID = "google/medgemma-1.5-4b-it"
-DATA_PATH = "/kaggle/working/medgemma_training_data_v5/dataset_v5_train.json" # V5 Fix: Use Train Split
-IMAGE_DIR = "/kaggle/working/medgemma_training_data_v5"
-OUTPUT_DIR = "/kaggle/working/medgemma_lora_output_v5"
+DATA_PATH = "./medgemma_training_data_v5/dataset_v5_train.json" # V5 Fix: Use Train Split
+IMAGE_DIR = "./medgemma_training_data_v5"
+OUTPUT_DIR = "./medgemma_lora_output_v5"
 
 # V6 Auto-Detect: Check if judge has attached the dataset
 possible_path = "/kaggle/input/medgemma-v5-lora-adapter"
@@ -1624,7 +1624,7 @@ def main_cell4():
     print("    Implementing: Input Gate → Reasoning → Confidence → Grounding")
     print("="*80)
     
-    BASE_DIR = "/kaggle/working/medgemma_training_data_v5"
+    BASE_DIR = "./medgemma_training_data_v5"
     
     test_images = [
         f"{BASE_DIR}/medgemma_v5_0000.png",
@@ -1726,8 +1726,8 @@ def demo_agentic_high_risk():
 
     # 1. 讀取標註檔找出 High Risk 的 ID
     # 1. 讀取標註檔找出 High Risk 的 ID
-    json_path = "/kaggle/working/medgemma_training_data_v5/dataset_v5_full.json" # V5 Fix: Use FULL dataset
-    img_dir = "/kaggle/working/medgemma_training_data_v5"
+    json_path = "./medgemma_training_data_v5/dataset_v5_full.json" # V5 Fix: Use FULL dataset
+    img_dir = "./medgemma_training_data_v5"
     
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -1834,7 +1834,7 @@ def create_gradio_demo():
             return "❌ No image uploaded", "{}"
         
         # Save temp image
-        temp_path = "/kaggle/working/temp_upload.png"
+        temp_path = "./temp_upload.png"
         image.save(temp_path)
         
         # Run agentic pipeline
@@ -1891,8 +1891,8 @@ def create_gradio_demo():
         *For demo: Use images from `medgemma_training_data_v5/`*
         """,
         examples=[
-            ["/kaggle/working/medgemma_training_data_v5/medgemma_v5_0000.png"],
-            ["/kaggle/working/medgemma_training_data_v5/medgemma_v5_0300.png"],
+            ["./medgemma_training_data_v5/medgemma_v5_0000.png"],
+            ["./medgemma_training_data_v5/medgemma_v5_0300.png"],
         ],
         theme="soft"
     )
@@ -2121,7 +2121,7 @@ def text_to_speech_elderly(text, lang='zh-tw', slow=True):
         clean_text = clean_text.replace("⛔", "BAHAYA").replace("WARN", "") # Basic cleanup
         
         tts = gTTS(text=clean_text, lang=lang, slow=slow)
-        filename = "/kaggle/working/elder_instruction.mp3"
+        filename = "./elder_instruction.mp3"
         tts.save(filename)
         
         print("✅ 語音生成完成！")
@@ -2311,8 +2311,8 @@ def visualize_safety_matrix(results_csv_path=None, dummy_data=False):
     plt.text(2.5, 1.5, "Safety Net\nSuccess", ha='center', va='center', color='goldenrod', weight='bold', fontsize=10)
     
     plt.tight_layout()
-    plt.savefig("/kaggle/working/safety_confusion_matrix.png", dpi=300)
-    print("✅ Matrix saved to: /kaggle/working/safety_confusion_matrix.png")
+    plt.savefig("./safety_confusion_matrix.png", dpi=300)
+    print("✅ Matrix saved to: ./safety_confusion_matrix.png")
     plt.show()
 
 # ============================================================================
@@ -2336,8 +2336,8 @@ def demo_elder_friendly_output():
     print("   3. 💬 口語化說明 (無專業術語)")
     
     # 1. 先找一個 HIGH_RISK 案例並執行真正的推理
-    json_path = "/kaggle/working/medgemma_training_data_v5/dataset_v5_full.json" # V5 Fix: Use FULL dataset
-    img_dir = "/kaggle/working/medgemma_training_data_v5"
+    json_path = "./medgemma_training_data_v5/dataset_v5_full.json" # V5 Fix: Use FULL dataset
+    img_dir = "./medgemma_training_data_v5"
     
     try:
         with open(json_path, "r", encoding="utf-8") as f:
@@ -2442,8 +2442,8 @@ def evaluate_agentic_pipeline():
         return
     
     # V5 Fix: Use Test Split (prevent data leakage)
-    json_path = "/kaggle/working/medgemma_training_data_v5/dataset_v5_test.json"
-    img_dir = "/kaggle/working/medgemma_training_data_v5"
+    json_path = "./medgemma_training_data_v5/dataset_v5_test.json"
+    img_dir = "./medgemma_training_data_v5"
     
     try:
         with open(json_path, "r", encoding="utf-8") as f:

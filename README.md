@@ -32,7 +32,7 @@
 1.  **Run All Cells**: Execute the notebook from top to bottom.
 2.  **Cell 5 (Agentic Workflow)**: This cell runs the core MedGemma agent. It will output a JSON safety analysis.
 3.  **Cell 7 (SilverGuard UI)**: This cell generates the elder-friendly calendar UI and TTS audio.
-3.  **Cell 7 (SilverGuard UI)**: This cell generates the elder-friendly calendar UI and TTS audio.
+
 4.  **Screenshot**: Capture a screenshot of the terminal output (Cell 5) and the SilverGuard UI (Cell 7) for the demo.
 
 ### 🐳 Docker Reproducibility (Optional)
