@@ -2781,6 +2781,11 @@ def launch_agentic_app():
             try:
                 img = Image.open(img_path).convert("RGB")
                 
+                # Dynamic Temperature for Agentic Retry
+                # Attempt 0: 0.6 (Creative/Standard)
+                # Attempt 1+: 0.2 (Conservative/Deterministic)
+                current_temp = 0.6 if current_try == 0 else 0.2
+                
                 # V8: Inject Voice Context
                 prompt_text = base_prompt
                 if voice_context:
@@ -2801,13 +2806,14 @@ def launch_agentic_app():
                 inputs = processor(text=prompt, images=img, return_tensors="pt").to(model.device)
                 input_len = inputs.input_ids.shape[1] # Track input length
                 
-                # Deterministic generation for safety
+                # Dynamic Generation
                 with torch.no_grad():
                     outputs = model.generate(
                         **inputs, 
                         max_new_tokens=1024,
-                        do_sample=False, 
-                        temperature=0.0
+                        do_sample=True, # Enable sampling for temperature to work
+                        temperature=current_temp,
+                        top_p=0.9
                     )
                 
                 # Slice output to remove prompt echoing
@@ -2827,6 +2833,7 @@ def launch_agentic_app():
                     result["vlm_output"] = {"raw": generated_text, "parsed": parsed_json}
                     result["grounding"] = {"passed": grounded, "message": ground_msg}
                     result["pipeline_status"] = "SUCCESS"
+                    result["agentic_retries"] = current_try # Record retry count for Logging
                     
                     # Determine Status
                     status = safety.get("status", "UNKNOWN")
@@ -2844,9 +2851,9 @@ def launch_agentic_app():
             except Exception as e:
                 # Agentic Self-Correction Loop
                 current_try += 1
-                correction_context += f"\n\n[System]: Previous attempt failed ({str(e)}). Please ensure Output is VALID JSON only and logic is consistent."
+                correction_context += f"\n\n[System Error Log]: Previous attempt failed due to: {str(e)}. Please RE-ANALYZE the image and ensure Output is VALID JSON only. Pay attention to dosing logic."
                 if verbose:
-                    print(f"   🔄 Agent Retry #{current_try}: {e}")
+                    print(f"   🔄 Agent Retry #{current_try} (Temp={current_temp}->0.2): {e}")
         
         result["pipeline_status"] = "FAILED"
         result["final_status"] = "SYSTEM_ERROR"
@@ -2904,10 +2911,10 @@ def launch_agentic_app():
                     
                     # Capture Logs from Inference
                     try:
-                        res = agentic_inference_v8(model, processor, tpath, voice_context=voice_note, verbose=True)
-                        log_text += f"   - Attempt 1: Inference Complete\n"
+                        log_text += f"   - Attempt 1: Inference Complete (Temp=0.6)\n"
                         if res.get("agentic_retries", 0) > 0:
                             log_text += f"   ⚠️ Logic Check Failed -> Triggered Retry Loop\n"
+                            log_text += f"   🔄 STRATEGY SHIFT: Lowering Temperature (0.6 -> 0.2) for Precision\n"
                             log_text += f"   - Retries Used: {res['agentic_retries']}\n"
                             log_text += f"   - Correction Context Applied: YES\n"
                         log_text += f"   ✅ Final Status: {res['final_status']}\n"

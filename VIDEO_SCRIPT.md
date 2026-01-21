@@ -63,7 +63,7 @@
 | 0:50-1:05 | **[畫面分割]** 左邊是模糊藥袋圖 (Noisy Data)，右邊是 Agent | *"Watch as we feed it a **'Nightmare Case'**—blurry, dark, and confusing. A standard model would fail here."* |
 | 1:05-1:15 | **[特效]** `Logic Flaw Detected` 出現時畫面**凍結** 👉 **出現「大腦思考」動畫** | *"But my Agent acts like a human pharmacist. It triggers a **Self-Correction Loop**, realizing the dosage is lethal for an 88-year-old."* |
 | 1:15-1:25 | **[動畫]** 顯示 Prompt 文字變化: `Adding Context: Please re-analyze...` | *"It doesn't just guess; it **reasons, reflects, and retries**."* |
-| 1:25-1:35 | **[特效]** 顯示溫度計動畫: **Temperature 0.6 ➔ 0.2** 🌡️ | *"It reduces temperature to 0.2 for deterministic reasoning, and retries."* |
+| 1:25-1:35 | **[特效]** 顯示溫度計動畫 + **Zoom In on Log: "STRATEGY SHIFT: Lowering Temp (0.6 -> 0.2)"** 🌡️ | *"It reduces temperature to 0.2 for deterministic reasoning, and retries."* |
 | 1:25-1:35 | **[特效]** 顯示溫度計動畫: **Temperature 0.6 ➔ 0.2** 🌡️ | *"It reduces temperature to 0.2 for deterministic reasoning, and retries."* |
 | 1:35-1:40 | **[左右對比]** 左邊: Attempt 1 (❌ Fail) vs 右邊: Attempt 2 (✅ Success) | *"And there it is—HIGH_RISK correctly flagged. This is true Agentic Intelligence."* |
 | 1:40-1:50 | **[終極對比]** 分割畫面：左邊 Standard OCR (亂碼/錯誤) vs 右邊 MedGemma Agent (拒絕/修正) | *"While standard OCR blindly accepts errors, our Agent refuses to guess. A refusal is safer than a hallucination."* |
