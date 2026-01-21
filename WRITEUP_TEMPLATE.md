@@ -301,7 +301,7 @@ To prove the system works in the real world despite training on synthetic data, 
 ```bibtex
 @misc{silverguard2024,
   title={SilverGuard: AI Pharmacist Guardian},
-  author={Mark Chen},
+  author={Wang, Yuan-dao},
   year={2026},
   publisher={Kaggle MedGemma Impact Challenge},
   note={V5.0 Impact Edition}
@@ -309,6 +309,5 @@ To prove the system works in the real world despite training on synthetic data, 
 ```
 
 ```
-Yuan-dao Wang. AI Pharmacist Guardian: The MedGemma Impact Challenge.
-https://kaggle.com/competitions/med-gemma-impact-challenge, 2026. Kaggle.
+Fereshteh Mahvar, Yun Liu, Daniel Golden, Fayaz Jamil, Sunny Jansen, Can Kirmizi, Rory Pilgrim, David F. Steiner, Andrew Sellergren, Richa Tiwari, Sunny Virmani, Liron Yatziv, Rebecca Hemenway, Yossi Matias, Ronit Levavi Morad, Avinatan Hassidim, Shravya Shetty, and María Cruz. The MedGemma Impact Challenge. https://kaggle.com/competitions/med-gemma-impact-challenge, 2026. Kaggle.
 ```
