@@ -17,9 +17,16 @@ opencv-python-headless
 # Data Generation
 qrcode[pil]
 
-# Utilities
-# torch  <-- Use Kaggle pre-installed
-# numpy  <-- Use Kaggle pre-installed
+# Demo & UI
+gradio>=4.0.0
+matplotlib
+seaborn
+scikit-learn
+
+# Utilities (Explicitly listed for robustness)
+torch
+numpy
+requests
 
 # TTS (SilverGuard Voice)
 gTTS>=2.5.0
