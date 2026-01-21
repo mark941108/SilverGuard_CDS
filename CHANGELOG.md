@@ -2,7 +2,7 @@
 
 All notable changes to the **AI Pharmacist Guardian** project will be documented in this file.
 
-## [V7.1] - Impact Edition - 2026-01-20
+## [V5.0] - Impact Edition (Final Submission) - 2026-01-20
 ### Fixed
 -   **Aspirin Safety Logic:** Refined logic to distinguish between standard preventive dosage (100mg) and high-risk analgesic dosage (>325mg) for elderly patients, aligning with **AGS Beers Criteria 2023**.
 -   **Warfarin Lookup Bug:** Fixed a reverse lookup issue where the generic name was not correctly mapping to the brand name in the safety check.
@@ -10,7 +10,7 @@ All notable changes to the **AI Pharmacist Guardian** project will be documented
 ### Changed
 -   **UI Optimizations:** Improved SilverGuard font rendering for better accessibility.
 
-## [V6.0] - Agentic Pipeline - 2026-01-15
+## [V4.5] - Agentic Pipeline - 2026-01-15
 ### Added
 -   **Self-Correction Loop:** Implemented the agentic retry mechanism.
 -   **Dynamic Temperature:** System now automatically lowers temperature from `0.6` to `0.2` when a logical flaw is detected during the first inference pass.

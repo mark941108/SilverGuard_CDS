@@ -1,7 +1,7 @@
 """
 ================================================================================
 AI Pharmacist Guardian - MedGemma Impact Challenge
-Complete Training Pipeline (V5 Impact Edition)
+Complete Training Pipeline (V5.0 Impact Edition)
 ================================================================================
 
 ⚠️⚠️⚠️ IMPORTANT NOTE FOR JUDGES ⚠️⚠️⚠️
@@ -130,7 +130,7 @@ This system runs on a single T4 GPU, enabling deployment in:
 # %%
 # ===== 驗證安裝並登入 =====
 print("="*80)
-print("🚀 MedGemma V5 Impact Edition - 環境設置")
+print("🚀 AI Pharmacist Guardian V5.0 - 環境設置")
 print("="*80)
 
 print("\n[1/2] HuggingFace 登入...")
@@ -160,7 +160,7 @@ print("="*80)
 """
 Cell 2: MedGemma V5 數據生成器 (Impact Edition)
 ===============================================
-🏆 獲獎級升級：
+🏆 V5.0 Key Upgrades:
 1. ✅ Risk Injection (30% 危險處方)
 2. ✅ Safety-CoT (安全推理輸出)
 3. ✅ Physical Augmentation (真實髒污增強)
@@ -315,7 +315,7 @@ DRUG_DATABASE = {
     ],
 }
 
-# ===== V7 Fix: Drug Aliases Mapping (Fixed reverse lookup bug) =====
+# ===== V5.0 Fix: Drug Aliases Mapping (Fixed reverse lookup bug) =====
 # PURPOSE: Allow searching by brand name OR generic name
 # FIX: Removed aliases that don't match DRUG_DATABASE (e.g., coumadin is NOT in our DB)
 # The lookup function will try BOTH original name AND alias
@@ -430,8 +430,8 @@ def inject_medical_risk(case_data):
     if random.random() < 0.3:
         trap_type = random.choice([
             "elderly_overdose", 
-            "aspirin_check",       # V7.1 NEW: 50/50 split to train distinction
-            "zolpidem_overdose",   # V7.1: FDA says 10mg is 2x elderly max
+            "aspirin_check",       # V5.0 NEW: 50/50 split to train distinction
+            "zolpidem_overdose",   # V5.0: FDA says 10mg is 2x elderly max
             "wrong_time", 
             "warfarin_risk",
             "renal_concern"
@@ -2629,7 +2629,7 @@ def upload_model_to_hf():
         hf_username = "mark941108" # Fallback if secrets unavailable
 
 
-    repo_name = "medgemma-pharmacist-guardian-v5"
+    repo_name = "MedGemma-SilverGuard-V5"
     repo_id = f"{hf_username}/{repo_name}"
     
     print(f"\n📦 Target Repo: {repo_id}")

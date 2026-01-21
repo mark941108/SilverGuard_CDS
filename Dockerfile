@@ -26,4 +26,4 @@ ENV CUDA_VISIBLE_DEVICES=0
 
 # Default command to run the inference service
 # (Note: In a real deployment, this might be a FastAPI app or the Gradio interface)
-CMD ["python", "MEDGEMMA_AGENT_V5.py"]
+CMD ["python", "AI_Pharmacist_Guardian_V5.py"]

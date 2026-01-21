@@ -102,7 +102,7 @@ def transcribe_audio(audio_path):
 # 🔮 CONFIGURATION (V5 Impact Edition)
 # ============================================================================
 # ⚠️ LOAD FROM KAGGLE-TRAINED ADAPTER (Bonus Task: Open Weights)
-ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/medgemma-pharmacist-guardian-v5")
+ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/MedGemma-SilverGuard-V5")
 BASE_MODEL = "google/medgemma-1.5-4b-it"
 
 # Feature Flags
