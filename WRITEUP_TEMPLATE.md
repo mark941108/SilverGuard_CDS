@@ -40,6 +40,67 @@ Unlike standard models that hallucinate when uncertain, our Agent implements a *
 3.  **Self-Correction (Temp 0.2):** If inconsistencies are found, the Agent **lowers its temperature** and retries with specific error context ("Warning: Dose too high").
 4.  **SilverGuard UI:** Converts complex JSON into **Elderly-Friendly Audio (TTS)** and **Large-Visual Calendars**.
 
+### Agentic Algorithm: Formal DefinitionThe Self-Correction Loop implements a **temperature-modulated retry policy**:
+
+$$
+\mathcal{T}_{attempt} = \begin{cases} 
+0.6 & \text{if } attempt = 0 \text{ (Exploration)} \\
+0.2 & \text{if } attempt \geq 1 \text{ (Exploitation)}
+\end{cases}
+$$
+
+**Confidence Threshold Function:**
+
+$$
+\mathcal{C}(output) = -\frac{1}{N}\sum_{i=1}^{N} p_i \log p_i \quad (\text{Entropy-based})
+$$
+
+Where $\mathcal{C} < 0.5$ triggers `HUMAN_REVIEW_NEEDED` (Safety Net).
+
+**Retry Decision Logic:**
+
+$$
+Retry = \begin{cases} 
+\text{True} & \text{if } \neg LogicCheck(output) \land attempt < MAX\_RETRIES \\
+\text{False} & \text{otherwise}
+\end{cases}
+$$
+
+This implements the **TOTE Loop** (Test-Operate-Test-Exit) from cognitive psychology—the Agent **thinks before acting**.
+
+---
+
+### Limitations \u0026 Anti-Fragility Design
+
+We embrace **"Intellectual Honesty"** by proactively disclosing limitations and our engineering mitigations:
+
+#### 1. **Synthetic Data (Sim2Real Gap)**
+**Limitation:** Model trained exclusively on programmatically generated drug bags.
+
+**Mitigation (Anti-Fragility):**
+- ✅ **"Gallery of Horrors" Stress Test:** We deliberately attack our model with 10 extreme edge cases (blur, occlusion, water damage).
+- ✅ **Input Gate (Laplacian Variance):** Rejects blurry images pre-inference. **Refusal is safer than hallucination.**
+- ✅ **Fail-Safe Philosophy:** When uncertain → `HUMAN_REVIEW_NEEDED` (not a failure, a feature).
+
+> *"We chose deterministic validation (Regex for dose units) over probabilistic AI—not due to lack of sophistication, but because life-critical systems demand **certainty over creativity**."*
+
+#### 2. **Limited Drug Database (12 Drugs POC)**
+**Limitation:** Current knowledge base covers only 12 high-risk chronic disease medications.
+
+**Mitigation (Modular Architecture):**
+- ✅ **Decoupled Design:** The `retrieve_drug_info()` function serves as a **RAG Interface Stub**. Replacing the local dictionary with RxNorm/Micromedex API requires only 5 lines of code (see `AI_Pharmacist_Guardian_V5.py` line 363).
+- ✅ **Graceful Degradation:** Unknown drugs trigger `UNKNOWN_DRUG` status → Manual Review (prevents hallucination).
+
+> *"This is a **POC (Proof of Concept)** demonstrating safety architecture, not a production drug encyclopedia. The modular design allows scaling to 20,000+ FDA drugs without retraining the model."*
+
+#### 3. **Cross-Domain Credibility (Energy Engineer Perspective)**
+**Strength Reframed:**  
+As an Energy \u0026 Refrigeration Engineering student, I approach AI with the same **Fail-Safe mindset** used in nuclear reactor control systems:
+- No system should **fail catastrophically** from a single point of failure.
+- Medical AI = Critical Infrastructure → Requires **redundant safety layers** (Input Gate + Logic Check + Confidence Threshold).
+
+> *"In my field, 'system stability' is everything. This project applies industrial-grade safety standards to healthcare AI."*
+
 ### Technical details
 **Product Feasibility (Edge AI Architecture):**
 * **100% Offline-Capable:** Optimized to run on a single **NVIDIA T4 (16GB)** or consumer hardware (e.g., RTX 40/50 series) using 4-bit quantization (NF4).

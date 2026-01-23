@@ -1,257 +1,316 @@
 """
-Gallery of Horrors - Stress Test Image Generator (Taiwan Standard Edition)
-========================================================================
-Generates 10 "nightmare" prescription images that strictly adhere to 
-Taiwan "Pharmacist Act" (藥師法) labeling regulations.
+Gallery of Horrors - Stress Test Generator (V9: 2026 Flagship Edition)
+======================================================================
+Designed for MedGemma Impact Challenge - "Agentic Workflow Prize"
+Compliance: Taiwan Pharmacist Act (13 Items) + 2026 Elderly Friendly UX.
 
 Features:
-- Standard "門診藥袋" Layout
-- Full Chinese Fields (姓名, 病歷號, 調劑日期, 適應症)
-- QR Code (Smart Hospital Feature)
-- Drug Appearance Description
-- Noto Sans CJK TC Font (Professional Printing Style)
-
-Usage:
-    python generate_stress_test.py
+1.  Visual Timing: Full Bowl (After Meal) vs Empty Bowl (Before Meal).
+2.  Layout: Red Hotline (Top), Big Patient Name (Left), Pill Photo (Right).
+3.  Safety: Anti-confusion Color Bands, Warning Icons (No Drive/Alcohol).
+4.  Physical: Simulated Hole Punch (Wall hanging).
 """
 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 import os
 import random
-import json
-import requests
 import qrcode
+import math
+import requests
 import numpy as np
-from datetime import datetime, timedelta
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-# Create output directory
+# Output Config
 OUTPUT_DIR = "assets/stress_test"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+IMG_WIDTH = 1200  # 加寬以容納更清楚的圖示
+IMG_HEIGHT = 1400 # 加高以容納底部完整資訊
 
-# Image size matches Training Data
-IMG_SIZE = 896
+# ==========================================
+# 1. 資源準備 (Auto-Font)
+# ==========================================
+FONT_URL = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf"
+FONT_PATH = "NotoSansCJKtc-Regular.otf"
 
-# ===== 1. Data & Config (Synced from KAGGLE_V5) =====
-
-HOSPITAL_INFO = {
-    "name": "MedGemma 智慧醫療示範醫院",
-    "address": "台北市信義區信義路五段7號",
-    "phone": "(02) 8765-4321",
-    "pharmacist": "王大明",
-    "checker": "李小美"
-}
-
-# Simplified Drug DB for Stress Test
-DRUG_DB = [
-    {"name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用", "usage": {"text_zh": "每日兩次 早晚飯後", "quantity": 56}},
-    {"name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "usage": {"text_zh": "每日一次 早餐飯後", "quantity": 28}},
-    {"name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後請立即就寢", "usage": {"text_zh": "每日一次 睡前服用", "quantity": 28}},
-    {"name_en": "Aspirin", "name_zh": "阿斯匹靈", "generic": "ASA", "dose": "100mg", "appearance": "白色圓形", "indication": "預防血栓", "warning": "胃潰瘍患者慎用", "usage": {"text_zh": "每日一次 早餐飯後", "quantity": 28}},
-    {"name_en": "Lipitor", "name_zh": "立普妥", "generic": "Atorvastatin", "dose": "20mg", "appearance": "白色橢圓形", "indication": "降血脂", "warning": "肌肉痠痛時需回診", "usage": {"text_zh": "每日一次 睡前服用", "quantity": 28}},
-]
-
-# ===== 2. Font Logic =====
-def download_font(font_name, url):
-    if not os.path.exists(font_name):
-        print(f"📥 Downloading font: {font_name}...")
+def get_font(size):
+    if not os.path.exists(FONT_PATH):
         try:
-            response = requests.get(url, timeout=30)
-            with open(font_name, 'wb') as f:
-                f.write(response.content)
-        except Exception as e:
-            print(f"⚠️ Font download failed: {e}")
-    return font_name
+            print(f"⬇️ 下載中文字體中... ({size}px)")
+            r = requests.get(FONT_URL)
+            with open(FONT_PATH, "wb") as f:
+                f.write(r.content)
+        except:
+            return ImageFont.load_default()
+    return ImageFont.truetype(FONT_PATH, size)
 
-def get_font_paths():
-    # Priority 1: System
-    sys_bold = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
-    sys_reg = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
-    if os.path.exists(sys_bold): return sys_bold, sys_reg
+# ==========================================
+# 2. 2026 進階圖示引擎 (Advanced Pictograms)
+# ==========================================
 
-    # Priority 2: Local Download
-    bold_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Bold.otf"
-    reg_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf"
-    return download_font("NotoSansTC-Bold.otf", bold_url), download_font("NotoSansTC-Regular.otf", reg_url)
+def draw_sun(draw, x, y, size, color="black"):
+    """ 太陽 (實心/空心) """
+    cx, cy = x, y
+    r = size // 3
+    draw.ellipse([cx-r, cy-r, cx+r, cy+r], outline=color, width=3)
+    for i in range(0, 360, 45):
+        rad = math.radians(i)
+        sx = cx + math.cos(rad) * (r+4)
+        sy = cy + math.sin(rad) * (r+4)
+        ex = cx + math.cos(rad) * (size//1.5)
+        ey = cy + math.sin(rad) * (size//1.5)
+        draw.line([sx, sy, ex, ey], fill=color, width=3)
 
-# ===== 3. Generator (Drawing) =====
-def generate_base_prescription(drug_idx):
-    drug = DRUG_DB[drug_idx % len(DRUG_DB)]
-    
-    # Generate random patient data
-    date_str = (datetime.now() - timedelta(days=random.randint(0, 30))).strftime("%Y/%m/%d")
-    chart_no = f"A{random.randint(100000, 999999)}"
-    rx_id = f"R{random.randint(202600000000, 202699999999)}"
-    
-    img = Image.new('RGB', (IMG_SIZE, IMG_SIZE), 'white')
-    draw = ImageDraw.Draw(img)
-    
-    # Load fonts
-    font_bold_path, font_reg_path = get_font_paths()
-    try:
-        ft_title = ImageFont.truetype(font_bold_path, 40)
-        ft_large = ImageFont.truetype(font_bold_path, 36)
-        ft_main = ImageFont.truetype(font_reg_path, 28) # Slightly larger for readability
-        ft_small = ImageFont.truetype(font_reg_path, 24)
-        ft_warn = ImageFont.truetype(font_bold_path, 24)
-    except:
-        ft_title = ImageFont.load_default()
-        ft_large = ImageFont.load_default()
-        ft_main = ImageFont.load_default()
-        ft_small = ImageFont.load_default()
-        ft_warn = ImageFont.load_default()
+def draw_moon(draw, x, y, size):
+    """ 月亮 + 星星 """
+    draw.chord([x-size//2, y-size//2, x+size//2, y+size//2], start=30, end=330, outline="black", width=3)
+    sx, sy = x - 10, y
+    draw.line([sx-5, sy, sx+5, sy], fill="black", width=2)
+    draw.line([sx, sy-5, sx, sy+5], fill="black", width=2)
 
-    # --- Header ---
-    draw.text((40, 30), HOSPITAL_INFO["name"], font=ft_title, fill="#003366")
-    draw.text((560, 80), "門診藥袋", font=ft_title, fill="black") # Standard Title (Moved Down)
-    
-    # QR Code (Smart Hospital)
-    qr = qrcode.make(json.dumps({"id": rx_id, "drug": drug["name_en"]})).resize((110, 110))
-    img.paste(qr, (740, 20))
-    
-    draw.line([(30, 140), (866, 140)], fill="#003366", width=4)
-    
-    # --- Patient Info ---
-    # Row 1
-    draw.text((50, 160), "姓名: 吳振明", font=ft_large, fill="black")
-    draw.text((450, 165), f"病歷號: {chart_no}", font=ft_main, fill="black")
-    
-    # Row 2
-    draw.text((50, 210), "年齡: 78 歲", font=ft_large, fill="black")
-    draw.text((450, 215), f"調劑日: {date_str}", font=ft_main, fill="black")
-    
-    draw.line([(30, 270), (866, 270)], fill="gray", width=2)
-    
-    # --- Drug Info ---
-    # English Name + Dose
-    draw.text((50, 290), f"{drug['name_en']} {drug['dose']}", font=ft_title, fill="black")
-    # Chinese Name + Generic
-    draw.text((50, 340), f"{drug['name_zh']} ({drug['generic']})", font=ft_main, fill="#444444")
-    # Quantity
-    draw.text((600, 290), f"總量: {drug['usage']['quantity']}", font=ft_large, fill="black")
-    
-    # Appearance (New Field)
-    draw.text((50, 390), f"外觀: {drug['appearance']}", font=ft_main, fill="#006600") # Dark Green
-    
-    # --- Usage Box ---
-    draw.rectangle([(40, 440), (850, 540)], outline="black", width=3)
-    draw.text((60, 470), drug['usage']['text_zh'], font=ft_title, fill="black")
-    
-    # --- Indication & Warning ---
-    y_base = 580
-    draw.text((50, y_base), "適應症:", font=ft_main, fill="black")
-    draw.text((160, y_base), drug['indication'], font=ft_main, fill="black")
-    
-    draw.text((50, y_base+50), "⚠ 警語:", font=ft_warn, fill="red")
-    draw.text((160, y_base+50), drug['warning'], font=ft_main, fill="red")
-    
-    # Footer
-    draw.line([(30, 800), (866, 800)], fill="gray", width=1)
-    draw.text((50, 820), f"藥師: {HOSPITAL_INFO['pharmacist']}  核對: {HOSPITAL_INFO['checker']}", font=ft_small, fill="gray")
-    draw.text((50, 850), f"地址: {HOSPITAL_INFO['address']}  電話: {HOSPITAL_INFO['phone']}", font=ft_small, fill="gray")
+def draw_bowl_full(draw, x, y, size):
+    """ 盛滿飯的碗 (飯後) """
+    # 碗
+    draw.chord([x-size//2, y-size//4, x+size//2, y+size//2], start=0, end=180, outline="black", width=3)
+    draw.line([x-size//4, y+size//2, x+size//4, y+size//2], fill="black", width=3)
+    # 飯 (堆高高)
+    draw.arc([x-size//2+2, y-size//2, x+size//2-2, y], start=180, end=0, fill="black", width=3)
+    # 筷子
+    draw.line([x+size//4, y-size//2, x+size//2, y+size//4], fill="black", width=3)
 
-    return img
+def draw_bowl_empty(draw, x, y, size):
+    """ 空碗 (飯前) """
+    # 碗
+    draw.chord([x-size//2, y-size//4, x+size//2, y+size//2], start=0, end=180, outline="black", width=3)
+    draw.line([x-size//4, y+size//2, x+size//4, y+size//2], fill="black", width=3)
+    # 筷子平放
+    draw.line([x-size//2, y-size//2, x+size//2, y-size//2], fill="black", width=2)
 
-# ===== 4. Distortions (The Gallery of Horrors) =====
-def apply_extreme_blur(img, intensity="heavy"):
-    if intensity == "heavy": return img.filter(ImageFilter.GaussianBlur(radius=8))
-    elif intensity == "motion": return img.filter(ImageFilter.BoxBlur(radius=6))
-    return img
+def draw_bed(draw, x, y, size):
+    """ 床鋪 """
+    draw.rectangle([x-size//2, y, x+size//2, y+size//4], outline="black", width=3)
+    draw.rectangle([x-size//2, y-10, x-size//2+15, y], fill="black") # 枕頭
+    # Zzz
+    f = get_font(20)
+    draw.text((x, y-40), "Zzz", fill="black", font=f)
 
-def apply_low_light(img):
-    enhancer = ImageEnhance.Brightness(img); img = enhancer.enhance(0.4)
-    enhancer = ImageEnhance.Contrast(img); return enhancer.enhance(0.8)
+def draw_warning_icon(draw, x, y, size, type="car"):
+    """ 警示圖標 (禁止開車/飲酒) """
+    draw.ellipse([x-size//2, y-size//2, x+size//2, y+size//2], outline="red", width=4)
+    draw.line([x-size//2.5, y+size//2.5, x+size//2.5, y-size//2.5], fill="red", width=4)
+    
+    if type == "car":
+        draw.rectangle([x-15, y-5, x+15, y+10], fill="black") # 車身
+        draw.ellipse([x-12, y+10, x-5, y+18], fill="black") # 輪
+        draw.ellipse([x+5, y+10, x+12, y+18], fill="black")
+    elif type == "wine":
+        draw.polygon([(x-8, y-10), (x+8, y-10), (x, y+5)], outline="black", width=2)
+        draw.line([x, y+5, x, y+15], fill="black", width=2)
 
-def apply_overexposure(img):
-    enhancer = ImageEnhance.Brightness(img); img = enhancer.enhance(1.8)
-    enhancer = ImageEnhance.Contrast(img); return enhancer.enhance(0.5)
+def draw_indication_icon(draw, x, y, size, type="heart"):
+    """ 適應症圖示 """
+    if type == "heart":
+        draw.polygon([(x, y+15), (x-15, y-5), (x, y-15), (x+15, y-5)], fill="red")
+    elif type == "stomach":
+        draw.arc([x-15, y-15, x+15, y+15], start=30, end=270, fill="gray", width=3)
 
-def apply_noise(img, amount=50):
+# ==========================================
+# 3. 核心組件 (Layout Components)
+# ==========================================
+
+def draw_pill_photo_sim(draw, x, y, drug):
+    """ 1:1 藥物外觀照片模擬 (Pseudo-3D) """
+    # 背景相紙感
+    draw.rectangle([x, y, x+200, y+150], fill=(240, 240, 240), outline="gray", width=1)
+    draw.text((x+10, y+5), "藥品真實外觀 (Size 1:1)", fill="gray", font=get_font(20))
+    
+    cx, cy = x + 100, y + 85
+    size = 80 # 大尺寸
+    
+    # 陰影 (Shadow)
+    draw.ellipse([cx-size//2+5, cy-size//2+5, cx+size//2+5, cy+size//2+5], fill=(200,200,200))
+    
+    colors = {"white": (255,255,255), "yellow": (255,240,180), "pink": (255,200,200)}
+    fill = colors.get(drug['color'], (255,255,255))
+    
+    if drug['shape'] == 'circle':
+        draw.ellipse([cx-size//2, cy-size//2, cx+size//2, cy+size//2], fill=fill, outline="black", width=2)
+    elif drug['shape'] == 'oval':
+        draw.ellipse([cx-size//1.2, cy-size//2, cx+size//1.2, cy+size//2], fill=fill, outline="black", width=2)
+        
+    # 刻痕與光澤
+    draw.line([cx-20, cy, cx+20, cy], fill=(200,200,200), width=2)
+    draw.arc([cx-size//4, cy-size//4, cx, cy], start=180, end=270, fill="white", width=3) # 反光
+
+def draw_usage_grid_2026(draw, x, y, w, h, drug):
+    """ 2026 旗艦版用法表格 """
+    # 外框
+    draw.rectangle([x, y, x+w, y+h], outline="black", width=4)
+    col_w = w // 4
+    for i in range(1, 4):
+        draw.line([x+i*col_w, y, x+i*col_w, y+h], fill="black", width=2)
+        
+    headers = ["早上", "中午", "晚上", "睡前"]
+    # 用法解析
+    usage_code = drug['usage']
+    timing = drug['timing'] # 飯前 or 飯後
+    
+    targets = []
+    if "BID" in usage_code: targets = [0, 2]
+    elif "TID" in usage_code: targets = [0, 1, 2]
+    elif "QD" in usage_code: targets = [0]
+    elif "QN" in usage_code: targets = [3]
+    
+    for i in range(4):
+        bx = x + i*col_w
+        cx = bx + col_w//2
+        cy = y + h//2
+        
+        # 1. 標題 (大字)
+        draw.text((bx+15, y+10), headers[i], fill="black", font=get_font(28))
+        
+        # 2. 時間圖示 (Sun/Moon)
+        icon_y = cy - 40
+        if i == 0: draw_sun(draw, cx, icon_y, 40)
+        elif i == 1: draw_sun(draw, cx, icon_y, 40)
+        elif i == 2: draw_sun(draw, cx, icon_y, 40, "gray") # 傍晚
+        elif i == 3: draw_moon(draw, cx, icon_y, 40)
+        
+        # 3. 飯碗圖示 (Before/After Meal)
+        # 只有在「要吃」的那個時段才顯示碗，減少視覺干擾
+        if i in targets and i != 3: # 睡前通常不吃飯
+            bowl_y = icon_y + 40
+            if "飯後" in timing:
+                draw_bowl_full(draw, cx+30, bowl_y, 30)
+            else:
+                draw_bowl_empty(draw, cx+30, bowl_y, 30)
+        
+        # 4. 數量確認 (Big Red Circle)
+        if i in targets:
+            draw.ellipse([cx-30, cy+20, cx+30, cy+80], outline="red", width=5)
+            draw.text((cx-12, cy+25), "1", fill="red", font=get_font(40))
+        else:
+            # 淡化處理
+            draw.line([cx-20, cy+40, cx+20, cy+60], fill="lightgray", width=3)
+            draw.line([cx-20, cy+60, cx+20, cy+40], fill="lightgray", width=3)
+
+def apply_texture(img):
+    overlay = Image.new("RGBA", img.size, (255, 252, 240, 20))
+    img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
     arr = np.array(img)
-    noise = np.random.randint(-amount, amount, arr.shape, dtype=np.int16)
-    arr = np.clip(arr.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+    noise = np.random.normal(0, 3, arr.shape).astype(np.uint8)
+    arr = np.clip(arr + noise, 0, 255).astype(np.uint8)
     return Image.fromarray(arr)
 
-def apply_crease(img):
+# ==========================================
+# 4. 主生成器 (Main Pipeline)
+# ==========================================
+
+def generate_v9_bag(filename, patient, drug, is_danger=False):
+    img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), "white")
     draw = ImageDraw.Draw(img)
-    width, height = img.size
-    draw.line([(0, height//3), (width, height//2)], fill=(180, 180, 180), width=10)
-    return img
-
-def apply_water_damage(img):
-    draw = ImageDraw.Draw(img, 'RGBA')
-    width, height = img.size
-    for _ in range(3):
-        x, y = random.randint(0, width), random.randint(0, height//2)
-        r = random.randint(60, 150)
-        draw.ellipse([(x-r, y-r), (x+r, y+r)], fill=(220, 210, 190, 80))
-    return img.convert('RGB')
-
-def apply_paper_texture(img):
-    """
-    Simulates crumpled paper texture using procedural noise overlay.
-    Strategy: Generates a grayscale noise layer, blurs it to create 'folds', 
-    and blends it with the original image using a multiply-like effect.
-    """
-    width, height = img.size
-    # 1. Generate base noise map
-    arr = np.random.randint(200, 255, (height, width), dtype=np.uint8)
-    texture = Image.fromarray(arr, mode='L')
     
-    # 2. Create 'folds' by blurring large noise blobs
-    # (Simulating shadows of wrinkles)
-    fold_map = np.random.randint(100, 220, (height // 4, width // 4), dtype=np.uint8)
-    fold_img = Image.fromarray(fold_map, mode='L').resize((width, height), resample=Image.BICUBIC)
-    fold_img = fold_img.filter(ImageFilter.GaussianBlur(radius=15))
-    
-    # 3. Blend logic (simulating Apply mode)
-    # Convert original to RGBA to allow blending logic
-    img = img.convert("RGBA")
-    img_arr = np.array(img).astype(float)
-    fold_arr = np.array(fold_img).astype(float) / 255.0
-    fold_arr = np.expand_dims(fold_arr, axis=2) # Broadcast
-    
-    # Multiply: Darkens image based on folds
-    img_rgb = img_arr[:,:,:3] * fold_arr
-    
-    # Re-combine
-    res_arr = np.dstack((img_rgb, img_arr[:,:,3])).astype(np.uint8)
-    return Image.fromarray(res_arr).convert("RGB")
+    # Fonts
+    f_h1 = get_font(50) # 機構
+    f_h2 = get_font(40) # 重點標題
+    f_body = get_font(28)
+    f_huge = get_font(60) # 藥名
+    f_warn = get_font(32)
 
-def apply_skew(img, angle=15):
-    return img.rotate(angle, expand=True, fillcolor="white")
+    # --- 1. Top Header (機構、紅字專線、QR) ---
+    # [法定 9] 機構名稱
+    draw.text((50, 40), "MedGemma 聯合醫療體系", fill="black", font=f_h1)
+    # [2026] 服務專線 (大紅字)
+    draw.text((50, 100), "用藥諮詢專線: (02) 2345-6789", fill="red", font=f_h2)
+    
+    # [2026] QR Code (Top Right)
+    qr = qrcode.QRCode(box_size=5, border=2)
+    qr.add_data(f"https://medgemma.tw/verify?id={drug['id']}")
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+    img.paste(qr_img, (IMG_WIDTH-180, 30))
+    draw.text((IMG_WIDTH-180, 160), "語音朗讀", fill="black", font=get_font(20))
+    
+    draw.line([(30, 190), (IMG_WIDTH-30, 190)], fill="black", width=5)
 
-def apply_occlusion(img):
-    draw = ImageDraw.Draw(img)
-    width, height = img.size
-    # Occlude drug name partially (simulating a finger)
-    draw.ellipse([(100, 280), (300, 350)], fill=(210, 180, 160)) # Finger-like tone
-    return img
+    # --- 2. Center Left: Patient Info (Big Font) ---
+    y_p = 220
+    # [法定 1] 姓名 (Huge)
+    draw.text((50, y_p), f"姓名: {patient['name']}", fill="black", font=f_h1)
+    # [法定 2] 性別
+    draw.text((400, y_p+15), f"{patient['gender']}", fill="black", font=f_h2)
+    # [法定 12] 調劑日期
+    draw.text((50, y_p+70), f"調劑日: 115/01/22", fill="black", font=f_body)
+    # [法定] 病歷號
+    draw.text((400, y_p+70), f"病歷號: {random.randint(100000,999999)}", fill="black", font=f_body)
 
-STRESS_TESTS = [
-    ("01_extreme_blur", "Extreme Gaussian Blur", lambda img: apply_extreme_blur(img, "heavy")),
-    ("02_motion_blur", "Motion Blur", lambda img: apply_extreme_blur(img, "motion")),
-    ("03_low_light", "Dark/Low Light", apply_low_light),
-    ("04_overexposed", "Overexposed", apply_overexposure),
-    ("05_heavy_noise", "Heavy Noise", lambda img: apply_noise(img, 80)),
-    ("06_paper_texture", "Paper Texture (Physical Augmentation)", apply_paper_texture),
-    ("07_water_damage", "Water Damage", apply_water_damage),
-    ("08_skewed_angle", "Skewed 25°", lambda img: apply_skew(img, 25)),
-    ("09_occlusion", "Finger Occlusion", apply_occlusion),
-    ("10_combined_hell", "Combined (Blur+Noise+Texture)", lambda img: apply_noise(apply_low_light(apply_paper_texture(img)), 40)),
+    # --- 3. Center Right: Pill Photo (1:1) ---
+    # [2026] 藥物外觀照片
+    draw_pill_photo_sim(draw, 800, y_p, drug)
+
+    # --- 4. Drug Core Info (Color Coding) ---
+    y_drug = 400
+    # [2026] 顏色標記 (左側色條)
+    color_map = {"高血壓": "green", "糖尿病": "orange", "失眠": "blue"}
+    bar_color = color_map.get(drug['cat'], "gray")
+    draw.rectangle([20, y_drug, 40, y_drug+150], fill=bar_color)
+    
+    # [法定 3] 藥名 (Huge Blue)
+    draw.text((60, y_drug), drug['cht'], fill="blue", font=f_huge)
+    draw.text((60, y_drug+70), drug['eng'], fill="black", font=f_h2)
+    
+    # [法定 7] 適應症圖示
+    draw.text((60, y_drug+120), f"適應症: {drug['indication']}", fill="black", font=f_h2)
+    if "心" in drug['indication']: draw_indication_icon(draw, 400, y_drug+135, 30, "heart")
+    
+    # [法定 4, 5] 劑量
+    dose_val = "5000mg" if is_danger else drug['dose']
+    if is_danger: draw.text((600, y_drug+120), "⚠️劑量異常", fill="red", font=f_warn)
+    draw.text((600, y_drug), f"劑量: {dose_val}", fill="black", font=f_h2)
+    draw.text((600, y_drug+50), "總量: 28 顆", fill="black", font=f_h2)
+
+    # --- 5. Usage Grid (The Main Feature) ---
+    y_grid = 600
+    # [法定 6] 用法 (Big Pictograms)
+    draw_usage_grid_2026(draw, 50, y_grid, 1100, 200, drug)
+    
+    # [法定] 備註
+    draw.text((50, y_grid+210), f"備註: {drug['timing']} 服用", fill="black", font=f_h2)
+
+    # --- 6. Warnings & Footer ---
+    y_warn = 880
+    # [法定 8] 警語
+    draw.rectangle([50, y_warn, 1150, y_warn+180], fill=(255, 245, 245), outline="red", width=3)
+    draw.text((70, y_warn+10), "⚠️ 安全警語 / 副作用:", fill="red", font=f_warn)
+    draw.text((70, y_warn+60), drug['warning'], fill="red", font=f_h2)
+    
+    # 警示圖標
+    if "開車" in drug['warning']: draw_warning_icon(draw, 1000, y_warn+90, 60, "car")
+    if "酒" in drug['warning']: draw_warning_icon(draw, 1100, y_warn+90, 60, "wine")
+
+    # [2026] 防呆打孔 (左側圓圈)
+    draw.ellipse([10, 650, 30, 670], outline="gray", width=2)
+    draw.ellipse([10, 750, 30, 770], outline="gray", width=2)
+
+    # Footer (法定 10, 11, 13)
+    y_foot = 1100
+    draw.line([(30, y_foot), (IMG_WIDTH-30, y_foot)], fill="gray", width=2)
+    draw.text((50, y_foot+20), "【三核對】: □ 姓名正確  □ 外觀相符  □ 用法清楚", fill="black", font=f_h2)
+    draw.text((50, y_foot+80), "調劑藥師: 王大明  |  核對藥師: 李小美  |  地址: 台北市...", fill="gray", font=f_body)
+
+    # Texture
+    img = apply_texture(img)
+    img.save(filename)
+    print(f"✅ V9 旗艦版生成完畢: {filename}")
+
+# Database
+PATIENTS = [{"name": "林罔市", "gender": "女", "born": 28}, {"name": "陳進財", "gender": "男", "born": 32}]
+DRUGS = [
+    {"id": "MET", "cht": "美福明降血糖片", "eng": "Metformin", "dose": "500mg", "cat": "糖尿病", "color": "white", "shape": "circle", "usage": "BID", "timing": "飯後", "warning": "服用後禁止飲酒，若有腹痛請就醫", "indication": "糖尿病控制"},
+    {"id": "AML", "cht": "脈優降壓錠", "eng": "Amlodipine", "dose": "5mg", "cat": "高血壓", "color": "yellow", "shape": "oval", "usage": "QD", "timing": "飯後", "warning": "避免食用葡萄柚", "indication": "高血壓/心臟"},
+    {"id": "EST", "cht": "悠樂丁錠", "eng": "Estazolam", "dose": "2mg", "cat": "失眠", "color": "white", "shape": "circle", "usage": "QN", "timing": "睡前", "warning": "服用後禁止開車，有嗜睡風險", "indication": "失眠輔助"}
 ]
 
 if __name__ == "__main__":
-    print("🎭 Generating 'Gallery of Horrors' (Taiwan Standard Edition)...")
-    print("=" * 60)
-    
-    # Ensure fonts valid
-    get_font_paths()
-    
-    for i, (filename, description, transform_fn) in enumerate(STRESS_TESTS):
-        print(f"  👉 Generating {filename}...")
-        base = generate_base_prescription(i)
-        stressed = transform_fn(base)
-        stressed.save(os.path.join(OUTPUT_DIR, f"{filename}.png"))
-        
-    print("=" * 60)
-    print(f"🎉 Done! 10 Taiwan-Compliant Stress Test Images saved to {OUTPUT_DIR}/")
+    print("🏥 啟動 V9 2026 旗艦版生成引擎 (Legal + UX + Digital)...")
+    for i in range(1, 6):
+        p = random.choice(PATIENTS)
+        d = random.choice(DRUGS)
+        generate_v9_bag(f"{OUTPUT_DIR}/taiwan_v9_flagship_{i}.jpg", p, d, is_danger=(i==5))

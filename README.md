@@ -190,6 +190,24 @@ To quantify the potential clinical value of AI Pharmacist Guardian, we modeled t
 <details>
 <summary><b>📐 Impact Calculation Methodology (Click to Expand)</b></summary>
 
+### Quantifying the Safety Impact
+Assuming a standard community pharmacy environment, the annual preventable error reduction ($E_{saved}$) and cost savings ($C_{total}$) are modeled as:
+
+$$ E_{saved} = N_{rx} \times R_{err} \times S_{model} $$
+
+$$ C_{total} = E_{saved} \times A_{rate} \times C_{event} $$
+
+Where:
+*   $N_{rx} = 48,000$ (Monthly Prescriptions $\times$ 12)
+*   $R_{err} = 1.6\%$ (WHO Global Medication Error Rate)
+*   $S_{model} = 94\%$ (SilverGuard Sensitivity/Recall)
+*   $A_{rate} = 40\%$ (Conservative Actionable Prevention Rate)
+*   $C_{event} = 1,200\ USD$ (Min. Cost per Adverse Drug Event)
+
+> **Projected Annual Savings per Pharmacy:** **~$346,000 USD**
+> *Not including intangible value of saved lives and reduced pharmacist burnout.*
+</details>
+
 ```
 Inputs (WHO Data + Conservative Assumptions):
 ├── Prescriptions per pharmacy/month: 10,000
@@ -281,75 +299,54 @@ mindmap
 
 ```mermaid
 graph TD
-    %% --- Global Style (Google Tech Theme) ---
-    classDef default font-family:Arial,font-size:14px
-    classDef input fill:#f8f9fa,stroke:#adb5bd,stroke-width:2px,rx:10,ry:10,color:#495057
-    classDef process fill:#e3f2fd,stroke:#2196f3,stroke-width:2px,rx:5,ry:5,color:#0d47a1
-    classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,rx:5,ry:5,color:#f57f17
-    classDef decision fill:#fff3e0,stroke:#ff9800,stroke-width:2px,rhombus,color:#e65100
-    classDef success fill:#e8f5e9,stroke:#4caf50,stroke-width:2px,color:#1b5e20
-    classDef warning fill:#fff8e1,stroke:#ffc107,stroke-width:2px,color:#ff6f00
-    classDef danger fill:#ffebee,stroke:#ef5350,stroke-width:2px,color:#b71c1c
-    classDef ui fill:#e0f2f1,stroke:#009688,stroke-width:2px,stroke-dasharray: 0,color:#004d40
+    %% 定義樣式 - Neuro-Symbolic Color Semantics
+    classDef ai fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+    classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,color:#000
+    classDef risk fill:#ffcdd2,stroke:#c62828,stroke-width:3px,color:#000
+    classDef safe fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef database fill:#e0e0e0,stroke:#616161,stroke-width:2px,color:#000
 
-    %% --- Main Flow ---
+    %% --- 流程開始 ---
+    Start([📸 User Uploads Image]) --> InputGate{Input Gate<br/>Laplacian Variance}
+    InputGate -- "Too Blurry / Non-Medical" --> Refusal([⛔ Active Refusal]):::risk
+    InputGate -- "Quality OK" --> VLM
 
-    subgraph P ["👁️ Perception Layer (Input Gate)"]
+    %% --- Subgraph 1: Perception (Neural) ---
+    subgraph SG_Perception [🧠 Perception Layer - MedGemma 1.5]
         direction TB
-        A(["📸 Drug Bag Image"]) ::: input
-        V(["🎤 Caregiver Voice"]) ::: input
-        
-        Gate{{"🛡️ Quality Check"}} ::: decision
-        Reject["⛔ Reject: OOD / Blur"] ::: danger
-        
-        A --> Gate
-        Gate -- "Pass" --> VE["📐 Vision Encoder (SigLIP)"] ::: process
-        Gate -- "Fail" --> Reject
+        VLM[SigLIP Encoder + LLM]:::ai
+        Context[Context Injection<br/>Error Feedback]:::ai
     end
 
-    subgraph R ["🧠 MedGemma Agent (Reasoning Loop)"]
+    %% --- Subgraph 2: Reasoning (Agentic Loop) ---
+    subgraph SG_Agent [🔄 Agentic Reasoning Loop]
         direction TB
-        VE --> Fusion["🧬 Multimodal Fusion"] ::: process
-        V --> Fusion
         
-        Fusion --> LogicCheck{{"⚙️ Logical Consistency"}} ::: logic
+        Generate[Generate Analysis<br/>Temp: 0.6]:::ai
+        LogicCheck{🛡️ Symbolic<br/>Logic Check}:::logic
         
-        %% Agentic Self-Correction Loop
-        Correction["🔄 Self-Correction\n(Temp 0.6 → 0.2)"] ::: logic
-        LogicCheck -- "Flaw Detected" --> Correction
-        Correction -.-> Fusion
-        
-        SafetyAssess["📝 Safety Assessment"] ::: process
-        LogicCheck -- "Consistent" --> SafetyAssess
+        %% 失敗路徑 (Self-Correction) - THE MAGIC
+        LogicCheck -- "❌ Hallucination / Dose Error" --> TriggerRetry[⚠️ Trigger Self-Correction]:::risk
+        TriggerRetry --> AdjustParam[📉 STRATEGY SHIFT<br/>Lower Temp 0.6 → 0.2]:::risk
+        AdjustParam --> Context
+        Context --> Generate
+
+        %% 成功路徑
+        LogicCheck -- "✅ Logic Valid" --> SafetyClass{Safety Classification}:::logic
     end
 
-    subgraph D ["⚖️ Decision Layer"]
-        direction TB
-        ConfCheck{{"📊 Logic & Confidence Check"}} ::: decision
-        
-        Human["🚩 Human Review Needed"] ::: warning
-        JSON["📄 Structured JSON"] ::: process
-        
-        SafetyAssess --> ConfCheck
-        ConfCheck -- "Fail" --> Human
-        ConfCheck -- "Pass" --> JSON
-        
-        JSON --> PASS["🟢 PASS"] ::: success
-        JSON --> WARN["🟡 WARNING"] ::: warning
-        JSON --> HIGH["🔴 HIGH_RISK"] ::: danger
+    %% --- Subgraph 3: Action & Output ---
+    subgraph SG_Action [🛡️ SilverGuard Action Layer]
+        SafetyClass -- "🔴 High Risk" --> Alert([🚨 HIGH RISK ALERT<br/>Elderly TTS Warning]):::risk
+        SafetyClass -- "🟡 Warning" --> Review([🟡 Human Review Needed])
+        SafetyClass -- "🟢 Safe" --> UI([✅ SilverGuard UI<br/>Big Font Calendar]):::safe
     end
 
-    subgraph I ["👴 SilverGuard UI (Impact)"]
-        direction LR
-        TTS["🗣️ TTS Audio\n(Dialect Support)"] ::: ui
-        Cal["📅 Visual Calendar\n(Large Font)"] ::: ui
-        
-        JSON -.-o TTS
-        JSON -.-o Cal
-    end
-
-    %% --- Link Styles ---
-    linkStyle default stroke:#607d8b,stroke-width:1.5px,fill:none
+    %% 連接
+    VLM --> Generate
+    
+    %% 註解與裝飾
+    linkStyle default stroke-width:2px,fill:none,stroke:#333
 ```
 
 </div>
@@ -470,7 +467,22 @@ We explicitly trained the model to handle **"Real-world Messiness"**:
 
 Unlike cloud-based APIs (GPT-4V) that transmit sensitive Patient Health Information (PHI) to external servers, **MedGemma-Edge** runs entirely within the pharmacy's local network. **Zero data egress. 100% HIPAA-Compliant by design.**
 
-### Why Edge Deployment Matters
+### Data Flow Comparison
+```mermaid
+graph LR
+    subgraph Cloud_API_GPT4 [❌ Unsafe Cloud API]
+        P1[Patient Data] -->|Internet| Server[OpenAI/Cloud Server]
+        Server -->|Risk| DB[External Database]
+    end
+
+    subgraph MedGemma_Edge [✅ AI Pharmacist Guardian]
+        P2[Patient Data] -->|Local Bus| GPU[Local T4 GPU]
+        GPU -->|RAM Only| P2
+        style GPU fill:#bbf,stroke:#333,stroke-width:2px
+    end
+```
+
+By running **locally on Kaggle/Colab T4 (or Local PC)**:
 
 | Challenge | Our Solution |
 |-----------|-------------|
@@ -524,6 +536,7 @@ Leapfrogging to "Phase 4" Architecture (Post-Competition):
 - **Phase 2 - Multi-Bag Sessions**: Context memory for Drug-Drug Interaction (DDI) checking.
 - **Phase 3 - Dynamic RAG**: Integration with vector database (ChromaDB) to scale drug knowledge beyond the 12-drug POC.
 - **Phase 4 - Constitutional AI**: "Dual-Stream Verification" to prevent visual prompt injection attacks.
+- **Phase 5 - Mobile Deployment**: Convert model to **TensorFlow Lite (TFLite)** / **MediaPipe** for Android deployment, enabling home caregivers to verify prescriptions on smartphones.
 - **Accessibility**: Support for 10+ dialects via MedASR-Large.
 
 ---
@@ -644,7 +657,8 @@ This project uses **MedGemma 1.5-4B Multimodal** as its core reasoning engine. R
 
 | Aspect | Justification |
 |--------|---------------|
-| **Gemma 3 Architecture** | Decoder-only transformer with Grouped-Query Attention (GQA), 128K context window, and SigLIP vision encoder |
+| **Gemma 3 Architecture** | Decoder-only transformer with Grouped-Query Attention (GQA), 128K context window, and **SigLIP vision encoder** (Google's state-of-the-art vision embedding) |
+| **SigLIP Advantage** | Unlike CLIP, SigLIP uses sigmoid loss enabling **better fine-grained medical text extraction** — critical for reading small dosage numbers |
 | **Longitudinal Analysis** | MedGemma 1.5 supports analyzing current images in context of prior data — ideal for tracking prescription history |
 | **Medical Text Reasoning** | Improved accuracy in extracting structured data from medical documents (drug names, dosages, instructions) |
 | **Edge-Ready** | 4B parameters + 4-bit quantization enables deployment on pharmacy computers without datacenter resources |

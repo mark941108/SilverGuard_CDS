@@ -376,8 +376,6 @@ def retrieve_drug_info(drug_name: str, category: str = None) -> dict:
     Production Note:
         Replace this with: `return rag_client.query(drug_name, sources=['rxnorm', 'micromedex'])`
     """
-    RAG Interface (Mock for Hackathon)
-    """
     # --- PHASE 4 ARCHITECTURE STUB ---
     # In production, this dictionary lookup is replaced by:
     # return rag_client.query(collection="fda_labels", query=drug_name, top_k=1)
@@ -1214,10 +1212,13 @@ def logical_consistency_check(extracted_data, safety_analysis):
             
             if dose_match:
                 dose_value = int(dose_match.group(1))
-                # 單位換算：如果是 g 而不是 mg，則 x1000
-                if re.search(r'\d+\s*g(?!m)', dose, re.IGNORECASE):  # g but not gm/gram
-                    dose_value *= 1000
-                # 只有 >= 1000mg 才是真正的高劑量警示
+                # V7.2 FIX: 完整單位換算 (mg/g/mcg/ug)
+                # mcg/ug (微克) = mg / 1000，不應誤殺 "Vitamin B12 1000mcg"
+                if re.search(r'\d+\s*(mcg|ug)', dose, re.IGNORECASE):
+                    dose_value /= 1000  # 1000mcg = 1mg，安全劑量
+                elif re.search(r'\d+\s*g(?!m)', dose, re.IGNORECASE):  # g but not gm/gram
+                    dose_value *= 1000  # 1g = 1000mg
+                # 只有 >= 1000mg 才是真正的高劑量警示 (e.g., Metformin 1000mg)
                 if dose_value >= 1000:
                     issues.append(f"老人高劑量警示: {age}歲 + {dose}")
     except (ValueError, TypeError):
@@ -1226,8 +1227,8 @@ def logical_consistency_check(extracted_data, safety_analysis):
     # 2. 劑量格式
     try:
         dose = str(extracted_data.get("drug", {}).get("dose", ""))
-        # V6 Fix: Expanded regex to include tablet, capsule, pill, drops (per Dr. K critique)
-        if dose and not re.search(r'\d+\s*(mg|ml|g|mcg|ug|tablet|capsule|pill|cap|tab|drops|gtt)', dose, re.IGNORECASE):
+        # V7.3 FIX: Support decimal doses (e.g., 0.5mg) and ranges (e.g., 1-2 tablets)
+        if dose and not re.search(r'[\d.]+\s*(mg|ml|g|mcg|ug|tablet|capsule|pill|cap|tab|drops|gtt)', dose, re.IGNORECASE):
             issues.append(f"劑量格式異常: {dose}")
     except (KeyError, TypeError):
         pass
@@ -1459,17 +1460,22 @@ def agentic_inference(model, processor, img_path, verbose=True):
             # 🔥 V6.1 FIX: 記錄輸入長度，用於稍後切除 Input Echoing
             input_len = inputs.input_ids.shape[1]
             
-            # Adjust temperature on retry (Start Creative 0.6 -> Retry Strict 0.2)
-            # V6 Optimization: Lowered to 0.2 to force maximum determinism on correction (Unified with V5 Standard)
-            # USER CODE RED: Global Temperature Lock at 0.2
-            temperature = 0.2
+            # 🔥 AGENTIC TEMPERATURE STRATEGY (README Feature Implementation)
+            # Strategy: Start with creative exploration (0.6), then tighten on retry (0.2)
+            # This implements the "Self-Correction Loop" described in README
+            if current_try == 0:
+                temperature = 0.6  # Initial: Allow model exploration
+            else:
+                temperature = 0.2  # Retry: Force deterministic reasoning
+                if verbose:
+                    print(f"   🔄 STRATEGY SHIFT: Lowering temperature 0.6 → {temperature} for focused reasoning")
             
             with torch.no_grad():
                 outputs = model.generate(
                     **inputs, 
                     max_new_tokens=512,  # V6.1: 減少到 512，JSON 不需要 1024
                     do_sample=True, 
-                    temperature=temperature, 
+                    temperature=temperature,  # 🔥 Dynamic adjustment
                     top_p=0.9,
                     return_dict_in_generate=True,
                     output_scores=True
