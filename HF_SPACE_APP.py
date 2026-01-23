@@ -1,14 +1,13 @@
 import gradio as gr
 import torch
+import os  # V7.3 FIX: Missing import
 from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
 from peft import PeftModel
 from PIL import Image
 import json
-import edge_tts
 import re
-import spaces # ZeroGPU support
+import spaces  # ZeroGPU support
 
-# ============================================================================
 # ============================================================================
 # 🏥 AI Pharmacist Guardian - Hugging Face Space Demo
 # ============================================================================
@@ -18,12 +17,10 @@ import spaces # ZeroGPU support
 #
 # This app provides an interactive demo for the MedGemma Impact Challenge.
 # It loads the fine-tuned adapter from Hugging Face Hub (Bonus 1) and runs inference.
+# ============================================================================
 
-# 1. Configuration
-ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/MedGemma-SilverGuard-V5")
 # 1. Configuration
 HF_TOKEN = os.environ.get("HUGGINGFACE_TOKEN")
-
 BASE_MODEL = "google/medgemma-1.5-4b-it"
 ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/MedGemma-SilverGuard-V5")
 
@@ -103,9 +100,7 @@ def transcribe_audio(audio_path):
 # ============================================================================
 # 🔮 CONFIGURATION (V5 Impact Edition)
 # ============================================================================
-# ⚠️ LOAD FROM KAGGLE-TRAINED ADAPTER (Bonus Task: Open Weights)
-ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/MedGemma-SilverGuard-V5")
-BASE_MODEL = "google/medgemma-1.5-4b-it"
+# NOTE: ADAPTER_MODEL and BASE_MODEL already defined at top of file
 
 def text_to_speech(text, lang='zh-tw'):
     try:
@@ -453,20 +448,28 @@ def run_inference(image, patient_notes=""):
             response = processor.batch_decode(generated_tokens, skip_special_tokens=True)[0]
             result_json = parse_model_output(response)
             
-            logic_issues = []
+            # V7.3 FIX: logical_consistency_check returns (bool, str), not list
+            logic_passed = True
+            logic_msg = ""
+            issues_list = []
+            
             if "extracted_data" in result_json:
-                logic_issues = logical_consistency_check(result_json["extracted_data"])
+                logic_passed, logic_msg = logical_consistency_check(result_json["extracted_data"])
+                if not logic_passed:
+                    issues_list.append(logic_msg)
+            
             if not check_is_prescription(response):
-                logic_issues.append("Input not a prescription script")
+                issues_list.append("Input not a prescription script")
+                logic_passed = False
                 
-            if logic_issues:
-                print(f"⚠️ Logic Check Failed: {logic_issues}")
+            if not logic_passed or issues_list:
+                print(f"⚠️ Logic Check Failed: {issues_list}")
                 current_try += 1
-                correction_context += f"\n\n[System Feedback]: 🔥 AGENT TRIGGERED: Logic Check Failed: {'; '.join(logic_issues)}. Please Correct JSON."
+                correction_context += f"\n\n[System Feedback]: 🔥 AGENT TRIGGERED: Logic Check Failed: {'; '.join(issues_list)}. Please Correct JSON."
                 if current_try > MAX_RETRIES:
                     if "safety_analysis" not in result_json: result_json["safety_analysis"] = {}
                     result_json["safety_analysis"]["status"] = "HUMAN_REVIEW_NEEDED"
-                    result_json["safety_analysis"]["reasoning"] = f"⚠️ Validation failed after retries: {'; '.join(logic_issues)}"
+                    result_json["safety_analysis"]["reasoning"] = f"⚠️ Validation failed after retries: {'; '.join(issues_list)}"
                     break
             else:
                 break # Success
@@ -475,8 +478,60 @@ def run_inference(image, patient_notes=""):
             current_try += 1
             correction_context += f"\n\n[System]: Crash: {str(e)}. Output simple valid JSON."
             
+    # --- TTS Logic (Hybrid) - V7.3: Properly indented inside run_inference ---
+    final_status = result_json.get("safety_analysis", {}).get("status", "UNKNOWN")
+    speech_text = json_to_elderly_speech(result_json)
+    audio_path = None
+    tts_mode = "none"
+    clean_text = speech_text.replace("⚠️", "注意").replace("✅", "").replace("🔴", "")
+    
+    # Tier 1: gTTS (Online)
+    if not OFFLINE_MODE:
+        try:
+            import socket
+            socket.setdefaulttimeout(1)
+            socket.create_connection(("www.google.com", 80))
+            from gtts import gTTS
+            import tempfile
+            tts = gTTS(text=clean_text, lang='zh-TW', slow=True)
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f: audio_path = f.name
+            tts.save(audio_path)
+            tts_mode = "online"
+            print("🔊 TTS: Online Mode (gTTS)")
+        except Exception as e:
+            print(f"⚠️ Online TTS failed: {e}")
+            
+    # Tier 2: pyttsx3 (Offline)
+    if tts_mode == "none":
+        try:
+            import pyttsx3
+            import tempfile
+            try:
+                engine = pyttsx3.init()
+            except Exception as init_error:
+                print(f"⚠️ TTS Engine Failed: {init_error}. Switching to SILENT MODE.")
+                raise ImportError("TTS Driver Missing")
+
+            voices = engine.getProperty('voices')
+            for voice in voices:
+                if 'zh' in voice.id.lower() or 'chinese' in voice.name.lower():
+                    engine.setProperty('voice', voice.id)
+                    break
+            
+            audio_path = "/tmp/tts_output.wav"
+            engine.save_to_file(clean_text, audio_path)
+            engine.runAndWait()
+            tts_mode = "offline"
+            print("🔊 TTS: Offline Mode (pyttsx3)")
+        except Exception as e:
+            print(f"⚠️ Offline TTS unavailable: {e}.")
+            audio_path = None
+            tts_mode = "visual_only"
+    
+    result_json["_tts_mode"] = tts_mode
+    return final_status, result_json, speech_text, audio_path
+
 # --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
-# 安全風險控制：使用「醫學驗證字典」而非 Google Translate，確保絕對安全。
 SAFE_TRANSLATIONS = {
     "zh-TW": {
         "label": "🇹🇼 台灣 (繁體中文)",
@@ -505,32 +560,32 @@ SAFE_TRANSLATIONS = {
 }
 
 def silverguard_ui(case_data, target_lang="zh-TW"):
-    """
-    SilverGuard UI 生成器 (多語系版)
-    """
+    """SilverGuard UI 生成器 (多語系版)"""
     safety = case_data.get("safety_analysis", {})
     status = safety.get("status", "WARNING")
     
-    # 1. 取得對應語言的安全翻譯 (Fallback to zh-TW)
     lang_pack = SAFE_TRANSLATIONS.get(target_lang, SAFE_TRANSLATIONS["zh-TW"])
     
-    # 2. 對映狀態文字
     if status == "HIGH_RISK":
         display_status = lang_pack["HIGH_RISK"]
-        color = "#ffcdd2" # Red
+        color = "#ffcdd2"
         icon = "⛔"
     elif status == "WARNING":
         display_status = lang_pack["WARNING"]
-        color = "#fff9c4" # Yellow
+        color = "#fff9c4"
         icon = "⚠️"
     else:
         display_status = lang_pack["PASS"]
-        color = "#c8e6c9" # Green
+        color = "#c8e6c9"
         icon = "✅"
         
-    # 3. 生成 TTS (使用對應語言)
     tts_text = f"{display_status}. {lang_pack['CONSULT']}."
     audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
+    
+    # Safe extraction with fallbacks
+    extracted = case_data.get('extracted_data', {})
+    drug_info = extracted.get('drug', {}) if isinstance(extracted, dict) else {}
+    drug_name = drug_info.get('name', 'Unknown') if isinstance(drug_info, dict) else 'Unknown'
     
     html = f"""
     <div style="background-color: {color}; padding: 20px; border-radius: 15px; border: 3px solid #333;">
@@ -538,77 +593,12 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         <p style="font-size: 24px; color: #555; margin-top: 10px;">{lang_pack['CONSULT']}</p>
         <hr>
         <div style="font-size: 18px; color: #666;">
-            <b>💊 Drug:</b> {case_data['extracted_data'].get('drug', {}).get('name', 'Unknown')}<br>
-            <b>📋 Reason (English):</b> {safety.get('reasoning', 'No data')}
+            <b>💊 Drug:</b> {drug_name}<br>
+            <b>📋 Reason:</b> {safety.get('reasoning', 'No data')}
         </div>
     </div>
     """
     return html, audio_path
-
-
-
-# --- GRADIO INTERFACE UPDATE ---
-# ... (User must verify manual Gradio block update below) ...
-    # --- GRADIO INTERFACE UPDATE ---
-    # TTS Logic (Hybrid)
-    final_status = result_json.get("safety_analysis", {}).get("status", "UNKNOWN")
-    speech_text = json_to_elderly_speech(result_json)
-    audio_path = None
-    tts_mode = "none"
-    clean_text = speech_text.replace("⚠️", "注意").replace("✅", "").replace("🔴", "")
-    
-    # Tier 1: gTTS (Online)
-    if not OFFLINE_MODE:
-        try:
-            import socket
-            socket.setdefaulttimeout(1)
-            socket.create_connection(("www.google.com", 80))
-            from gtts import gTTS
-            import tempfile
-            tts = gTTS(text=clean_text, lang='zh-TW', slow=True)
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f: audio_path = f.name
-            tts.save(audio_path)
-            tts_mode = "online"
-            print("🔊 TTS: Online Mode (gTTS)")
-        except Exception as e:
-            print(f"⚠️ Online TTS failed: {e}")
-            
-    # Tier 2: pyttsx3 (Offline)
-    if tts_mode == "none":
-        try:
-            import pyttsx3
-            import tempfile
-            
-            # V6.5 FIX: Fail-Safe TTS Initialization
-            # If system audio drivers (espeak/sapi5) are missing, this normally crashes the app.
-            # We catch it here to ensure "Silent Mode" works instead of a 500 Error.
-            try:
-                engine = pyttsx3.init()
-            except Exception as init_error:
-                print(f"⚠️ TTS Engine Failed (Missing Driver?): {init_error}. Switching to SILENT MODE.")
-                raise ImportError("TTS Driver Missing")  # Trigger outer except
-
-            voices = engine.getProperty('voices')
-            for voice in voices:
-                if 'zh' in voice.id.lower() or 'chinese' in voice.name.lower():
-                    engine.setProperty('voice', voice.id)
-                    break
-            
-            # V6 Deploy Fix: Use /tmp
-            audio_path = "/tmp/tts_output.wav"
-            engine.save_to_file(clean_text, audio_path)
-            engine.runAndWait()
-            tts_mode = "offline"
-            print("🔊 TTS: Offline Mode (pyttsx3)")
-        except Exception as e:
-            print(f"⚠️ Offline TTS unavailable: {e}. Outputting silent response.")
-            audio_path = None # Safe Fallback
-            tts_mode = "visual_only"
-            print(f"⚠️ Offline TTS failed: {e}")
-            tts_mode = "visual_only"
-    
-    result_json["_tts_mode"] = tts_mode
-    return final_status, result_json, speech_text, audio_path
 
 # ============================================================================
 # 🖥️ Gradio Interface
