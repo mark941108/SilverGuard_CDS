@@ -231,10 +231,16 @@ def generate_v9_bag(filename, patient, drug, is_danger=False):
     draw.text((40, 70), "用藥諮詢: (02) 2345-6789", fill="red", font=f_h2)
     
     # QR Code (Top Right, smaller)
-    qr = qrcode.QRCode(box_size=3, border=1)
-    qr.add_data(f"https://medgemma.tw/verify?id={drug['id']}")
-    qr_img = qr.make_image(fill_color="black", back_color="white")
-    img.paste(qr_img, (IMG_WIDTH-100, 20))
+    try:
+        qr = qrcode.QRCode(box_size=3, border=1)
+        qr.add_data(f"https://medgemma.tw/verify?id={drug['id']}")
+        qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+        # Ensure it fits
+        if qr_img.width > 150: 
+             qr_img = qr_img.resize((100, 100))
+        img.paste(qr_img, (IMG_WIDTH-qr_img.width-20, 20))
+    except Exception as e:
+        print(f"⚠️ QR Code Error: {e}")
     
     draw.line([(30, 110), (IMG_WIDTH-30, 110)], fill="#003366", width=3)
 
