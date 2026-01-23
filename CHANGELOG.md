@@ -2,6 +2,22 @@
 
 All notable changes to the **AI Pharmacist Guardian** project will be documented in this file.
 
+## [V7.2] - Competition Polish - 2026-01-23
+### Fixed
+-   **Critical Syntax Error:** Removed dangling docstring at line 379 causing Python SyntaxError.
+-   **f-string Escape Bug:** Fixed broken escape characters in Temperature Shift logging (line 1471).
+-   **mcg/ug Unit Conversion:** Proper handling of micrograms (1000mcg = 1mg) to prevent false positives on B12 vitamins.
+-   **Decimal Dose Regex:** Updated regex to support `0.5mg` and other decimal dosages (`[\d.]+` instead of `\d+`).
+
+### Changed
+-   **README Architecture Diagram:** Replaced with Neuro-Symbolic Mermaid flowchart showing explicit retry loop path.
+-   **WRITEUP LaTeX Formulas:** Added formal mathematical definitions for Temperature Policy and Confidence Threshold.
+-   **Google Ecosystem Enhancements:** Added SigLIP praise and TFLite/MediaPipe roadmap to strengthen Google alignment.
+
+### Added
+-   **Anti-Fragility Section:** New "Limitations & Mitigations" documentation with defensive narrative strategy.
+-   **Consumer GPU Claims:** Documented RTX 3060/4060 support with ~2-3 sec inference latency.
+
 ## [V5.0] - Impact Edition (Final Submission) - 2026-01-20
 ### Fixed
 -   **Aspirin Safety Logic:** Refined logic to distinguish between standard preventive dosage (100mg) and high-risk analgesic dosage (>325mg) for elderly patients, aligning with **AGS Beers Criteria 2023**.

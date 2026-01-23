@@ -7,7 +7,7 @@
 
 ### Links
 * **Video Demo:** [INSERT YOUTUBE/VIDEO LINK HERE] (Must be < 3 mins)
-* **Code Repository:** [INSERT GITHUB/KAGGLE NOTEBOOK LINK HERE]
+* **Code Repository:** [GitHub: mark941108/SilverGuard](https://github.com/mark941108/SilverGuard)
 * **Live Demo (Bonus):** [INSERT HUGGING FACE SPACE LINK IF AVAILABLE]
 * **Model Weights (Bonus):** [INSERT HUGGING FACE MODEL LINK IF AVAILABLE]
 
@@ -70,7 +70,7 @@ This implements the **TOTE Loop** (Test-Operate-Test-Exit) from cognitive psycho
 
 ---
 
-### Limitations \u0026 Anti-Fragility Design
+### Limitations & Anti-Fragility Design
 
 We embrace **"Intellectual Honesty"** by proactively disclosing limitations and our engineering mitigations:
 
@@ -95,7 +95,7 @@ We embrace **"Intellectual Honesty"** by proactively disclosing limitations and 
 
 #### 3. **Cross-Domain Credibility (Energy Engineer Perspective)**
 **Strength Reframed:**  
-As an Energy \u0026 Refrigeration Engineering student, I approach AI with the same **Fail-Safe mindset** used in nuclear reactor control systems:
+As an Energy & Refrigeration Engineering student, I approach AI with the same **Fail-Safe mindset** used in nuclear reactor control systems:
 - No system should **fail catastrophically** from a single point of failure.
 - Medical AI = Critical Infrastructure → Requires **redundant safety layers** (Input Gate + Logic Check + Confidence Threshold).
 
