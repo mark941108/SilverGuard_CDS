@@ -314,12 +314,28 @@ def generate_v9_bag(filename, patient, drug, is_danger=False):
         except:
             print(f"   ❌ 完全儲存失敗，跳過此圖")
 
-# Database
-PATIENTS = [{"name": "林罔市", "gender": "女", "born": 28}, {"name": "陳進財", "gender": "男", "born": 32}]
+# Database - V10: 與主程式 DRUG_DATABASE 同步
+PATIENTS = [
+    {"name": "陳金龍", "gender": "男", "age": 88},
+    {"name": "林美玉", "gender": "女", "age": 75},
+    {"name": "張志明", "gender": "男", "age": 65},
+    {"name": "李建國", "gender": "男", "age": 82},
+]
 DRUGS = [
-    {"id": "MET", "cht": "美福明降血糖片", "eng": "Metformin", "dose": "500mg", "cat": "糖尿病", "color": "white", "shape": "circle", "usage": "BID", "timing": "飯後", "warning": "服用後禁止飲酒，若有腹痛請就醫", "indication": "糖尿病控制"},
-    {"id": "AML", "cht": "脈優降壓錠", "eng": "Amlodipine", "dose": "5mg", "cat": "高血壓", "color": "yellow", "shape": "oval", "usage": "QD", "timing": "飯後", "warning": "避免食用葡萄柚", "indication": "高血壓/心臟"},
-    {"id": "EST", "cht": "悠樂丁錠", "eng": "Estazolam", "dose": "2mg", "cat": "失眠", "color": "white", "shape": "circle", "usage": "QN", "timing": "睡前", "warning": "服用後禁止開車，有嗜睡風險", "indication": "失眠輔助"}
+    # 糖尿病 - 與主程式一致
+    {"id": "GLU", "cht": "庫魯化", "eng": "Glucophage (Metformin)", "dose": "500mg", "cat": "糖尿病", "color": "white", "shape": "oval", "usage": "BID", "timing": "飯後", "warning": "隨餐服用減少腸胃不適", "indication": "降血糖"},
+    {"id": "DAO", "cht": "道尼爾", "eng": "Daonil (Glibenclamide)", "dose": "5mg", "cat": "糖尿病", "color": "white", "shape": "oval", "usage": "QD", "timing": "飯前", "warning": "低血糖風險高", "indication": "降血糖"},
+    # 高血壓 - 與主程式一致
+    {"id": "NOR", "cht": "脈優", "eng": "Norvasc (Amlodipine)", "dose": "5mg", "cat": "高血壓", "color": "white", "shape": "circle", "usage": "QD", "timing": "飯後", "warning": "小心姿勢性低血壓", "indication": "降血壓"},
+    {"id": "CON", "cht": "康肯", "eng": "Concor (Bisoprolol)", "dose": "5mg", "cat": "高血壓", "color": "yellow", "shape": "circle", "usage": "QD", "timing": "飯後", "warning": "心跳過慢者慎用", "indication": "降血壓"},
+    # 安眠 - 與主程式一致 (Zolpidem, 非 Estazolam)
+    {"id": "STI", "cht": "使蒂諾斯", "eng": "Stilnox (Zolpidem)", "dose": "10mg", "cat": "失眠", "color": "white", "shape": "oval", "usage": "QN", "timing": "睡前", "warning": "服用後立即就寢，禁止開車", "indication": "失眠"},
+    # 心臟 - 與主程式一致
+    {"id": "ASP", "cht": "阿斯匹靈", "eng": "Aspirin", "dose": "100mg", "cat": "心臟", "color": "white", "shape": "circle", "usage": "QD", "timing": "飯後", "warning": "胃潰瘍患者慎用", "indication": "預防血栓"},
+    # 抗凝血 - 與主程式一致
+    {"id": "WAR", "cht": "可化凝", "eng": "Warfarin", "dose": "5mg", "cat": "抗凝血", "color": "pink", "shape": "circle", "usage": "QD", "timing": "睡前", "warning": "需定期監測INR，避免深綠色蔬菜", "indication": "抗凝血"},
+    # 血脂 - 與主程式一致
+    {"id": "LIP", "cht": "立普妥", "eng": "Lipitor (Atorvastatin)", "dose": "20mg", "cat": "血脂", "color": "white", "shape": "oval", "usage": "QD", "timing": "睡前", "warning": "肌肉痠痛時需回診", "indication": "降血脂"},
 ]
 
 if __name__ == "__main__":
