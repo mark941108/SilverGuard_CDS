@@ -31,7 +31,7 @@ SilverGuard bridges this gap by providing a **Privacy-First (Local)**, **Agentic
 
 ### Overall solution
 **Effective use of HAI-DEF models (MedGemma):**
-Our solution, **AI Pharmacist Guardian**, is a **Neuro-Symbolic Agentic Workflow** powered by a fine-tuned MedGemma 2 (2B/9B). It acts not just as a reader, but as a meticulous pharmacist.
+Our solution, **AI Pharmacist Guardian**, is a **Neuro-Symbolic Agentic Workflow** powered by fine-tuned **MedGemma 1.5-4B (VLM)**. We leverage MedGemma's **SigLIP vision encoder** for fine-grained text extraction and its medical reasoning capabilities to act not just as a reader, but as a meticulous pharmacist.
 
 **Core Innovation: The Self-Correcting Agent**
 Unlike standard models that hallucinate when uncertain, our Agent implements a **Human-Like Feedback Loop**:
