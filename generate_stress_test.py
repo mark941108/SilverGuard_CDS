@@ -22,8 +22,9 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 # Output Config
 OUTPUT_DIR = "assets/stress_test"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-IMG_WIDTH = 1200  # 加寬以容納更清楚的圖示
-IMG_HEIGHT = 1400 # 加高以容納底部完整資訊
+# V10 FIX: 改為 896x896 與訓練資料一致
+IMG_WIDTH = 896
+IMG_HEIGHT = 896
 
 # ==========================================
 # 1. 資源準備 (Auto-Font)
@@ -214,98 +215,85 @@ def apply_texture(img):
 # ==========================================
 
 def generate_v9_bag(filename, patient, drug, is_danger=False):
+    """V10: 896x896 版本，與訓練資料一致"""
     img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), "white")
     draw = ImageDraw.Draw(img)
     
-    # Fonts
-    f_h1 = get_font(50) # 機構
-    f_h2 = get_font(40) # 重點標題
-    f_body = get_font(28)
-    f_huge = get_font(60) # 藥名
-    f_warn = get_font(32)
+    # Fonts (縮小以適應 896x896)
+    f_h1 = get_font(36)   # 機構
+    f_h2 = get_font(28)   # 重點標題
+    f_body = get_font(22)
+    f_huge = get_font(40) # 藥名
+    f_warn = get_font(24)
 
-    # --- 1. Top Header (機構、紅字專線、QR) ---
-    # [法定 9] 機構名稱
-    draw.text((50, 40), "MedGemma 聯合醫療體系", fill="black", font=f_h1)
-    # [2026] 服務專線 (大紅字)
-    draw.text((50, 100), "用藥諮詢專線: (02) 2345-6789", fill="red", font=f_h2)
+    # --- 1. Top Header ---
+    draw.text((40, 25), "MedGemma 聯合醫療體系", fill="#003366", font=f_h1)
+    draw.text((40, 70), "用藥諮詢: (02) 2345-6789", fill="red", font=f_h2)
     
-    # [2026] QR Code (Top Right)
-    qr = qrcode.QRCode(box_size=5, border=2)
+    # QR Code (Top Right, smaller)
+    qr = qrcode.QRCode(box_size=3, border=1)
     qr.add_data(f"https://medgemma.tw/verify?id={drug['id']}")
     qr_img = qr.make_image(fill_color="black", back_color="white")
-    img.paste(qr_img, (IMG_WIDTH-180, 30))
-    draw.text((IMG_WIDTH-180, 160), "語音朗讀", fill="black", font=get_font(20))
+    img.paste(qr_img, (IMG_WIDTH-100, 20))
     
-    draw.line([(30, 190), (IMG_WIDTH-30, 190)], fill="black", width=5)
+    draw.line([(30, 110), (IMG_WIDTH-30, 110)], fill="#003366", width=3)
 
-    # --- 2. Center Left: Patient Info (Big Font) ---
-    y_p = 220
-    # [法定 1] 姓名 (Huge)
-    draw.text((50, y_p), f"姓名: {patient['name']}", fill="black", font=f_h1)
-    # [法定 2] 性別
-    draw.text((400, y_p+15), f"{patient['gender']}", fill="black", font=f_h2)
-    # [法定 12] 調劑日期
-    draw.text((50, y_p+70), f"調劑日: 115/01/22", fill="black", font=f_body)
-    # [法定] 病歷號
-    draw.text((400, y_p+70), f"病歷號: {random.randint(100000,999999)}", fill="black", font=f_body)
+    # --- 2. Patient Info ---
+    y_p = 130
+    draw.text((40, y_p), f"姓名: {patient['name']}", fill="black", font=f_h1)
+    draw.text((350, y_p+5), f"{patient['gender']}", fill="black", font=f_h2)
+    draw.text((40, y_p+45), f"調劑日: 115/01/22", fill="black", font=f_body)
+    draw.text((350, y_p+45), f"病歷號: {random.randint(100000,999999)}", fill="black", font=f_body)
+    
+    draw.line([(30, y_p+80), (IMG_WIDTH-30, y_p+80)], fill="gray", width=2)
 
-    # --- 3. Center Right: Pill Photo (1:1) ---
-    # [2026] 藥物外觀照片
-    draw_pill_photo_sim(draw, 800, y_p, drug)
-
-    # --- 4. Drug Core Info (Color Coding) ---
-    y_drug = 400
-    # [2026] 顏色標記 (左側色條)
+    # --- 3. Drug Info ---
+    y_drug = 230
+    # Color bar
     color_map = {"高血壓": "green", "糖尿病": "orange", "失眠": "blue"}
     bar_color = color_map.get(drug['cat'], "gray")
-    draw.rectangle([20, y_drug, 40, y_drug+150], fill=bar_color)
+    draw.rectangle([15, y_drug, 30, y_drug+100], fill=bar_color)
     
-    # [法定 3] 藥名 (Huge Blue)
-    draw.text((60, y_drug), drug['cht'], fill="blue", font=f_huge)
-    draw.text((60, y_drug+70), drug['eng'], fill="black", font=f_h2)
+    # Drug name
+    draw.text((45, y_drug), drug['cht'], fill="blue", font=f_huge)
+    draw.text((45, y_drug+45), drug['eng'], fill="black", font=f_h2)
     
-    # [法定 7] 適應症圖示
-    draw.text((60, y_drug+120), f"適應症: {drug['indication']}", fill="black", font=f_h2)
-    if "心" in drug['indication']: draw_indication_icon(draw, 400, y_drug+135, 30, "heart")
-    
-    # [法定 4, 5] 劑量 (修正：錯開 Y 座標避免重疊)
+    # Dose
     dose_val = "5000mg" if is_danger else drug['dose']
-    draw.text((600, y_drug), f"劑量: {dose_val}", fill="black", font=f_h2)
-    draw.text((600, y_drug+50), "總量: 28 顆", fill="black", font=f_h2)
+    draw.text((500, y_drug), f"劑量: {dose_val}", fill="black", font=f_h2)
+    draw.text((500, y_drug+35), "總量: 28 顆", fill="black", font=f_body)
     if is_danger: 
-        draw.text((600, y_drug+100), "⚠️ 劑量異常", fill="red", font=f_warn)
-
-    # --- 5. Usage Grid (The Main Feature) ---
-    y_grid = 600
-    # [法定 6] 用法 (Big Pictograms)
-    draw_usage_grid_2026(draw, 50, y_grid, 1100, 200, drug)
+        draw.text((500, y_drug+65), "⚠️ 劑量異常", fill="red", font=f_warn)
     
-    # [法定] 備註
-    draw.text((50, y_grid+210), f"備註: {drug['timing']} 服用", fill="black", font=f_h2)
+    # Indication
+    draw.text((45, y_drug+100), f"適應症: {drug['indication']}", fill="black", font=f_body)
 
-    # --- 6. Warnings & Footer ---
-    y_warn = 880
-    # [法定 8] 警語 (修正：截斷過長文字避免溢出)
-    draw.rectangle([50, y_warn, 1150, y_warn+180], fill=(255, 245, 245), outline="red", width=3)
-    draw.text((70, y_warn+10), "⚠️ 安全警語 / 副作用:", fill="red", font=f_warn)
-    # 截斷警語至最大 40 字，避免溢出框外
-    warning_text = drug['warning'][:40] + "..." if len(drug['warning']) > 40 else drug['warning']
-    draw.text((70, y_warn+60), warning_text, fill="red", font=f_h2)
+    # --- 4. Usage Box (簡化版) ---
+    y_usage = 370
+    draw.rectangle([(40, y_usage), (856, y_usage+80)], outline="black", width=2)
     
-    # 警示圖標
-    if "開車" in drug['warning']: draw_warning_icon(draw, 1000, y_warn+90, 60, "car")
-    if "酒" in drug['warning']: draw_warning_icon(draw, 1100, y_warn+90, 60, "wine")
+    # 用法文字
+    usage_text = {"BID": "每日兩次，早晚", "TID": "每日三次", "QD": "每日一次，早上", "QN": "每日一次，睡前"}
+    timing_icon = "🍚" if "飯後" in drug['timing'] else "⏰"
+    draw.text((60, y_usage+25), f"{timing_icon} {usage_text.get(drug['usage'], drug['usage'])} ({drug['timing']})", fill="black", font=f_h2)
 
-    # [2026] 防呆打孔 (左側圓圈)
-    draw.ellipse([10, 650, 30, 670], outline="gray", width=2)
-    draw.ellipse([10, 750, 30, 770], outline="gray", width=2)
+    # --- 5. Warning Box ---
+    y_warn = 480
+    draw.rectangle([40, y_warn, 856, y_warn+100], fill=(255, 245, 245), outline="red", width=2)
+    draw.text((55, y_warn+10), "⚠️ 警語:", fill="red", font=f_warn)
+    warning_text = drug['warning'][:30] + "..." if len(drug['warning']) > 30 else drug['warning']
+    draw.text((55, y_warn+45), warning_text, fill="red", font=f_body)
+    
+    # Warning icons (smaller)
+    if "開車" in drug['warning']: draw_warning_icon(draw, 780, y_warn+50, 40, "car")
+    if "酒" in drug['warning']: draw_warning_icon(draw, 830, y_warn+50, 40, "wine")
 
-    # Footer (法定 10, 11, 13)
-    y_foot = 1100
-    draw.line([(30, y_foot), (IMG_WIDTH-30, y_foot)], fill="gray", width=2)
-    draw.text((50, y_foot+20), "【三核對】: □ 姓名正確  □ 外觀相符  □ 用法清楚", fill="black", font=f_h2)
-    draw.text((50, y_foot+80), "調劑藥師: 王大明  |  核對藥師: 李小美  |  地址: 台北市...", fill="gray", font=f_body)
+    # --- 6. Footer ---
+    y_foot = 610
+    draw.line([(30, y_foot), (IMG_WIDTH-30, y_foot)], fill="gray", width=1)
+    draw.text((40, y_foot+15), "【三核對】□姓名 □外觀 □用法", fill="black", font=f_body)
+    draw.text((40, y_foot+50), "調劑藥師: 王大明 | 核對藥師: 李小美", fill="gray", font=get_font(18))
+    draw.text((40, y_foot+80), "地址: 台北市信義區...", fill="gray", font=get_font(16))
 
     # Texture (帶錯誤處理)
     try:
