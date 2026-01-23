@@ -32,15 +32,24 @@ FONT_URL = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Traditiona
 FONT_PATH = "NotoSansCJKtc-Regular.otf"
 
 def get_font(size):
+    """取得字型，帶完整錯誤處理避免 Kaggle 崩潰"""
     if not os.path.exists(FONT_PATH):
         try:
             print(f"⬇️ 下載中文字體中... ({size}px)")
-            r = requests.get(FONT_URL)
+            r = requests.get(FONT_URL, timeout=30)
+            r.raise_for_status()  # 檢查 HTTP 錯誤
             with open(FONT_PATH, "wb") as f:
                 f.write(r.content)
-        except:
+            print(f"   ✅ 字體下載成功")
+        except Exception as e:
+            print(f"   ⚠️ 字體下載失敗: {e}，使用預設字體")
             return ImageFont.load_default()
-    return ImageFont.truetype(FONT_PATH, size)
+    
+    try:
+        return ImageFont.truetype(FONT_PATH, size)
+    except Exception as e:
+        print(f"   ⚠️ 字體載入失敗: {e}，使用預設字體")
+        return ImageFont.load_default()
 
 # ==========================================
 # 2. 2026 進階圖示引擎 (Advanced Pictograms)
@@ -260,11 +269,12 @@ def generate_v9_bag(filename, patient, drug, is_danger=False):
     draw.text((60, y_drug+120), f"適應症: {drug['indication']}", fill="black", font=f_h2)
     if "心" in drug['indication']: draw_indication_icon(draw, 400, y_drug+135, 30, "heart")
     
-    # [法定 4, 5] 劑量
+    # [法定 4, 5] 劑量 (修正：錯開 Y 座標避免重疊)
     dose_val = "5000mg" if is_danger else drug['dose']
-    if is_danger: draw.text((600, y_drug+120), "⚠️劑量異常", fill="red", font=f_warn)
     draw.text((600, y_drug), f"劑量: {dose_val}", fill="black", font=f_h2)
     draw.text((600, y_drug+50), "總量: 28 顆", fill="black", font=f_h2)
+    if is_danger: 
+        draw.text((600, y_drug+100), "⚠️ 劑量異常", fill="red", font=f_warn)
 
     # --- 5. Usage Grid (The Main Feature) ---
     y_grid = 600
@@ -276,10 +286,12 @@ def generate_v9_bag(filename, patient, drug, is_danger=False):
 
     # --- 6. Warnings & Footer ---
     y_warn = 880
-    # [法定 8] 警語
+    # [法定 8] 警語 (修正：截斷過長文字避免溢出)
     draw.rectangle([50, y_warn, 1150, y_warn+180], fill=(255, 245, 245), outline="red", width=3)
     draw.text((70, y_warn+10), "⚠️ 安全警語 / 副作用:", fill="red", font=f_warn)
-    draw.text((70, y_warn+60), drug['warning'], fill="red", font=f_h2)
+    # 截斷警語至最大 40 字，避免溢出框外
+    warning_text = drug['warning'][:40] + "..." if len(drug['warning']) > 40 else drug['warning']
+    draw.text((70, y_warn+60), warning_text, fill="red", font=f_h2)
     
     # 警示圖標
     if "開車" in drug['warning']: draw_warning_icon(draw, 1000, y_warn+90, 60, "car")
@@ -295,10 +307,24 @@ def generate_v9_bag(filename, patient, drug, is_danger=False):
     draw.text((50, y_foot+20), "【三核對】: □ 姓名正確  □ 外觀相符  □ 用法清楚", fill="black", font=f_h2)
     draw.text((50, y_foot+80), "調劑藥師: 王大明  |  核對藥師: 李小美  |  地址: 台北市...", fill="gray", font=f_body)
 
-    # Texture
-    img = apply_texture(img)
-    img.save(filename)
-    print(f"✅ V9 旗艦版生成完畢: {filename}")
+    # Texture (帶錯誤處理)
+    try:
+        img = apply_texture(img)
+    except Exception as e:
+        print(f"   ⚠️ 材質應用失敗: {e}，使用原始圖片")
+    
+    try:
+        img.save(filename)
+        print(f"✅ V9 旗艦版生成完畢: {filename}")
+    except Exception as e:
+        print(f"❌ 圖片儲存失敗: {e}")
+        # Fallback: 嘗試儲存為 PNG
+        try:
+            png_path = filename.replace('.jpg', '.png')
+            img.save(png_path)
+            print(f"   ✅ 已改存為 PNG: {png_path}")
+        except:
+            print(f"   ❌ 完全儲存失敗，跳過此圖")
 
 # Database
 PATIENTS = [{"name": "林罔市", "gender": "女", "born": 28}, {"name": "陳進財", "gender": "男", "born": 32}]
