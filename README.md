@@ -15,16 +15,12 @@
 [![Kaggle](https://img.shields.io/badge/Kaggle-Agentic%20Workflow%20Prize-FFD700)](https://www.kaggle.com/competitions/med-gemma-impact-challenge)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces)
-[![Privacy](https://img.shields.io/badge/Privacy-Local%20Only%20%2F%20No%20Cloud-purple)]()
-[![Edge AI](https://img.shields.io/badge/Edge%20AI-Runs%20Offline-orange)]()
-[![Health Equity](https://img.shields.io/badge/Health%20Equity-Multilingual%20Caregiver%20Support-FF4081)]()
-[![Tech Stack](https://img.shields.io/badge/Tech-peft%20%7C%20bitsandbytes%20%7C%20transformers-blueviolet)]()
-[![Docker](https://img.shields.io/badge/Docker-Compatible-blue?logo=docker)]()
+[![Docker](https://img.shields.io/badge/Docker-Compatible-blue?logo=docker)](#docker-reproducibility-optional)
 
 ---
 
 ## 🚀 Quick Start
-> **Current Version:** V5.0 Impact Edition (Stable)
+> **Current Version:** V7.2 Final Submission (Stable)
 
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
 > Please add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN` before running.
@@ -597,7 +593,7 @@ print("🔧 Installing Dependencies...")
 # 5. Launch MedGemma Impact Pipeline
 print("🚀 Launching MedGemma Impact Pipeline...")
 # This runs Data Gen -> Training -> Agent Demo sequentially
-!python KAGGLE_V4_COMPLETE.py
+!python AI_Pharmacist_Guardian_V5.py
 ```
 
 ### Pipeline Stages (Automated)
@@ -775,17 +771,6 @@ While MedGemma is a state-of-the-art medical VLM, this system may exhibit biases
 - Kaggle for hosting the competition
 - Hugging Face for PEFT library
 - WHO for global medication safety research
-
----
-
-
----
-
-
----
-
-## 📉 Clinical Validation & Failure Analysis
-
 ### Safety-First Confusion Matrix
 
 > **"Refusal is safer than hallucination."**
