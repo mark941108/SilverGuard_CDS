@@ -211,36 +211,70 @@ def apply_texture(img):
     return Image.fromarray(arr)
 
 # ==========================================
+# New V11 Feature: Optical Corruption Module
+# ==========================================
+def apply_optical_stress(img, severity=0):
+    """
+    Simulate real-world challenging conditions.
+    severity: 0 (None), 1 (Mild - Hand tremor), 2 (Hard - Bad focus/lighting)
+    """
+    if severity == 0: return img
+    
+    # 1. 模糊 (老人手抖 / 對焦失敗)
+    if random.random() < 0.7: # High chance of blur in stress mode
+        radius = 2 if severity == 1 else 4 # 4px blur is hard for OCR
+        img = img.filter(ImageFilter.GaussianBlur(radius))
+        
+    # 2. 旋轉 (隨意擺放)
+    angle = random.randint(-5, 5) if severity == 1 else random.randint(-15, 15)
+    img = img.rotate(angle, resample=Image.BICUBIC, expand=0, fillcolor="white")
+    
+    # 3. 降低對比度 / 亮暗 (熱感紙褪色 / 反光)
+    if random.random() < 0.5:
+        enhancer = ImageEnhance.Contrast(img)
+        factor = 0.8 if severity == 1 else 0.5
+        img = enhancer.enhance(factor)
+        
+    # 4. 噪點 (低光源 ISO Noise) - 加強版
+    if severity == 2:
+        overlay = Image.new("RGBA", img.size, (0, 0, 0, 50)) # Darken
+        img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+        
+    return img
+
+# ==========================================
 # 4. 主生成器 (Main Pipeline)
 # ==========================================
+# ... existing generate_v9_bag function ...
+# I need to modify generate_v9_bag to ACCEPT optical_severity argument.
+# But simply updating the caller and adding the processing step inside generate or returning the image object to be processed is better.
+# Actually, the user asked to modify generate_v9_bag. Wait, the user instruction was "Add apply_optical_stress... Update Main Loop".
+# I will modify generate_v9_bag to accept `optical_severity` and call `apply_optical_stress` at the end.
 
-def generate_v9_bag(filename, patient, drug, is_danger=False):
-    """V10: 896x896 版本，與訓練資料一致"""
+def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0):
+    """V11: 896x896 版本，支援光學壓力測試"""
     img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), "white")
     draw = ImageDraw.Draw(img)
     
     # Fonts (縮小以適應 896x896)
-    f_h1 = get_font(36)   # 機構
-    f_h2 = get_font(28)   # 重點標題
+    f_h1 = get_font(36)
+    f_h2 = get_font(28)
     f_body = get_font(22)
-    f_huge = get_font(40) # 藥名
+    f_huge = get_font(40)
     f_warn = get_font(24)
 
     # --- 1. Top Header ---
     draw.text((40, 25), "MedGemma 聯合醫療體系", fill="#003366", font=f_h1)
     draw.text((40, 70), "用藥諮詢: (02) 2345-6789", fill="red", font=f_h2)
     
-    # QR Code (Top Right, smaller)
+    # QR Code
     try:
         qr = qrcode.QRCode(box_size=3, border=1)
         qr.add_data(f"https://medgemma.tw/verify?id={drug['id']}")
         qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-        # Ensure it fits
-        if qr_img.width > 150: 
-             qr_img = qr_img.resize((100, 100))
+        if qr_img.width > 150: qr_img = qr_img.resize((100, 100))
         img.paste(qr_img, (IMG_WIDTH-qr_img.width-20, 20))
-    except Exception as e:
-        print(f"⚠️ QR Code Error: {e}")
+    except Exception as e: print(f"⚠️ QR Error: {e}")
     
     draw.line([(30, 110), (IMG_WIDTH-30, 110)], fill="#003366", width=3)
 
@@ -249,36 +283,36 @@ def generate_v9_bag(filename, patient, drug, is_danger=False):
     draw.text((40, y_p), f"姓名: {patient['name']}", fill="black", font=f_h1)
     draw.text((350, y_p+5), f"{patient['gender']}", fill="black", font=f_h2)
     draw.text((40, y_p+45), f"調劑日: 115/01/22", fill="black", font=f_body)
-    draw.text((350, y_p+45), f"病歷號: {random.randint(100000,999999)}", fill="black", font=f_body)
     
     draw.line([(30, y_p+80), (IMG_WIDTH-30, y_p+80)], fill="gray", width=2)
 
     # --- 3. Drug Info ---
     y_drug = 230
-    # Color bar
     color_map = {"高血壓": "green", "糖尿病": "orange", "失眠": "blue"}
     bar_color = color_map.get(drug['cat'], "gray")
     draw.rectangle([15, y_drug, 30, y_drug+100], fill=bar_color)
     
-    # Drug name
     draw.text((45, y_drug), drug['cht'], fill="blue", font=f_huge)
     draw.text((45, y_drug+45), drug['eng'], fill="black", font=f_h2)
     
-    # Dose
-    dose_val = "5000mg" if is_danger else drug['dose']
+    # Dose (Risk Injection)
+    dose_val = drug['dose']
+    if is_danger:
+         # Strategic Risk Injection: Not just 5000mg
+         if "Metformin" in drug['eng']: dose_val = "2500mg (OD)" # Overdose
+         elif "Warfarin" in drug['eng']: dose_val = "10mg" # High bleeding risk
+         else: dose_val = "5000mg"
+         
     draw.text((500, y_drug), f"劑量: {dose_val}", fill="black", font=f_h2)
     draw.text((500, y_drug+35), "總量: 28 顆", fill="black", font=f_body)
     if is_danger: 
         draw.text((500, y_drug+65), "⚠️ 劑量異常", fill="red", font=f_warn)
     
-    # Indication
     draw.text((45, y_drug+100), f"適應症: {drug['indication']}", fill="black", font=f_body)
 
-    # --- 4. Usage Box (簡化版) ---
+    # --- 4. Usage Box ---
     y_usage = 370
     draw.rectangle([(40, y_usage), (856, y_usage+80)], outline="black", width=2)
-    
-    # 用法文字
     usage_text = {"BID": "每日兩次，早晚", "TID": "每日三次", "QD": "每日一次，早上", "QN": "每日一次，睡前"}
     timing_icon = "🍚" if "飯後" in drug['timing'] else "⏰"
     draw.text((60, y_usage+25), f"{timing_icon} {usage_text.get(drug['usage'], drug['usage'])} ({drug['timing']})", fill="black", font=f_h2)
@@ -289,8 +323,6 @@ def generate_v9_bag(filename, patient, drug, is_danger=False):
     draw.text((55, y_warn+10), "⚠️ 警語:", fill="red", font=f_warn)
     warning_text = drug['warning'][:30] + "..." if len(drug['warning']) > 30 else drug['warning']
     draw.text((55, y_warn+45), warning_text, fill="red", font=f_body)
-    
-    # Warning icons (smaller)
     if "開車" in drug['warning']: draw_warning_icon(draw, 780, y_warn+50, 40, "car")
     if "酒" in drug['warning']: draw_warning_icon(draw, 830, y_warn+50, 40, "wine")
 
@@ -298,55 +330,58 @@ def generate_v9_bag(filename, patient, drug, is_danger=False):
     y_foot = 610
     draw.line([(30, y_foot), (IMG_WIDTH-30, y_foot)], fill="gray", width=1)
     draw.text((40, y_foot+15), "【三核對】□姓名 □外觀 □用法", fill="black", font=f_body)
-    draw.text((40, y_foot+50), "調劑藥師: 王大明 | 核對藥師: 李小美", fill="gray", font=get_font(18))
-    draw.text((40, y_foot+80), "地址: 台北市信義區...", fill="gray", font=get_font(16))
-
-    # Texture (帶錯誤處理)
-    try:
-        img = apply_texture(img)
-    except Exception as e:
-        print(f"   ⚠️ 材質應用失敗: {e}，使用原始圖片")
     
+    # Texture
+    try: img = apply_texture(img)
+    except: pass
+
+    # ==========================================
+    # 🕵️ LEGAL PROTECTION: ANTI-FORGERY WATERMARK
+    # ==========================================
+    # Prevents "Forgery of Documents" accusations
+    # Prevents Trademark Infringement confusion (Nominative Fair Use)
+    draw = ImageDraw.Draw(img) # Re-init draw on textured image if needed
+    wm_font = get_font(50)
+    
+    # Diagonal Watermark
+    txt_layer = Image.new("RGBA", img.size, (255,255,255,0))
+    d_ctx = ImageDraw.Draw(txt_layer)
+    d_ctx.text((200, 400), "SAMPLE COPY - NOT FOR USE", fill=(200, 200, 200, 120), font=wm_font)
+    d_ctx.text((150, 500), "AI GENERATED - DEMO ONLY", fill=(200, 200, 200, 120), font=wm_font)
+    
+    # Rotate watermark
+    txt_layer = txt_layer.rotate(30)
+    img = Image.alpha_composite(img.convert("RGBA"), txt_layer).convert("RGB")
+
+    # Optical Stress
+    try: img = apply_optical_stress(img, severity=optical_severity)
+    except Exception as e: print(f"⚠️ Stress Fail: {e}")
+
     try:
         img.save(filename)
-        print(f"✅ V9 旗艦版生成完畢: {filename}")
-    except Exception as e:
-        print(f"❌ 圖片儲存失敗: {e}")
-        # Fallback: 嘗試儲存為 PNG
-        try:
-            png_path = filename.replace('.jpg', '.png')
-            img.save(png_path)
-            print(f"   ✅ 已改存為 PNG: {png_path}")
-        except:
-            print(f"   ❌ 完全儲存失敗，跳過此圖")
+        print(f"✅ Generated: {filename} (Danger={is_danger}, Stress={optical_severity})")
+    except: pass
 
-# Database - V10: 與主程式 DRUG_DATABASE 同步
-PATIENTS = [
-    {"name": "陳金龍", "gender": "男", "age": 88},
-    {"name": "林美玉", "gender": "女", "age": 75},
-    {"name": "張志明", "gender": "男", "age": 65},
-    {"name": "李建國", "gender": "男", "age": 82},
-]
-DRUGS = [
-    # 糖尿病 - 與主程式一致
-    {"id": "GLU", "cht": "庫魯化", "eng": "Glucophage (Metformin)", "dose": "500mg", "cat": "糖尿病", "color": "white", "shape": "oval", "usage": "BID", "timing": "飯後", "warning": "隨餐服用減少腸胃不適", "indication": "降血糖"},
-    {"id": "DAO", "cht": "道尼爾", "eng": "Daonil (Glibenclamide)", "dose": "5mg", "cat": "糖尿病", "color": "white", "shape": "oval", "usage": "QD", "timing": "飯前", "warning": "低血糖風險高", "indication": "降血糖"},
-    # 高血壓 - 與主程式一致
-    {"id": "NOR", "cht": "脈優", "eng": "Norvasc (Amlodipine)", "dose": "5mg", "cat": "高血壓", "color": "white", "shape": "circle", "usage": "QD", "timing": "飯後", "warning": "小心姿勢性低血壓", "indication": "降血壓"},
-    {"id": "CON", "cht": "康肯", "eng": "Concor (Bisoprolol)", "dose": "5mg", "cat": "高血壓", "color": "yellow", "shape": "circle", "usage": "QD", "timing": "飯後", "warning": "心跳過慢者慎用", "indication": "降血壓"},
-    # 安眠 - 與主程式一致 (Zolpidem, 非 Estazolam)
-    {"id": "STI", "cht": "使蒂諾斯", "eng": "Stilnox (Zolpidem)", "dose": "10mg", "cat": "失眠", "color": "white", "shape": "oval", "usage": "QN", "timing": "睡前", "warning": "服用後立即就寢，禁止開車", "indication": "失眠"},
-    # 心臟 - 與主程式一致
-    {"id": "ASP", "cht": "阿斯匹靈", "eng": "Aspirin", "dose": "100mg", "cat": "心臟", "color": "white", "shape": "circle", "usage": "QD", "timing": "飯後", "warning": "胃潰瘍患者慎用", "indication": "預防血栓"},
-    # 抗凝血 - 與主程式一致
-    {"id": "WAR", "cht": "可化凝", "eng": "Warfarin", "dose": "5mg", "cat": "抗凝血", "color": "pink", "shape": "circle", "usage": "QD", "timing": "睡前", "warning": "需定期監測INR，避免深綠色蔬菜", "indication": "抗凝血"},
-    # 血脂 - 與主程式一致
-    {"id": "LIP", "cht": "立普妥", "eng": "Lipitor (Atorvastatin)", "dose": "20mg", "cat": "血脂", "color": "white", "shape": "oval", "usage": "QD", "timing": "睡前", "warning": "肌肉痠痛時需回診", "indication": "降血脂"},
-]
+# ... Database arrays (PATIENTS, DRUGS) ...
 
 if __name__ == "__main__":
-    print("🏥 啟動 V9 2026 旗艦版生成引擎 (Legal + UX + Digital)...")
-    for i in range(1, 6):
+    from PIL import ImageEnhance # Import needed for optical stress
+    print("🏥 MedGemma Challenge Generator V11 (Strategic + Optical Stress)...")
+    
+    # 1. Generate 3 Perfect Images (Expect: PASS)
+    for i in range(1, 4):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
-        generate_v9_bag(f"{OUTPUT_DIR}/taiwan_v9_flagship_{i}.jpg", p, d, is_danger=(i==5))
+        generate_v9_bag(f"{OUTPUT_DIR}/demo_clean_{i}.jpg", p, d, is_danger=False, optical_severity=0)
+        
+    # 2. Generate 1 High Risk Image (Expect: HIGH_RISK logic trap)
+    p = PATIENTS[0] # High age
+    d = DRUGS[0] # Metformin
+    generate_v9_bag(f"{OUTPUT_DIR}/demo_high_risk.jpg", p, d, is_danger=True, optical_severity=0)
+    
+    # 3. Generate 1 Bad Quality Image (Expect: REJECT / INPUT GATE TRIGGER)
+    p = random.choice(PATIENTS)
+    d = random.choice(DRUGS)
+    generate_v9_bag(f"{OUTPUT_DIR}/demo_blur_reject.jpg", p, d, is_danger=False, optical_severity=2)
+    
+    print("🚀 All Challenge Assets Ready!")

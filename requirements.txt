@@ -9,6 +9,10 @@ peft>=0.10.0
 datasets
 huggingface_hub
 
+# RAG Knowledge Base (S-Tier Upgrade)
+sentence-transformers
+faiss-cpu
+
 # Vision
 pillow
 albumentations
@@ -33,4 +37,5 @@ gTTS>=2.5.0
 pyttsx3==2.90
 soundfile
 librosa
-edge-tts
+scipy
+spaces

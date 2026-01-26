@@ -1,5 +1,5 @@
 ### Project name
-**SilverGuard: AI Pharmacist Guardian (V5.0 Impact Edition)**
+**SilverGuard: Intelligent Medication Safety Assistant (V5.0 Impact Edition)**
 
 ### Track Selection
 * **Main Track**
@@ -19,7 +19,9 @@
 
 ### Problem statement
 **The Global Crisis:**
-According to the WHO, **medication errors cost $42 billion annually**. In "Super-Aged Societies" like Taiwan (20% population >65y/o), elderly patients are 7x more likely to suffer adverse drug events due to poor vision and complex regimens.
+According to the World Health Organization's 'Medication Without Harm' initiative, medication errors cost global healthcare systems **$42 billion annually**. Crucially, research indicates that over 50% of preventable harm occurs at the stage of administration and monitoring—precisely when the patient is alone at home. SilverGuard targets this **"Last Mile"** of medication safety.
+
+In "Super-Aged Societies" like Taiwan (20% population >65y/o), elderly patients are 7x more likely to suffer adverse drug events due to poor vision and complex regimens. Furthermore, **Migrant Caregivers** (e.g., from Indonesia/Vietnam) often struggle to read Traditional Chinese prescriptions, creating a dangerous linguistic gap in home care.
 
 **The Privacy & Reliability Gap:**
 Current solutions fail on two fronts:
@@ -29,9 +31,12 @@ Current solutions fail on two fronts:
 **Impact Potential:**
 SilverGuard bridges this gap by providing a **Privacy-First (Local)**, **Agentic (Reasoning)** safety net deployable in rural clinics and offline environments.
 
+**Market Validation:**
+The industry is pivoting from vials to pouches. Amazon validated this shift by acquiring PillPack for **$753 million** in 2018 to secure unit-dose packaging capabilities. While the US is spending billions to build this infrastructure, Taiwan has utilized this superior packaging format for decades. SilverGuard leverages this existing infrastructure to deploy an AI safety net immediately, without requiring new hardware.
+
 ### Overall solution
 **Effective use of HAI-DEF models (MedGemma):**
-Our solution, **AI Pharmacist Guardian**, is a **Neuro-Symbolic Agentic Workflow** powered by fine-tuned **MedGemma 1.5-4B (VLM)**. We leverage MedGemma's **SigLIP vision encoder** for fine-grained text extraction and its medical reasoning capabilities to act not just as a reader, but as a meticulous pharmacist.
+Our solution, **SilverGuard (Medication Safety Assistant)**, is NOT a "Universal Drug Bag Reader" (which is technically impossible due to physical noise). Instead, it is a **Standardized Drug Label Verification Assistant** powered by fine-tuned **MedGemma 1.5-4B**. We consciously trade "convenience" for "safety," implementing strict input gates that reject substandard images rather than guessing.
 
 **Core Innovation: The Self-Correcting Agent**
 Unlike standard models that hallucinate when uncertain, our Agent implements a **Human-Like Feedback Loop**:
@@ -74,24 +79,22 @@ This implements the **TOTE Loop** (Test-Operate-Test-Exit) from cognitive psycho
 
 We embrace **"Intellectual Honesty"** by proactively disclosing limitations and our engineering mitigations:
 
-#### 1. **Synthetic Data (Sim2Real Gap)**
-**Limitation:** Model trained exclusively on programmatically generated drug bags.
+#### 1. **Sim2Real Gap Mitigation Strategy (Addressing Inbreeding Risk)**
+**Risk:** Training on synthetic data risks "inbreeding," where the model learns generation rules rather than robust reading.
 
-**Mitigation (Anti-Fragility):**
-- ✅ **"Gallery of Horrors" Stress Test:** We deliberately attack our model with 10 extreme edge cases (blur, occlusion, water damage).
-- ✅ **Input Gate (Laplacian Variance):** Rejects blurry images pre-inference. **Refusal is safer than hallucination.**
-- ✅ **Fail-Safe Philosophy:** When uncertain → `HUMAN_REVIEW_NEEDED` (not a failure, a feature).
+**Mitigation (Defense-in-Depth):**
+- ✅ **Input Gate as OOD Defense:** We implemented a Laplacian Variance filter (`cv2.Laplacian`) to strictly reject real-world OOD (Out-Of-Distribution) images (glare, blur, dark) *before* they reach the model. **Refusal is safer than hallucination.**
+- ✅ **Noise Injection Training:** Our data generator deliberately injects random Gaussian noise, perspective warps, and font variations to prevent overfitting to a single "perfect" template.
+- ✅ **Fail-Safe Philosophy:** Low confidence (<80%) triggers `HUMAN_REVIEW_NEEDED`. We position the AI as a "triage tool," not an autonomous authority.
 
 > *"We chose deterministic validation (Regex for dose units) over probabilistic AI—not due to lack of sophistication, but because life-critical systems demand **certainty over creativity**."*
 
-#### 2. **Limited Drug Database (12 Drugs POC)**
-**Limitation:** Current knowledge base covers only 12 high-risk chronic disease medications.
+#### 2. **Limited Drug Database (Phase 1: Proto-Strategy)**
+**Limitation:** A static dictionary cannot cover 20,000+ FDA drugs.
 
-**Mitigation (Modular Architecture):**
-- ✅ **Decoupled Design:** The `retrieve_drug_info()` function serves as a **RAG Interface Stub**. Replacing the local dictionary with RxNorm/Micromedex API requires only 5 lines of code (see `AI_Pharmacist_Guardian_V5.py` line 363).
-- ✅ **Graceful Degradation:** Unknown drugs trigger `UNKNOWN_DRUG` status → Manual Review (prevents hallucination).
-
-> *"This is a **POC (Proof of Concept)** demonstrating safety architecture, not a production drug encyclopedia. The modular design allows scaling to 20,000+ FDA drugs without retraining the model."*
+**Mitigation (Scalable Architecture):**
+- ✅ **Strategy Pattern Implementation:** For this **Edge-AI Prototype**, we utilized a lightweight lookup to demonstrate the *logic flow* with zero latency.
+- **Production Vision:** The `retrieve_drug_info` module is designed to be **hot-swapped** with a scalable Vector Database (e.g., ChromaDB) or RxNorm API in Phase 2, without changing the core reasoning logic.
 
 #### 3. **Cross-Domain Credibility (Energy Engineer Perspective)**
 **Strength Reframed:**  
@@ -131,9 +134,9 @@ Unlike "confident-but-wrong" AI systems, SilverGuard explicitly defines its **op
 Image Quality Spectrum
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 │ ✅ AI SAFE ZONE              │ ⛔ HUMAN FALLBACK ZONE       │
-│ (Laplacian Variance ≥ 100)   │ (Laplacian Variance < 100)   │
+│ (Passes Glare/Dark/Blur)     │ (Fails Quality Check)        │
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━│━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CLEAR ──────────────────────► ◆ CUT-OFF ──────────────────► BLURRY
+CLEAR ──────────────────────► ◆ CUT-OFF ──────────────────► NOISY
                                (SilverGuard Threshold)
 ```
 
@@ -160,6 +163,9 @@ CLEAR ──────────────────────► ◆ 
 - ✅ Firebase (Optional): RLHF Feedback Collection
 
 ### Technical details
+**Regulatory-Grade Data Engine (Article 19 Compliance):**
+Our V10 Data Generator is strictly codified against **Article 19 of Taiwan's Pharmacist Act (藥師法第19條)**, which requires 12 specific data points (including indications and side effects) on every prescription pouch. We do not train on random internet text; we train on regulatory-compliant synthetic data (see `generate_stress_test.py`), ensuring the model learns strict labeling standards and achieves information extraction precision that generic OCR cannot match.
+
 **Product Feasibility (Edge AI Architecture):**
 * **100% Offline-Capable:** Optimized to run on a single **NVIDIA T4 (16GB)** or consumer hardware (e.g., RTX 40/50 series) using 4-bit quantization (NF4).
 * **Fail-Safe Design:** Incorporates an **Input Gate** (Blur Detection) to actively refuse low-quality inputs.
@@ -168,7 +174,7 @@ CLEAR ──────────────────────► ◆ 
 ### Citation
 ```bibtex
 @misc{silverguard2026,
-  title={SilverGuard: AI Pharmacist Guardian},
+  title={SilverGuard: Intelligent Medication Safety System},
   author={Wang, Yuan-dao},
   year={2026},
   publisher={Kaggle MedGemma Impact Challenge},

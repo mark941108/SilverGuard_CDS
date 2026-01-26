@@ -31,8 +31,8 @@
 *   **0:15:** Split screen: Left = "Google MedGemma", Right = "SilverGuard UI".
 
 **Audio (Low, Suspenseful BGM):**
-> "As an Energy Engineer, I'm trained to prevent system failures. But in healthcare... a 'system failure' costs a life."
-> "This is **SilverGuard**. An agentic safety layer built on top of **Med-Jemma**, designed to protect the elderly from medication errors."
+> "As an Energy Engineer, I'm trained to prevent system failures. But in healthcare... errors can have serious consequences."
+> "This is **SilverGuard**. A clinical decision support layer built on top of **Med-Jemma**, helping to protect the elderly from medication errors."
 
 ---
 
@@ -42,8 +42,21 @@
 *   Overlay text: **"Sim-to-Real Gap"**.
 
 **Audio:**
-> "OCR is not enough. If a model misreads '5mg' as '50mg', it's fatal."
+> "OCR is not enough. If a model misreads '5mg' as '50mg', it's a critical safety issue."
 > "Standard LLMs hallucinate. That’s why we didn’t just build a chatbot. We built a **Neuro-Symbolic Architecture**."
+
+---
+
+### 🔹 Scene 2.5: The Safety Gate (Refusal Mechanism) (0:50 - 1:10)
+**Visual (CRITICAL):**
+*   **0:50:** **Live Demo:** User holds a drug bag with **SEVERE GLARE** (reflection) under a lamp.
+*   **UI Overlay:** A **RED ALERT** pops up immediately: `⚠️ REFUSED: Severe Glare Detected`.
+*   **Action:** The AI **DOES NOT** attempt to guess. It forces the user to retake the photo.
+
+**Audio:**
+*   > "Most AI models try to guess. **We don't.**"
+*   > "In a high-stakes medical context, silence is better than a lie."
+*   > "Our **'Refusal Mechanism'** significantly mitigates hallucinations by aggressively rejecting poor images."
 
 ---
 
@@ -68,7 +81,7 @@
 *   **1:55:** **Multilingual Demo (MOCK):**
     *   Click a fake/overlay button "Bahasa Indonesia".
     *   **Overlay Text:** [AUDIO WARNING PLAYING IN INDONESIAN].
-    *   *Editor Note: Use ElevenLabs to generate "PERINGATAN! Obat ini berbahaya!" and layer it here.*
+    *   *Editor Note: Use ElevenLabs to generate "MOHON TANYA APOTEKER" and layer it here.*
 *   **2:15:** Show the Markdown table of "Low Cost" (T-Four G-P-U).
 
 **Audio (Uplifting, Major Key BGM):**

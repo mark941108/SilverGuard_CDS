@@ -23,9 +23,9 @@
 ```text
 [Voiceover - English]
 As an Energy Engineering student, I am trained to prevent system failures.
-But in healthcare... a 'system failure' costs a life.
+But in healthcare... errors can have serious consequences.
 Existing OCR makes mistakes. Standard LLMs hallucinate.
-This is SilverGuard.
+This is SilverGuard. A Clinical Decision Support prototype.
 ```
 
 ---
@@ -44,7 +44,7 @@ Zero PII leaves the device. Secure, offline-capable, and cost-effective.
 
 ## 🔹 Scene 3: Agentic Core ⚠️ 決勝關鍵 (0:35 - 1:25)
 
-**特效重點**：畫面凍結 + 放大 Log + 溫度計動畫
+**特效重點**：畫面凍結 + 放大 Log (**一定要錄到 `STRATEGY SHIFT: Lowering temperature` 還要放大**) + 溫度計動畫
 
 ```text
 [Voiceover - English]
@@ -74,9 +74,9 @@ SilverGuard translates safety alerts into large-font visuals.
 And for Taiwan's 250,000 migrant caregivers, it speaks their language.
 
 [🔊 播放印尼語 TTS]
-"PERINGATAN! BAHAYA!"
+"MOHON TANYA APOTEKER"
 
-Verified medical alerts. Ensuring safety has no language barrier.
+Reference-based safety alerts. Ensuring safety has no language barrier.
 ```
 
 ---
