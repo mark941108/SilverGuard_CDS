@@ -79,8 +79,9 @@ This project deploys MedGemma 1.5 as an intelligent reasoning AGENT
 🔬 POWERED BY GOOGLE HAI-DEF
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • Model: MedGemma 1.5-4B (Gemma 3 Architecture)
+• Architecture: Leveraging Gemma 3's MatFormer to dynamically reduce parameter usage for T4 GPU efficiency
 • Method: QLoRA 4-bit fine-tuning
-• Training: 600 synthetic drug bags with Risk Injection
+• Training: 600 synthetic drug bags codified against **Article 19 of Taiwan Pharmacist Act**
 • Target: Edge deployment in resource-constrained pharmacies
 
 💡 HEALTH EQUITY FOCUS

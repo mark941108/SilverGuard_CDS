@@ -59,6 +59,7 @@ docker run --gpus all -it silverguard-agent
 | **Social Impact** | **SilverGuard**: Translates JSON alerts into elder-friendly TTS audio + large-font calendars |
 | **Privacy Claim** | **Hybrid Architecture**: Local PHI processing, anonymized external DB queries |
 | **Why MedGemma** | Medical reasoning to catch dosage errors that general VLMs miss, 100% local on T4 GPU |
+| **Edge AI Tech** | Leveraging **Gemma 3's MatFormer architecture** to run efficiently on legacy T4 GPUs |
 
 > **🏆 Target: Agentic Workflow Prize** — This is a TRUE Agent with retry behavior, not just conditional logic.
 
@@ -108,6 +109,8 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 
 > [!NOTE]
 > **Hybrid Privacy Architecture:** All sensitive operations (image analysis, patient data extraction, safety reasoning) run 100% locally. Only the optional SilverGuard TTS feature uses cloud API (gTTS) for voice synthesis—**no PHI is transmitted**. Visual fallback available for fully air-gapped environments.
+>
+> *Note: While MedGemma inference is offline, the prototype's TTS module utilizes Cloud APIs for high-fidelity demonstration. Production builds will utilize on-device TTS (e.g., Gemini Nano or localized models) to ensure full air-gapped compliance.*
 
 > [!IMPORTANT]
 > **Note on Medical Reasoning:** According to the [MedGemma Model Card](https://developers.google.com/health-ai-developer-foundations/medgemma/model-card), MedGemma is fine-tuned on medical text, question-answer pairs, and clinical data, aiming to reduce hallucinations. However, **clinical verification is always required.**
