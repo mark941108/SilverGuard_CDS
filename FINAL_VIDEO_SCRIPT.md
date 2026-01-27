@@ -25,7 +25,7 @@
 As an Energy Engineering student, I am trained to prevent system failures.
 But in healthcare... errors can have serious consequences.
 Existing OCR makes mistakes. Standard LLMs hallucinate.
-This is SilverGuard. A Clinical Decision Support prototype.
+This is SilverGuard CDS. A Clinical Decision Support prototype.
 ```
 
 ---
@@ -90,7 +90,7 @@ Reference-based safety alerts. Ensuring safety has no language barrier.
 We are not replacing pharmacists. 
 We are giving them a second pair of eyes that never gets tired.
 
-This is AI Pharmacist Guardian. 
+This is SilverGuard CDS. 
 Safe. Scalable. And available now on Kaggle.
 ```
 

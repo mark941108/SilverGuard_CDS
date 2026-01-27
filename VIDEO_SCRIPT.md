@@ -186,7 +186,7 @@ This could kill an 88-year-old. But standard AI thinks it's safe. In 2025, as Ta
 I'm [Your Name], and I built an Agent that catches what Google and GPT-4 miss.
 
 [Scene 2: Solution - 0:30-1:00]
-Meet AI Pharmacist Guardian.
+Meet SilverGuard CDS.
 Powered by Google's MedGemma 1.5, running 100% locally on a single T4 GPU.
 This is our "Privacy Moat": Unlike cloud APIs that leak sensitive PHI, our Edge AI architecture keeps patient data logically isolated and HIPAA-compliant.
 It utilizes a Hybrid Architecture: Neural perception for reading, Symbolic logic for safety.
@@ -206,7 +206,7 @@ And for the 250,000 migrant caregivers in Taiwan, we built a Language Bridge. Sa
 We don't just detect errors—we bridge the communication gap for the most vulnerable.
 
 [Scene 5: Call to Action - 2:40-2:50]
-Built by one student, running on free hardware, designed for every forgotten elder. This is AI Pharmacist Guardian: Turning personal regret into public safety.
+Built by one student, running on free hardware, designed for every forgotten elder. This is SilverGuard: Turning personal regret into public safety.
 ```
 
 ---

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import gradio as gr
 import torch
 import os  # V7.3 FIX: Missing import
@@ -235,6 +236,8 @@ DRUG_ALIASES = {
     "bokey": "aspirin",
     "plavix": "clopidogrel",
 }
+# V7.5 FIX: Move DRUG_ALIASES to global scope for check_drug_interaction use
+GLOBAL_DRUG_ALIASES = DRUG_ALIASES
 
 DRUG_DATABASE = {
     "Hypertension": [
@@ -334,8 +337,10 @@ def check_drug_interaction(drug_a, drug_b):
     if not drug_a or not drug_b:
         return "⚠️ Please enter two drug names."
         
-    name_a = DRUG_ALIASES.get(drug_a.lower(), drug_a.lower())
-    name_b = DRUG_ALIASES.get(drug_b.lower(), drug_b.lower())
+    
+    # V7.5 FIX: Use GLOBAL_DRUG_ALIASES to prevent NameError
+    name_a = GLOBAL_DRUG_ALIASES.get(drug_a.lower(), drug_a.lower())
+    name_b = GLOBAL_DRUG_ALIASES.get(drug_b.lower(), drug_b.lower())
     print(f"🔎 Checking interaction: {name_a} + {name_b}")
     
     CRITICAL_PAIRS = {
@@ -718,7 +723,7 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         {wayfinding_html}
     </div>
     """
-    """
+
     return html, audio_path
 
 # ============================================================================
@@ -744,11 +749,11 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
     # Disclaimer Header (Enhanced Visibility)
     gr.HTML("""
     <div style="background-color: #fff3cd; border: 2px solid #ffecb5; border-radius: 5px; padding: 15px; margin-bottom: 20px; text-align: center;">
-        <h3 style="color: #856404; margin-top: 0;">⚠️ Research Prototype Disclaimer / 研究用原型免責聲明</h3>
+        <h3 style="color: #856404; margin-top: 0;">[!] Research Prototype Disclaimer / 研究用原型免責聲明</h3>
         <p style="color: #856404; margin-bottom: 0;">
             This system is for <b>Academic Research Only</b>. It is NOT a medical device.<br>
             All outputs must be verified by a licensed pharmacist.<br>
-            <b>本結果僅供參考，服用前請務必諮詢專業醫療人員。</b>
+            <b>Do not use this for critical medical decisions.</b>
         </p>
     </div>
     """)

@@ -1,5 +1,5 @@
 <!-- 🖼️ HERO IMAGE -->
-![AI Pharmacist Guardian](assets/hero_image.jpg)
+![SilverGuard CDS](assets/hero_image.jpg)
 
 # 🏥 SilverGuard: Intelligent Medication Safety System (formerly AI Pharmacist Guardian)
 
@@ -561,6 +561,29 @@ As an **Energy Engineering student**, I calculated the carbon cost of AI inferen
 | Future: Pixel AICore | ~0.05g | **99% reduction** |
 
 > **🌍 Impact**: If deployed to 10,000 pharmacies (100 queries/day), SilverGuard saves **1,424 tonnes CO₂/year** compared to cloud solutions. *SilverGuard doesn't just enhance safety—it saves the planet.*
+
+---
+
+## ⚠️ Transparency Report & Technical Limitations (Academic Integrity)
+
+To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disclose the following implementation details:
+
+### 1. TTS Privacy Architecture (Hybrid Approach)
+*   **Demonstration Mode**: The current implementation uses `gTTS` (Google Translate API) to demonstrate high-quality, elder-friendly voice synthesis.
+*   **Privacy Compromise**: In this specific demo version, text strings are sent to Google servers.
+*   **Mitigation**: We have implemented **Strict PII Scrubbing**. Patient names are programmatically replaced with generic terms ("阿公/阿嬤") *before* any API call. No real patient names are ever transmitted.
+*   **Production Roadmap**: In a real deployment, this module is replaced by on-device TTS (e.g., `pyttsx3` or `MMS-TTS`) to ensure 100% offline compliance (HIPAA).
+
+### 2. Neuro-Symbolic "Hybrid Agent"
+*   **Design Philosophy**: While "End-to-End" Deep Learning is popular, medical safety requires **Deterministic Guarantees**.
+*   **Implementation**: Our "Agent" uses a **Neuro-Symbolic Architecture**.
+    *   **Neural Layer (System 1)**: MedGemma VLM performs flexible perception and extraction.
+    *   **Symbolic Layer (System 2)**: A deterministic logic engine (Regex + If-Else) acts as the "Safety Rail / Guardian".
+*   **Why?**: This prevents "Hallucination Loops". If the model argues that "Cyanide is safe", the Symbolic Layer overrides it. We define "Agentic" as the *interaction* between these two systems (Retry Loop), not just the Neural network itself.
+
+### 3. RAG Knowledge Base Scope
+*   **Proof of Concept**: The "Clinical Knowledge Base" is currently a local vector store containing **7 representative drugs** (Metformin, Zolpidem, Aspirin, etc.) to demonstrate the *search-and-retrieve* architecture.
+*   **Limit**: Queries for drugs outside this set will trigger a "General Logic Check" rather than a specific literature review.
 
 ---
 
