@@ -721,7 +721,7 @@ def inject_medical_risk(case_data):
 def get_augmentations():
     return A.Compose([
         A.Perspective(scale=(0.02, 0.06), p=0.5),
-        A.Rotate(limit=2, border_mode=cv2.BORDER_CONSTANT, value=255, p=0.5),
+        A.Rotate(limit=2, border_mode=cv2.BORDER_CONSTANT, p=0.5),
         A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
         A.ISONoise(color_shift=(0.01, 0.02), intensity=(0.1, 0.2), p=0.3),
     ])
@@ -3286,16 +3286,16 @@ def launch_agentic_app():
         rag_context = "" # Scope Safety Init
         
         while current_try <= MAX_RETRIES:
+            # Dynamic Temperature for Agentic Retry
+            TEMP_CREATIVE = 0.6          # First attempt: Allow some reasoning flexibility
+            TEMP_DETERMINISTIC = 0.2     # Retries: Strict adherence to facts
+            
+            # Attempt 0: 0.6 (Creative/Standard)
+            # Attempt 1+: 0.2 (Conservative/Deterministic)
+            current_temp = TEMP_CREATIVE if current_try == 0 else TEMP_DETERMINISTIC
+            
             try:
                 img = Image.open(img_path).convert("RGB")
-                
-                # Dynamic Temperature for Agentic Retry
-                TEMP_CREATIVE = 0.6          # First attempt: Allow some reasoning flexibility
-                TEMP_DETERMINISTIC = 0.2     # Retries: Strict adherence to facts
-                
-                # Attempt 0: 0.6 (Creative/Standard)
-                # Attempt 1+: 0.2 (Conservative/Deterministic)
-                current_temp = TEMP_CREATIVE if current_try == 0 else TEMP_DETERMINISTIC
                 
                 # [V8 FIX] Multimodal RAG Injection (Emergency Patch)
                 # 確保 Demo Agent 也能查書！
