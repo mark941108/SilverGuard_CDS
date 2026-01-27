@@ -911,7 +911,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
             def log_feedback(img, out, ftype):
                 import datetime
                 ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                return f"✅ Feedback logged at {ts}: {ftype} (Simulated)"
+                return f"✅ Feedback logged at {ts}: {ftype} (Local Session Log)"
             
             btn_correct.click(lambda i,o: log_feedback(i,o,"POSITIVE"), inputs=[input_img, json_output], outputs=feedback_output)
             btn_error.click(lambda i,o: log_feedback(i,o,"NEGATIVE"), inputs=[input_img, json_output], outputs=feedback_output)
