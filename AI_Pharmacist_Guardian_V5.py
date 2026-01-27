@@ -123,16 +123,19 @@ This system runs on a single T4 GPU, enabling deployment in:
 # %%capture
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
-# !pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts
-# !pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets transformers>=4.50.0
+# !pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio
+# !pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets transformers>=4.50.0 sentence-transformers faiss-cpu
 # !pip install -q pillow==11.0.0 torchaudio librosa soundfile
-# Updated: Added torchaudio librosa soundfile for MedASR Voice Input
 
 # %%
 # ===== 驗證安裝並登入 =====
 print("="*80)
 print("🚀 Launching AI Pharmacist Guardian (V5.0 Impact Edition)...0 - 環境設置")
 print("="*80)
+
+# Optional: Apply nest_asyncio for Jupyter asyncio support if needed
+import nest_asyncio
+nest_asyncio.apply()
 
 print("\n[1/2] HuggingFace 登入...")
 from kaggle_secrets import UserSecretsClient
