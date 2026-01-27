@@ -379,19 +379,34 @@ class LocalRAG:
         if not RAG_AVAILABLE: return
         
         print("📚 Initializing Local RAG Knowledge Base (Vector Store)...")
-        # [OFFLINE FIX] 優先檢查 Kaggle Input 資料集
-        offline_model_path = "/kaggle/input/sentence-transformer-all-minilm-l6-v2"
+        # [CRITICAL FIX] Offline-First Strategy for Kaggle Submission
+        # Check multiple potential mount points for the Kaggle Dataset
+        offline_model_paths = [
+            "/kaggle/input/sentence-transformer-all-minilm-l6-v2", 
+            "/kaggle/input/all-minilm-l6-v2",
+            "./all-MiniLM-L6-v2", # Local fallback (if manual upload)
+            "sentence-transformers/all-MiniLM-L6-v2" # Default (will try download)
+        ]
         
-        if os.path.exists(offline_model_path):
-            print(f"   ✅ Loading Embedding Model from Offline Path: {offline_model_path}")
-            self.encoder = SentenceTransformer(offline_model_path)
-        else:
-            print("   ⚠️ Offline model not found. Attempting download (requires internet)...")
-            try:
-                self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
-            except Exception as e:
-                print(f"   ❌ Network Error: {e}. RAG disabled.")
-                return # Fail gracefully mechanism
+        model_loaded = False
+        for path in offline_model_paths:
+            if os.path.exists(path) or path == "sentence-transformers/all-MiniLM-L6-v2":
+                try:
+                    if path != "sentence-transformers/all-MiniLM-L6-v2":
+                        print(f"   ✅ Found Offline Embedding Model at: {path}")
+                    
+                    # If strictly offline, this will only work if path exists locally
+                    self.encoder = SentenceTransformer(path)
+                    model_loaded = True
+                    break
+                except Exception as e:
+                    if path != "sentence-transformers/all-MiniLM-L6-v2":
+                        print(f"   ⚠️ Failed to load offline model at {path}: {e}")
+                    continue
+        
+        if not model_loaded:
+             print(f"   ❌ Network Error & No Offline Model Found. RAG disabled.")
+             return
         
         # 模擬 FDA/藥品仿單知識庫 (ALL drugs from dataset)
         self.knowledge_base = []
@@ -1481,6 +1496,22 @@ def check_image_quality(image_path):
     except Exception as e:
         return True, f"Blur check skipped: {e}"
 
+
+def check_is_prescription(text):
+    """
+    OOD (Out-of-Distribution) Detector
+    Checks if the textual content looks like a prescription.
+    """
+    keywords = ["drug", "name", "dose", "usage", "patient", "tablet", "capsule", "mg", "twice", "day", "take", "po", "daily", "hs", "bid", "tid"]
+    text_lower = text.lower()
+    
+    count = sum(1 for kw in keywords if kw in text_lower)
+    
+    # V7.4 Logic Hardening: Strict threshold
+    if count < 3:
+        return False, f"Content doesn't look like a valid prescription (Keyword score: {count}/3)"
+    return True, "OOD Check Passed"
+
 # ============================================================================
 # MAIN AGENTIC PIPELINE
 # ============================================================================
@@ -2257,28 +2288,28 @@ def json_to_elderly_speech(result_json):
         # V7.2 Legal Fix: Use Advisory Language instead of Imperative Commands
         disclaimer = "（系統提醒：以上資訊僅供參考，請以藥師說明為準。）"
         
-        if status == "HIGH_RISK":
+        if status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"]:
             speech = f"""
 ⚠️ {patient_name}，系統提醒您留意喔！
 
-這包「{friendly_drug}」的劑量 {dose}，系統比對後覺得需要確認一下。
+這包「{friendly_drug}」上面的劑量寫著 {dose}，
+機器人查了一下資料，覺得跟一般老人家用的習慣不太一樣。
 
-{reasoning}
-
-👉 建議您：撥個電話給藥師，或是問問您的家屬確認一下比較安心喔！
+👉 為了安全起見，這包藥我們先放旁邊，
+麻煩您拿給藥局的哥哥姊姊看一下，確認沒問題我們再吃，好不好？
 {disclaimer}
 """
-        elif status == "WARNING":
+        elif status in ["WARNING", "ATTENTION_NEEDED"]:
             speech = f"""
 🟡 {patient_name}，要注意喔！
 
-這包「{friendly_drug}」有一點小問題：
+這包「{friendly_drug}」在吃的時候要注意：
 {reasoning}
 
-👉 建議是再確認一下吃法，不確定就問藥師。
+👉 下次看醫生的時候，可以把藥袋帶著，順便問一下醫生這樣吃對不對？
 {disclaimer}
 """
-        elif status == "PASS":
+        elif status in ["PASS", "WITHIN_STANDARD"]:
             speech = f"""
 ✅ {patient_name}，這包藥沒問題喔！
 
@@ -2287,12 +2318,14 @@ def json_to_elderly_speech(result_json):
 劑量：{dose}
 
 記得要吃飯後再吃，才不會傷胃喔！身體會越來越健康的！
+{disclaimer}
 """
         else:
             speech = f"""
 ⚠️ {patient_name}，AI 不太確定這張照片。
 
 👉 建議：請拿藥袋直接問藥師比較安全喔！
+{disclaimer}
 """
         
         return speech.strip()
