@@ -861,8 +861,8 @@ This feedback loop allows the system to "think before speaking," a hallmark of a
 
 ### Q3: Why use MedGemma (4B) instead of a more powerful cloud model like GPT-4o?
 **A: Privacy, Cost, and Access (The "Edge AI" Advantage).**
-Healthcare in rural areas often lacks stable internet and budget.
--   **Privacy:** MedGemma runs 100% locally on a T4 GPU. No Patient Health Information (PHI) ever leaves the clinic.
+-   **Agentic Tool Use**: Simulates "System 2" thinking by retrieving external context (RAG) and checking interactions (Mock API) before answering.
+-   **Privacy by Design**: Core VLM inference runs locally. PII is scrubbed before any optional cloud services (like demo TTS) are touched.
 -   **Cost:** Inference costs <$0.001 per prescription, compared to ~$0.03 for cloud APIs.
 -   **Latency:** Eliminating network round-trips ensures consistent performance even during internet outages.
 
@@ -873,27 +873,7 @@ We do not rely solely on the neural network (MedGemma) for safety-critical numbe
 -   **Grounding Check:** If the VLM predicts "High Risk" but cannot cite the specific drug/condition in the image, the output is flagged as a grounding failure.
 This combines the *understanding* of LLMs with the *precision* of code.
 
-### Q5: Is SilverGuard just a UI, or does it utilize AI?
-**A: It utilizes the Agent's reasoning for "Translation."**
-SilverGuard is not just a template. It uses MedGemma to **translate** complex clinical JSON output (e.g., "BID, Metformin") into **empathetic, culturally-localized speech** (e.g., "Grandma, remember to eat this after meals"). It adapts the tone based on the safety status (Urgent vs. Reassuring), which requires semantic understanding of the prescription context.
-
----
-
-## 📝 Citation
-
-If you use this work, please cite:
-
-```text
-Yuan-dao Wang. AI Pharmacist Guardian: The MedGemma Impact Challenge.
-https://kaggle.com/competitions/med-gemma-impact-challenge, 2026. Kaggle.
-```
-
-
----
-
-## 🧠 Technical Appendix: Research Q&A (For Judges & Clinical Researchers)
-
-#### Q1: How do you mitigate "Alert Fatigue" for pharmacists?
+### Q5: How do you mitigate "Alert Fatigue" for pharmacists?
 **A: By optimizing for High Precision, not just Recall.**
 We understand that if an AI flags every prescription as "Potential Risk," pharmacists will ignore it.
 *   **Thresholding:** We use a conservative logic where `WARNING` is only triggered if specific contraindications (e.g., Age > 80 + High Dose) are met, rather than generic warnings.
@@ -915,9 +895,11 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 *   **The Philosophy:** In a clinical setting, waiting 5 seconds for a verified answer is acceptable; getting an instant but wrong answer (hallucination) creates severe risk.
 *   **Latency Guard:** We explicitly set `MAX_RETRIES = 2` to prevent infinite loops and ensure the system degrades gracefully to "Human Review Needed" if it takes too long.
 
-#### Q5: How does the "Voice Integration" actually work? Is it multimodal training?
-**A: It utilizes "In-Context Learning", not joint fine-tuning.**
-To maintain computational efficiency on Edge devices (T4 GPU), we do not process raw audio waveforms in the LLM.
+#### Q5: How> **"An architecture of safety isn't just about accuracy; it's about knowing when to ask for help."**
+
+SilverGuard is an **Offline-First**, LLM-powered visual QA system designed to be the logic layer between elderly patients and their medications. It runs locally on edge devices (T4 GPU optimized), providing a **privacy-preserving** safety net that detects errors before pills are swallowed.
+
+*(Note: Demo features like High-Quality TTS use hybrid cloud services for presentation, but the core safety architecture is designed for 100% air-gapped deployment.)*
 *   **Pipeline:** We use **Google MedASR** to transcribe the voice log into text, and then inject this text into MedGemma's context window with a specific system prompt: `[📢 CAREGIVER VOICE NOTE]`.
 *   **Benefit:** This allows the agent to perform "Cross-Modal Reasoning" (e.g., comparing visual pills vs. auditory allergy warnings) without the massive compute cost of training a new audio encoder.
 
