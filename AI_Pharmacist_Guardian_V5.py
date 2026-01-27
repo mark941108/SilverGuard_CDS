@@ -2529,25 +2529,6 @@ def text_to_speech_elderly(text, lang='zh-tw', slow=True):
         print(f"❌ 所有 TTS 引擎皆失敗: {e}")
         print("💡 請長輩直接閱讀下方的大字體卡片")
         return None
-        
-        # Clean text for TTS
-        clean_text = text.replace("⚠️", "注意").replace("✅", "").replace("🟡", "")
-        clean_text = clean_text.replace("👉", "").replace("📅", "").replace("💊", "")
-        clean_text = clean_text.replace("⛔", "BAHAYA").replace("WARN", "") # Basic cleanup
-        
-        # [PRIVACY ENFORCEMENT] Scrub PII before sending to Google Cloud
-        # Even if the LLM output a name, we redact it here as a Final Gate.
-        import re
-        # Regex to catch Chinese names (2-4 chars) after "Warning" or at start
-        # Simple hammer: Replace typical name patterns or just force generic
-        if "阿公" not in clean_text and "阿嬤" not in clean_text:
-             clean_text = "阿公/阿嬤，" + clean_text # Force generic greeting if missing
-        
-        # Hard scrubbing of specific test/demo names if they leaked
-        for name in ["陳金龍", "林美玉", "張志明", "李建國", "王大明"]:
-            clean_text = clean_text.replace(name, "長輩")
-        
-        tts = gTTS(text=clean_text, lang=lang, slow=slow)
         filename = "./elder_instruction.mp3"
         tts.save(filename)
         
@@ -3406,6 +3387,24 @@ def launch_agentic_app():
                     # Grounding Check (Uses logical_consistency_check from Cell 4)
                     extracted = parsed_json.get("extracted_data", {})
                     safety = parsed_json.get("safety_analysis", {})
+                    
+                    # [V5.8 HARD RULE INJECTION] 絕對防禦網 (Backported from Cell 4)
+                    # Use Python logic to override LLM hallucinations for specific high-risk scenarios
+                    try:
+                        dose_str = extracted.get("drug", {}).get("dose", "0").lower()
+                        dose_val = int("".join(filter(str.isdigit, dose_str)) or 0)
+                        drug_name = extracted.get("drug", {}).get("name_en", "").lower()
+                        
+                        # Rule 1: Metformin > 1000mg for Elderly
+                        if "metformin" in drug_name or "glucophage" in drug_name:
+                            if dose_val > 1000: # Strict limit for elderly (eGFR proxy)
+                                print("   🛡️ [HARD RULE] Triggered: Metformin > 1000mg detected. Forcing HIGH_RISK.")
+                                safety["status"] = "HIGH_RISK"
+                                safety["reasoning"] = "⚠️ [System Hard Rule] Metformin 每日劑量超過 1000mg，對於腎功能衰退的老年人具有高度乳酸中毒風險。"
+                                parsed_json["safety_analysis"] = safety # Update JSON
+                    except Exception as e:
+                        print(f"   ⚠️ Hard Rule Check Warning: {e}")
+
                     grounded, ground_msg = logical_consistency_check(extracted, safety)
                     
                     # Store results
