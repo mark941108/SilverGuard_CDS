@@ -43,7 +43,7 @@ docker run --gpus all -it silverguard-agent
 ## 🌟 Key Features (Impact)
 *   **👵 SilverGuard Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Simulated Taiwanese Mandarin) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Clinically Verified Translations** (Indonesian/Vietnamese) for non-Chinese speaking caregivers.
-*   **🗣️ Local Dialect Support**: Capable of **Taiwanese Mandarin (Hokkien-Mandarin Code-Switching)** TTS, crucial for communicating with the 65+ demographic in rural Taiwan.
+*   **🗣️ Local Dialect Support**: Capable of **Localized Taiwanese Mandarin (Taiwan-Accent)** TTS, crucial for communicating with the 65+ demographic in rural Taiwan.
 *   **� Privacy First**: **Core Inference Runs 100% Locally** on T4 GPU (Hybrid Privacy Model: De-identified TTS/API data is ephemeral).
 *   **🧠 Agentic Self-Correction**: "Think before speaking" loop with hallucination checks.
 
@@ -100,7 +100,7 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 |------------------------|----------------------------------------|
 | ❌ Requires internet | ✅ **Core inference offline*** |
 | ❌ Data uploaded to cloud | ✅ **PHI never leaves device** |
-| ❌ Privacy concerns for PHI | ✅ **HIPAA-compliant design** |
+| ❌ Privacy concerns for PHI | ✅ **HIPAA-Aligned Design** |
 | ❌ Hallucination Risk | ✅ **Neuro-Symbolic Guardrails** |
 | ❌ High API costs | ✅ **Free, runs on single T4 GPU** |
 
@@ -278,7 +278,7 @@ mindmap
       Voice Context
     Reasoning
       MedGemma 1.5
-      Zero-Shot CoT
+      Fine-Tuned CoT
       Logic Checks
     Action
       JSON Output
