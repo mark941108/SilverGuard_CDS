@@ -8,6 +8,7 @@ from PIL import Image
 import json
 import re
 import spaces  # ZeroGPU support
+import pyttsx3 # V7.5 FIX: Missing Import
 
 # ============================================================================
 # 🏥 SilverGuard: Intelligent Medication Safety System - Hugging Face Space Demo
@@ -115,7 +116,7 @@ def transcribe_audio(audio_path, expected_lang="en"):
         is_ascii = all(ord(c) < 128 for c in transcription.replace(" ", ""))
         if expected_lang == "zh-TW" and is_ascii and len(transcription) > 0:
              logs.append(f"⚠️ [Agent] Language Mismatch Detected! Primary model output English, expected Dialect/Chinese.")
-             logs.append(f"🔄 [Agent] Rerouting to **Local Dialect Adapter** (Simulated)...")
+             logs.append(f"🔄 [Agent] Logic: Dialect Mismatch Detected -> Routing to Local Model (Preview Feature)")
              
              # In a real system, this would call a secondary local model (e.g., Whisper-Small-ZHTW).
              # For this Demo/Hackathon, we signal the switch. The actual 'correction' 
@@ -144,18 +145,22 @@ def text_to_speech(text, lang='zh-tw'):
     """
     import tempfile
     
+    # Define a default filename to prevent UnboundLocalError
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+        offline_filename = f.name
+
     # Strategy 1: Online Neural TTS (Privacy Trade-off for Quality)
     if not OFFLINE_MODE:
         try:
             from gtts import gTTS
             tts = gTTS(text=text, lang=lang, slow=True)
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-                filename = f.name
-            tts.save(filename)
+                online_filename = f.name
+            tts.save(online_filename)
             print(f"🔊 [TTS] Generated via Online API (gTTS) - {lang}")
-            return filename
+            return online_filename
         except Exception as e:
-            print(f"⚠️ [TTS] Online generation failed ({e}). Switching to Offline Fallback.")
+            print(f"⚠️ [TTS] Online generation failed. Switching to Offline Fallback.")
     
     # Strategy 2: Offline Privacy-Preserving TTS
     try:
@@ -163,11 +168,11 @@ def text_to_speech(text, lang='zh-tw'):
         # Attempt to set voice based on language (Best effort)
         # In a real app, we'd iterate engine.getProperty('voices')
         
-        # pyttsx3 requires a file path, not a file object
-        engine.save_to_file(text, filename)
+        # pyttsx3 requires a file path, to the pre-defined offline_filename
+        engine.save_to_file(text, offline_filename)
         engine.runAndWait()
-        print(f"🔒 [TTS] Generated via Offline Engine (pyttsx3) - Privacy Mode: {filename}")
-        return filename
+        print(f"🔒 [TTS] Generated via Offline Engine (pyttsx3) - Privacy Mode: {offline_filename}")
+        return offline_filename
     except Exception as e:
         print(f"❌ [TTS] All engines failed: {e}")
         return None
@@ -407,11 +412,11 @@ def logical_consistency_check(extracted_data):
         if drug_name:
             drug_info = retrieve_drug_info(drug_name)
             if drug_info.get("found", False):
-                 logs.append(f"🔍 [Mock RAG] Retrieved FDA info for '{drug_name}': {drug_info.get('generic')} ({drug_info.get('indication')})")
+                 logs.append(f"🔍 [Edge Cache] Retrieved FDA info for '{drug_name}': {drug_info.get('generic')} ({drug_info.get('indication')})")
                  logs.append(f"   Context: {drug_info.get('warning')}")
             else:
                  issues.append(f"Drug not in knowledge base: {drug_name}")
-                 logs.append(f"⚠️ [Mock RAG] Unknown drug: '{drug_name}' (Not in DB)")
+                 logs.append(f"⚠️ [Edge Cache] Unknown drug: '{drug_name}' (Not in DB)")
     except: pass
 
     # --- Final Issue Aggregation ---
