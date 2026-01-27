@@ -146,6 +146,17 @@ def draw_pill_photo_sim(draw, x, y, drug):
     elif drug['shape'] == 'oval':
         draw.ellipse([cx-size//1.2, cy-size//2, cx+size//1.2, cy+size//2], fill=fill, outline="black", width=2)
         
+    elif drug['shape'] == 'octagon':
+        # Norvasc style
+        points = []
+        r = size // 2
+        for i in range(8):
+            ang = math.radians(45 * i + 22.5)
+            px = cx + r * math.cos(ang)
+            py = cy + r * math.sin(ang)
+            points.append((px, py))
+        draw.polygon(points, fill=fill, outline="black", width=2)
+
     # 刻痕與光澤
     draw.line([cx-20, cy, cx+20, cy], fill=(200,200,200), width=2)
     draw.arc([cx-size//4, cy-size//4, cx, cy], start=180, end=270, fill="white", width=3) # 反光
@@ -362,7 +373,37 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
         print(f"✅ Generated: {filename} (Danger={is_danger}, Stress={optical_severity})")
     except: pass
 
-# ... Database arrays (PATIENTS, DRUGS) ...
+# ==========================================
+# 5. Database (Authentic Taiwan Data)
+# ==========================================
+PATIENTS = [
+    {"name": "王大明", "gender": "男 (M)", "id": "A123456789"},
+    {"name": "林美玉", "gender": "女 (F)", "id": "B223456789"},
+    {"name": "張志明", "gender": "男 (M)", "id": "C123456789"},
+    {"name": "陳淑芬", "gender": "女 (F)", "id": "D223456789"},
+]
+
+DRUGS = [
+    # 1. Diabetes
+    {"id": "D001", "cat": "糖尿病", "cht": "庫魯化錠", "eng": "Glucophage (Metformin)", 
+     "dose": "5000mg", "usage": "BID", "timing": "飯後", "color": "white", "shape": "circle",
+     "warning": "避免空腹服用，若有噁心嘔吐請告知醫師。禁止飲酒。", "indication": "第二型糖尿病"},
+     
+    # 2. Hypertension (Norvasc) - Octagonal
+    {"id": "D002", "cat": "高血壓", "cht": "脈優錠", "eng": "Norvasc (Amlodipine)", 
+     "dose": "5mg", "usage": "QD", "timing": "早餐後", "color": "white", "shape": "octagon",
+     "warning": "可能會造成頭暈或腳水腫。請定期量血壓。", "indication": "高血壓、心絞痛"},
+     
+    # 3. Anticoagulant (Warfarin)
+    {"id": "D003", "cat": "心臟科", "cht": "可邁丁錠", "eng": "Coumadin (Warfarin)", 
+     "dose": "5mg", "usage": "QD", "timing": "睡前", "color": "pink", "shape": "circle",
+     "warning": "⚠️ 易出血。刷牙請用軟毛刷。禁止食用柚子/蔓越莓。", "indication": "預防血栓"},
+     
+    # 4. Sedative
+    {"id": "D004", "cat": "失眠", "cht": "史蒂諾斯", "eng": "Stilnox (Zolpidem)", 
+     "dose": "10mg", "usage": "QN", "timing": "睡前", "color": "white", "shape": "oval",
+     "warning": "⚠️ 服用後請立即就寢。夢遊風險。禁止操作機械。", "indication": "短期失眠治療"},
+]
 
 if __name__ == "__main__":
     from PIL import ImageEnhance # Import needed for optical stress

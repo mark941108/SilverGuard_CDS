@@ -922,6 +922,12 @@ To maintain computational efficiency on Edge devices (T4 GPU), we do not process
 ---
 
 ### ⚖️ Non-Affiliation & Disclaimer
+⚠️ **Disclaimer**: This project is a **"Sim2Real Prototype"** for the Kaggle MedGemma Challenge. It demonstrates a **Human-in-the-Loop Triage Tool**, NOT a diagnostic medical device.
+⚠️ **POC Limitation**: The current knowledge base is a subset of 12 common geriatric drugs for architectural demonstration. Production deployment requires integration with full-scale drug databases (e.g., RxNorm, Micromedex).
+⚠️ **Transparency Report**:
+*   **Privacy**: Core VLM inference runs 100% offline.
+*   **TTS**: For this demo, Google Translate API (`gTTS`) is used for high-quality audio. Production systems must use offline engines (e.g., MMS-TTS) for full air-gapped compliance.
+*   **Bias**: Specificity is prioritized (92.0%) to prevent alert fatigue, but out-of-distribution drugs may result in "HUMAN_REVIEW_NEEDED".
 This project is an **independent academic research initiative** developed by a student team for the Kaggle MedGemma Impact Challenge.
 
 * **No Sponsorship:** This project is **NOT** sponsored, endorsed, or affiliated with any pharmaceutical companies (e.g., Pfizer, Novartis), healthcare institutions, or government agencies cited in the examples.
