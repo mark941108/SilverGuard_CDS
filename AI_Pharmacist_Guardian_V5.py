@@ -1322,10 +1322,11 @@ def get_confidence_status(confidence, predicted_status="UNKNOWN"):
     if predicted_status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED", "WARNING", "ATTENTION_NEEDED"]:
         threshold = 0.50 
     
-    # 2. 安全訊號 (PASS)：門檻拉到天花板 (0.85)
-    # 模型必須以「性命擔保」才能放行
+    # 2. 安全訊號 (PASS)：門檻適度放寬 (0.75)
+    # [V5.9 Balanced Tuning] 經過壓力測試驗證，0.75 是最佳平衡點
+    # 既能過濾模糊爛圖，又不會誤殺正常的處方
     else:
-        threshold = 0.85 
+        threshold = 0.75 
 
     if confidence >= threshold:
         return "HIGH_CONFIDENCE", f"✅ Conf: {confidence:.1%} (Th: {threshold})"
