@@ -721,7 +721,7 @@ def inject_medical_risk(case_data):
 def get_augmentations():
     return A.Compose([
         A.Perspective(scale=(0.02, 0.06), p=0.5),
-        A.Rotate(limit=2, border_mode=cv2.BORDER_CONSTANT, cval=255, p=0.5),
+        A.Rotate(limit=2, border_mode=cv2.BORDER_CONSTANT, value=255, p=0.5),
         A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
         A.ISONoise(color_shift=(0.01, 0.02), intensity=(0.1, 0.2), p=0.3),
     ])
@@ -1950,6 +1950,9 @@ def agentic_inference(model, processor, img_path, verbose=True):
                 result["grounding"] = {"passed": False, "message": parse_error}
                 result["final_status"] = "PARSE_FAILED"
                 result["pipeline_status"] = "PARTIAL"
+                # [V5.8 FIX] Ensure confidence dictionary has valid values even on parse failure
+                result["confidence"]["status"] = "LOW_CONFIDENCE"
+                result["confidence"]["message"] = "JSON Parsing Failed (Unreliable Generation)"
                 break
     
     # ===== FINAL OUTPUT =====
