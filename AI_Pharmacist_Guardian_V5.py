@@ -3245,7 +3245,7 @@ def launch_agentic_app():
                     
                     with gr.Column():
                         status_out = gr.Textbox(label="Safety Status")
-                        status_out = gr.Textbox(label="Safety Status")
+
                         json_out = gr.JSON(label="JSON Output")
                         logs_out = gr.TextArea(label="🧠 Agent Thought Process (Logs)", interactive=False, lines=4)
                         silver_out = gr.Textbox(label="SilverGuard Script")
