@@ -658,7 +658,7 @@ def inject_medical_risk(case_data):
             }
         
         elif trap_type == "warfarin_risk":
-            drug = DRUG_DATABASE["Anticoagulant"][0].copy()
+            drug = _SYNTHETIC_DATA_GEN_SOURCE["Anticoagulant"][0].copy()
             u = USAGE_MAPPING["QD_bedtime"]
             drug["usage_instruction"] = {
                 "timing_zh": u["text_zh"], "timing_en": u["text_en"],
@@ -731,9 +731,9 @@ def generate_single_sample(sample_id):
     age = calculate_age(p_data["dob"], visit_date)
     
     return {
-        "id": f"{case_id:05d}",
+        "id": f"{sample_id:05d}",
         "hospital": HOSPITAL_INFO,
-        "rx_id": f"R{visit_date.strftime('%Y%m%d')}{case_id:04d}",
+        "rx_id": f"R{visit_date.strftime('%Y%m%d')}{sample_id:04d}",
         "date": f"{visit_date.year-1911}/{visit_date.month:02d}/{visit_date.day:02d}",
         "patient": {
             "name": p_name,
@@ -832,7 +832,7 @@ def main_cell2():
     print(f"{'='*60}\n")
     
     for i in range(NUM_SAMPLES):
-        case = generate_case_base(i)
+        case = generate_single_sample(i)
         case = inject_medical_risk(case)
         
         stats[case["ai_safety_analysis"]["status"]] += 1
