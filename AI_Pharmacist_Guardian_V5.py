@@ -2529,24 +2529,7 @@ def text_to_speech_elderly(text, lang='zh-tw', slow=True):
         print(f"❌ 所有 TTS 引擎皆失敗: {e}")
         print("💡 請長輩直接閱讀下方的大字體卡片")
         return None
-        filename = "./elder_instruction.mp3"
-        tts.save(filename)
-        
-        print("✅ 語音生成完成！")
-        display(Audio(filename, autoplay=False))
-        return filename
-        
-    except (socket.timeout, socket.error, OSError):
-        print("⚠️ 離線模式: 無法連線至 Google TTS 服務")
-        print("💡 系統已自動切換為「視覺輔助模式」，請長輩閱讀下方大字體卡片。")
-        return None
-    except ImportError:
-        print("❌ gTTS 未安裝。請執行: !pip install gTTS")
-        return None
-    except Exception as e:
-        print(f"⚠️ TTS 錯誤 ({type(e).__name__}): {e}")
-        print("💡 請長輩直接閱讀下方的大字體卡片")
-        return None
+
 
 # ============================================================================
 # MODULE 3: Large-Font Visual Calendar for Elderly
