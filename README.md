@@ -9,6 +9,8 @@
 
 > **MedGemma-Powered Drug Bag Safety Checker & Elder-Friendly Assistant**  
 > An intelligent prescription verification system with Privacy-First Edge AI design
+>
+> *"We are not claiming to have solved medicine. We do claim to have solved the **architecture of safety** within a medical AI agent."* — MedGemma Impact Team
 
 [![MedGemma](https://img.shields.io/badge/Model-MedGemma%201.5--4B-blue)](https://huggingface.co/google/medgemma-1.5-4b-it)
 [![License](https://img.shields.io/badge/License-CC%20BY%204.0-green)](https://creativecommons.org/licenses/by/4.0/)
@@ -928,6 +930,9 @@ To maintain computational efficiency on Edge devices (T4 GPU), we do not process
 *   **Privacy**: Core VLM inference runs 100% offline.
 *   **TTS**: For this demo, Google Translate API (`gTTS`) is used for high-quality audio. Production systems must use offline engines (e.g., MMS-TTS) for full air-gapped compliance.
 *   **Bias**: Specificity is prioritized (92.0%) to prevent alert fatigue, but out-of-distribution drugs may result in "HUMAN_REVIEW_NEEDED".
+*   **Logic Defense**: The "Stress Tests" presented are **Unit Tests for Safety Architecture**, designed to verify guardrail mechanics, not to simulate full global clinical variance.
+*   **Hardware**: T4 usage serves as an **"Edge-Ready Memory Simulation"**. By quantizing to 4-bit (<4GB VRAM), we validate feasibility for deployment on Jetson Orin Nano / RTX 4060 Laptop consumer hardware.
+*   **Automation Strategy**: We aim for **"High Volume Automation"** (80% routine checks) to free pharmacists for **"High Complexity Human Review"** (20% edge cases).
 This project is an **independent academic research initiative** developed by a student team for the Kaggle MedGemma Impact Challenge.
 
 * **No Sponsorship:** This project is **NOT** sponsored, endorsed, or affiliated with any pharmaceutical companies (e.g., Pfizer, Novartis), healthcare institutions, or government agencies cited in the examples.
