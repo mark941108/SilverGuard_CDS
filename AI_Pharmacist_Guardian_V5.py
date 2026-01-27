@@ -124,9 +124,13 @@ This system runs on a single T4 GPU, enabling deployment in:
 # %%capture
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
-# !pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio
-# !pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets transformers>=4.50.0 sentence-transformers faiss-cpu
-# !pip install -q pillow==11.0.0 torchaudio librosa soundfile
+# [FIX] 加入 libespeak1 以支援 pyttsx3 (Linux 環境必須)
+!apt-get update && apt-get install -y libespeak1
+
+# [FIX] 加入 pyttsx3 到 pip 安裝列表
+!pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3
+!pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets transformers>=4.50.0 sentence-transformers faiss-cpu
+!pip install -q pillow==11.0.0 torchaudio librosa soundfile
 
 # %%
 # ===== 驗證安裝並登入 =====
@@ -2480,24 +2484,51 @@ SAFE_TRANSLATIONS = {
 }
 
 def text_to_speech_elderly(text, lang='zh-tw', slow=True):
-    # [PRIVACY NOTE] This demo uses gTTS (Online) for high-quality voice output.
-    # In a real HIPAA-compliant deployment, this module would be replaced
-    # by an offline TTS engine (e.g., MMS-TTS) to ensure zero data egress.
+    """
+    Convert text to speech using Hybrid Privacy Architecture:
+    1. Try Online (gTTS) for best quality.
+    2. Automatic Fallback to Offline (pyttsx3) if network fails (Privacy Preserved).
+    """
+    import os
+    from IPython.display import Audio, display
     
-    """
-    Convert text to speech using gTTS (with robust offline fallback)
-    - Supports Multilingual (id, vi, zh-tw)
-    """
+    # Clean text logic (Safety)
+    clean_text = text.replace("⚠️", "警告").replace("✅", "")
+    filename = "./elder_instruction.mp3"
+    
+    # 🔌 Strategy 1: Online (Google TTS) - High Quality
     try:
-        # 🔌 Step 1: Check internet connectivity FIRST
         import socket
+        # Quick connectivity check
         socket.create_connection(("www.google.com", 80), timeout=2)
         
-        # Step 2: If connected, proceed with gTTS
         from gtts import gTTS
-        from IPython.display import Audio, display
+        print(f"🗣️ [Online] 生成語音 (gTTS) - {lang}")
+        tts = gTTS(text=clean_text, lang=lang, slow=slow)
+        tts.save(filename)
         
-        print(f"🗣️ 正在生成語音 (Language: {lang})...")
+        display(Audio(filename, autoplay=False))
+        return filename
+        
+    except (socket.timeout, socket.error, OSError, ImportError) as e:
+        print(f"⚠️ 網路不可用或 gTTS 失敗 ({e})。切換至離線備援模式。")
+    
+    # 🔒 Strategy 2: Offline (pyttsx3) - Privacy & Resilience
+    try:
+        import pyttsx3
+        print(f"🔒 [Offline] 生成語音 (pyttsx3) - Privacy Mode")
+        engine = pyttsx3.init()
+        # Set rate (Slower for elderly)
+        engine.setProperty('rate', 130) 
+        engine.save_to_file(clean_text, filename)
+        engine.runAndWait()
+        
+        display(Audio(filename, autoplay=False))
+        return filename
+    except Exception as e:
+        print(f"❌ 所有 TTS 引擎皆失敗: {e}")
+        print("💡 請長輩直接閱讀下方的大字體卡片")
+        return None
         
         # Clean text for TTS
         clean_text = text.replace("⚠️", "注意").replace("✅", "").replace("🟡", "")
