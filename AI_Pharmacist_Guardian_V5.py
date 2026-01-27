@@ -328,7 +328,7 @@ _SYNTHETIC_DATA_GEN_SOURCE = {
 
 # ===== V5.0 Impact Edition: Drug Aliases Mapping (Fixed reverse lookup bug) =====
 # PURPOSE: Allow searching by brand name OR generic name
-# FIX: Removed aliases that don't match DRUG_DATABASE (e.g., coumadin is NOT in our DB)
+# FIX: Removed aliases that don't match _SYNTHETIC_DATA_GEN_SOURCE (e.g., coumadin is NOT in our DB)
 # The lookup function will try BOTH original name AND alias
 DRUG_ALIASES = {
     # Diabetes - Maps to generic names in our DB
@@ -529,10 +529,10 @@ def _internal_data_gen_lookup(drug_name: str, category: str = None) -> dict:
 
 def retrieve_all_drugs_by_category(category: str) -> list:
     """
-    RAG Interface: Retrieve all drugs in a category.
-    Production: Would paginate through external DB results.
+    (Legacy) RAG Interface. 
+    Updated to use SYNTHETIC SOURCE for training data generation only.
     """
-    return DRUG_DATABASE.get(category, [])
+    return _SYNTHETIC_DATA_GEN_SOURCE.get(category, [])
 
 def calculate_age(dob, visit_date):
     return visit_date.year - dob.year - ((visit_date.month, visit_date.day) < (dob.month, dob.day))
@@ -583,7 +583,7 @@ def inject_medical_risk(case_data):
                 reasoning = "⚠️ [AGS Beers Criteria 2023] 病患 88 歲，Valsartan 320mg 為最大劑量，老年患者需注意姿勢性低血壓風險。"
             else:
                 # Fallback: Use Metformin as the HIGH_RISK example
-                case_data["drug"] = DRUG_DATABASE["Diabetes"][0].copy()
+                case_data["drug"] = _SYNTHETIC_DATA_GEN_SOURCE["Diabetes"][0].copy()
                 case_data["drug"]["dose"] = "2000mg"
                 u = USAGE_MAPPING["BID_meals_after"]
                 case_data["drug"]["usage_instruction"] = {
@@ -596,7 +596,7 @@ def inject_medical_risk(case_data):
         
         # V7.1 NEW: Aspirin 分辨測試 (50% PASS, 50% HIGH_RISK)
         elif trap_type == "aspirin_check":
-            drug = next(d for d in DRUG_DATABASE["Cardiac"] if d["name_en"] == "Aspirin").copy()
+            drug = next(d for d in _SYNTHETIC_DATA_GEN_SOURCE["Cardiac"] if d["name_en"] == "Aspirin").copy()
             
             # V7 Fix: Add usage instruction (missing caused KeyError)
             u = USAGE_MAPPING["QD_breakfast_after"]
@@ -645,7 +645,7 @@ def inject_medical_risk(case_data):
             }
             
         elif trap_type == "wrong_time":
-            drug = DRUG_DATABASE["Sedative"][0].copy()
+            drug = _SYNTHETIC_DATA_GEN_SOURCE["Sedative"][0].copy()
             drug["usage_instruction"] = USAGE_MAPPING["QD_breakfast_after"].copy()
             drug["usage_instruction"]["timing_zh"] = "每日一次 早餐飯後"
             drug["usage_instruction"]["timing_en"] = "Once daily after breakfast"
