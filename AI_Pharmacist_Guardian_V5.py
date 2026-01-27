@@ -1830,7 +1830,7 @@ def agentic_inference(model, processor, img_path, verbose=True):
         result["confidence"]["score"] = confidence
         
         if verbose:
-            print(f"   └─ {conf_msg}")
+            print(f"   └─ Raw Confidence Score: {confidence:.4f}")
         
         # ===== STAGE 4: Logical Consistency Check =====
         if verbose:
@@ -1896,7 +1896,7 @@ def agentic_inference(model, processor, img_path, verbose=True):
             
             # Determine final status
             # [V5.7 Asymmetric Flow]
-            # Now we decide confidence status based on the parsed status
+            status = safety.get("status", "UNKNOWN")
             conf_status, conf_msg = get_confidence_status(confidence, status)
             result["confidence"]["status"] = conf_status
             result["confidence"]["message"] = conf_msg
