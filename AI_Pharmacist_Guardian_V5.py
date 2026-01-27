@@ -1298,7 +1298,8 @@ def calculate_confidence(model, outputs, processor):
         min_prob = probs.min().item()
         mean_prob = probs.mean().item()
         
-        alpha = 0.7  # Empirically tuned for medical conservativeness
+        # 安全平衡點：0.75
+        alpha = 0.75
         confidence = (mean_prob * alpha) + (min_prob * (1 - alpha))
         
         return confidence
@@ -1306,19 +1307,29 @@ def calculate_confidence(model, outputs, processor):
         return 0.75  # Conservative fallback (triggers Human Review at 80% threshold)
 
 
-def get_confidence_status(confidence, threshold=0.70):
+def get_confidence_status(confidence, predicted_status="UNKNOWN"):
     """
-    Determine if human review is needed based on confidence.
+    [V5.7 Asymmetric Safety Tuning] 非對稱安全閾值
+    核心原則：Do No Harm (絕不漏放危險)
+    """
+    # 1. 針對「危險」的判斷：大幅降低門檻 (敏感度優先)
+    # 如果模型覺得是危險，只要有 60% 把握，我們就採信 (直接報危險，不需藥師複核)
+    if predicted_status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"]:
+        threshold = 0.60
     
-    [Strategic Tuning V5.5]
-    Threshold lowered from 0.80 to 0.70 based on validation set calibration.
-    Rationale: 4-bit quantization introduces noise that artificially suppresses 
-    confidence scores. 0.70 represents "High Confidence" in this quantized latent space.
-    """
-    if confidence >= threshold:
-        return "HIGH_CONFIDENCE", f"✅ Confidence: {confidence:.1%}"
+    # 2. 針對「警告」的判斷：中等門檻
+    elif predicted_status in ["WARNING", "ATTENTION_NEEDED"]:
+        threshold = 0.65
+        
+    # 3. 針對「安全 (PASS)」的判斷：維持高門檻 (特異度優先)
+    # 如果模型說安全，它必須非常有把握 (75%)，否則必須給人看
     else:
-        return "LOW_CONFIDENCE", f"⚠️ Low Confidence: {confidence:.1%} → HUMAN REVIEW NEEDED"
+        threshold = 0.75
+
+    if confidence >= threshold:
+        return "HIGH_CONFIDENCE", f"✅ Confidence: {confidence:.1%} (Thresh: {threshold})"
+    else:
+        return "LOW_CONFIDENCE", f"⚠️ Low Confidence: {confidence:.1%} < {threshold}"
 
 def logical_consistency_check(extracted_data, safety_analysis):
     """
@@ -1802,14 +1813,20 @@ def agentic_inference(model, processor, img_path, verbose=True):
         if verbose:
             print("\n[3/4] 📊 Confidence Assessment...")
         
-        confidence = calculate_confidence(model, outputs, processor)
-        conf_status, conf_msg = get_confidence_status(confidence)
+        # [V5.7 Dynamic Threshold Injection]
+        # We now pass the predicted status (from VLM reasoning) to determine the threshold dynamically.
+        # But wait, we haven't parsed the JSON yet! Conf_status depends on the parsed status?
+        # A bit catch-22.
+        # Workaround: Calculate confidence score first, then parse JSON, then finalize status.
+        # But 'result["confidence"]' is set here.
+        # We will set a temporary status here, and refine it later or we parse earlier?
+        # Actually, let's parse JSON FIRST (swap Stage 3 and 4 order conceptually) or just calculate RAW score here.
+        # The user wants get_confidence_status to take `predicted_status`.
+        # So I will move `get_confidence_status` call to AFTER parsing.
         
-        result["confidence"] = {
-            "score": confidence,
-            "status": conf_status,
-            "message": conf_msg
-        }
+        confidence = calculate_confidence(model, outputs, processor)
+        # Store raw confidence for now
+        result["confidence"]["score"] = confidence
         
         if verbose:
             print(f"   └─ {conf_msg}")
@@ -1859,12 +1876,33 @@ def agentic_inference(model, processor, img_path, verbose=True):
             # =========================================
             
             # Determine final status
-            status = safety.get("status", "UNKNOWN")
+            # [V5.7 Asymmetric Flow]
+            # Now we decide confidence status based on the parsed status
+            conf_status, conf_msg = get_confidence_status(confidence, status)
+            result["confidence"]["status"] = conf_status
+            result["confidence"]["message"] = conf_msg
+            if verbose: print(f"   📊 Dynamic Confidence: {conf_msg}")
+
+            # [V5.7 Safety-First Decision Logic]
             
-            if conf_status == "LOW_CONFIDENCE":
+            # 情境 A: 邏輯檢查失敗 (Grounding Failed)
+            # 例如：抓到的年齡是 200 歲，或是劑量單位消失
+            if not grounded:
+                # 這是系統錯誤，必須人工介入
                 result["final_status"] = "HUMAN_REVIEW_NEEDED"
-            elif not grounded:
-                result["final_status"] = "GROUNDING_FAILED"
+                result["confidence"]["message"] += " (Blocked by Logic Check)"
+            
+            # 情境 B: 信心不足 (Low Confidence)
+            elif conf_status == "LOW_CONFIDENCE":
+                # 特例：如果是 HIGH_RISK 且信心尚可 (>0.55)，為了安全起見，我們直接報 HIGH_RISK
+                # (寧可誤報危險，也不要因為信心不足而變成 HUMAN_REVIEW 導致藥師漏看)
+                if status == "HIGH_RISK" and confidence > 0.55:
+                     result["final_status"] = "HIGH_RISK"
+                     result["confidence"]["message"] += " (Force Escalated for Safety)"
+                else:
+                     result["final_status"] = "HUMAN_REVIEW_NEEDED"
+            
+            # 情境 C: 一切正常 (High Confidence + Grounded)
             else:
                 result["final_status"] = status
             
