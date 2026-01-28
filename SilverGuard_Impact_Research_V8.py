@@ -304,71 +304,39 @@ USAGE_MAPPING = {
     "TID_meals_after": {"text_zh": "每日三次 三餐飯後", "text_en": "Three times daily after meals", "grid_time": [1,1,1,0], "grid_food": [0,1,0], "freq": 3},
 }
 
-# ===== 藥物資料庫 (V5 Impact Edition: LASA Defense) =====
-# 🛡️ DEFENSIVE DESIGN NOTE:
-# This dictionary is for SYNTHETIC DATA GENERATION ONLY.
-# IT MUST NOT BE USED DURING INFERENCE. Real inference uses VLM + Vector RAG.
-_SYNTHETIC_DATA_GEN_SOURCE = {
-    # --- Confusion Cluster 1: Hypertension (Norvasc vs Navane?) ---
-    "Hypertension": [
-        {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after"},
-        {"code": "BC23456790", "name_en": "Concor", "name_zh": "康肯", "generic": "Bisoprolol", "dose": "5mg", "appearance": "黃色心形", "indication": "降血壓", "warning": "心跳過慢者慎用", "default_usage": "QD_breakfast_after"},
-        # LASA TRAP: Seroquel (Antipsychotic) vs Sinequan (Antidepressant) - Future expansion
-    ],
-    # --- Confusion Cluster 2: Diabetes (Daonil vs Diamicron) ---
-    "Diabetes": [
-        {"code": "BC23456792", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用減少腸胃不適", "default_usage": "BID_meals_after"},
-        {"code": "BC23456793", "name_en": "Daonil", "name_zh": "道尼爾", "generic": "Glibenclamide", "dose": "5mg", "appearance": "白色長條形 (刻痕)", "indication": "降血糖", "warning": "低血糖風險高", "default_usage": "QD_breakfast_after"},
-        # ⚠️ LASA DEFENSE: Diamicron looks similar but different dose logic
-        {"code": "BC23456799", "name_en": "Diamicron", "name_zh": "岱蜜克龍", "generic": "Gliclazide", "dose": "30mg", "appearance": "白色長條形", "indication": "降血糖", "warning": "飯前30分鐘服用", "default_usage": "QD_breakfast_before"},
-    ],
-    # --- Confusion Cluster 3: CNS (Hydralazine vs Hydroxyzine) ---
-    # --- Confusion Cluster 3: CNS (Hydralazine vs Hydroxyzine) ---
-    "Sedative": [
-        {"code": "BC23456794", "name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後立即就寢", "default_usage": "QD_bedtime"},
-        # ⚠️ LASA DEFENSE: Hydralazine (BP) vs Hydroxyzine (Allergy)
-        {"code": "BC23456801", "name_en": "Hydralazine", "name_zh": "阿普利素", "generic": "Hydralazine", "dose": "25mg", "appearance": "黃色圓形", "indication": "高血壓", "warning": "不可隨意停藥", "default_usage": "TID_meals_after"},
-        {"code": "BC23456802", "name_en": "Hydroxyzine", "name_zh": "安泰樂", "generic": "Hydroxyzine", "dose": "25mg", "appearance": "白色圓形", "indication": "抗過敏/焦慮", "warning": "注意嗜睡", "default_usage": "TID_meals_after"},
-    ],
-    "Cardiac": [
-        {"code": "BC55556666", "name_en": "Aspirin", "name_zh": "阿斯匹靈", "generic": "ASA", "dose": "100mg", "appearance": "白色圓形", "indication": "預防血栓", "warning": "胃潰瘍患者慎用", "default_usage": "QD_breakfast_after"},
-        {"code": "BC55556667", "name_en": "Plavix", "name_zh": "保栓通", "generic": "Clopidogrel", "dose": "75mg", "appearance": "粉紅色圓形", "indication": "預防血栓", "warning": "手術前需停藥", "default_usage": "QD_breakfast_after"},
-    ],
-    "Anticoagulant": [
-        {"code": "BC77778888", "name_en": "Warfarin", "name_zh": "可化凝", "generic": "Warfarin", "dose": "5mg", "appearance": "粉紅色圓形", "indication": "抗凝血", "warning": "需定期監測INR，避免深綠色蔬菜", "default_usage": "QD_bedtime"},
-    ],
-    "Lipid": [
-        {"code": "BC88889999", "name_en": "Lipitor", "name_zh": "立普妥", "generic": "Atorvastatin", "dose": "20mg", "appearance": "白色橢圓形", "indication": "降血脂", "warning": "肌肉痠痛時需回診", "default_usage": "QD_bedtime"},
-        {"code": "BC88889998", "name_en": "Crestor", "name_zh": "冠脂妥", "generic": "Rosuvastatin", "dose": "10mg", "appearance": "粉紅色圓形", "indication": "降血脂", "warning": "避免與葡萄柚汁併服", "default_usage": "QD_bedtime"},
-    ],
-}
+# ===== 藥物資料庫 (SYNCED with medgemma_data.py) =====
+try:
+    from medgemma_data import DRUG_DATABASE
+    _SYNTHETIC_DATA_GEN_SOURCE = DRUG_DATABASE
+    print("✅ Loaded Shared Drug Database from medgemma_data.py")
+except ImportError:
+    print("⚠️ medgemma_data.py not found! Falling back to backup dictionary.")
+    # Fallback (Original Source) if file missing in weird envs
+    _SYNTHETIC_DATA_GEN_SOURCE = {
+        "Hypertension": [
+            {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after"},
+            {"code": "BC23456790", "name_en": "Concor", "name_zh": "康肯", "generic": "Bisoprolol", "dose": "5mg", "appearance": "黃色心形", "indication": "降血壓", "warning": "心跳過慢者慎用", "default_usage": "QD_breakfast_after"},
+        ],
+        "Diabetes": [
+            {"code": "BC23456792", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形 (橢圓)", "indication": "降血糖", "warning": "隨餐服用減少腸胃不適", "default_usage": "BID_meals_after"},
+        ],
+        "Sedative": [
+           {"code": "BC23456794", "name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後立即就寢", "default_usage": "QD_bedtime"},
+        ],
+        # Minimal fallback set to prevent crash
+    }
 
-# ===== V5.0 Impact Edition: Drug Aliases Mapping (Fixed reverse lookup bug) =====
-# PURPOSE: Allow searching by brand name OR generic name
-# FIX: Removed aliases that don't match _SYNTHETIC_DATA_GEN_SOURCE (e.g., coumadin is NOT in our DB)
-# The lookup function will try BOTH original name AND alias
-DRUG_ALIASES = {
-    # Diabetes - Maps to generic names in our DB
-    "glucophage": "metformin",
-    "glucophage xr": "metformin", "fortamet": "metformin", "glumetza": "metformin",
-    "amaryl": "glimepiride",
-    "januvia": "sitagliptin",
-    # Hypertension
-    "norvasc": "amlodipine",
-    "concor": "bisoprolol",
-    "diovan": "valsartan",
-    # Sedative
-    "stilnox": "zolpidem",
-    "imovane": "zopiclone",
-    # Cardiac - Note: "asa" maps to "aspirin" (the name_en in our DB)
-    "asa": "aspirin",
-    "plavix": "clopidogrel",
-    # Anticoagulant - Note: "warfarin" is the name_en in our DB, no alias needed
-    "coumadin": "warfarin",  # Coumadin brand name → Warfarin (what's in our DB)
-    # Lipid
-    "lipitor": "atorvastatin",
-    "crestor": "rosuvastatin",
-}
+# ===== Drug Aliases Mapping (SYNCED with medgemma_data.py) =====
+try:
+    from medgemma_data import DRUG_ALIASES
+    print("✅ Loaded Drug Aliases from medgemma_data.py")
+except ImportError:
+    # Fallback
+    DRUG_ALIASES = {
+        "glucophage": "metformin",
+        "norvasc": "amlodipine",
+        "stilnox": "zolpidem"
+    }
 
 # ===== 病患檔案 =====
 PATIENT_PROFILES = {

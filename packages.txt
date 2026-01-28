@@ -3,3 +3,4 @@ libtesseract-dev
 espeak
 libespeak1
 ffmpeg
+libsndfile1

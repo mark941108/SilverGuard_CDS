@@ -39,3 +39,4 @@ soundfile
 librosa
 scipy
 spaces
+pydub
