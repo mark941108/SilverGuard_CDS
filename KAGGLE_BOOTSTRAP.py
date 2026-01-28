@@ -69,7 +69,7 @@ print("   ✅ Repository 下載完成")
 print("\n[3/4] 安裝依賴套件...")
 
 # 核心依賴
-!pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets
+!pip install -q -U "huggingface-hub<1.0" bitsandbytes peft accelerate datasets
 !pip install -q transformers>=4.50.0
 !pip install -q pillow==11.0.0 torchaudio librosa soundfile
 
