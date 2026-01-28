@@ -134,12 +134,15 @@ This system runs on a single T4 GPU, enabling deployment in:
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
 # CELL 1: 環境設置 (靜默安裝) - pip 輸出已隱藏
 # [FIX] 加入 libespeak1 以支援 pyttsx3 (Linux 環境必須)
-!apt-get update && apt-get install -y libespeak1
+import os
+
+# [FIX] 加入 libespeak1 以支援 pyttsx3 (Linux 環境必須)
+os.system("apt-get update && apt-get install -y libespeak1")
 
 # [FIX] 加入 pyttsx3 到 pip 安裝列表
-!pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3
-!pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets transformers>=4.50.0 sentence-transformers faiss-cpu
-!pip install -q pillow==11.0.0 torchaudio librosa soundfile
+os.system("pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3")
+os.system("pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets transformers>=4.50.0 sentence-transformers faiss-cpu")
+os.system("pip install -q pillow==11.0.0 torchaudio librosa soundfile")
 
 # %%
 # ===== 驗證安裝並登入 =====
