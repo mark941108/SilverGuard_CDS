@@ -141,7 +141,7 @@ os.system("apt-get update && apt-get install -y libespeak1")
 
 # [FIX] 加入 pyttsx3 到 pip 安裝列表
 os.system("pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3")
-os.system("pip install -q --force-reinstall -U huggingface-hub") # [V8.7 FIX] Force fix for DryRunError
+os.system("pip install -q --force-reinstall 'huggingface-hub<1.0'") # [V8.8 FIX] Pin version to satisfy transformers requirement
 os.system("pip install -q -U bitsandbytes peft accelerate datasets transformers>=4.50.0 sentence-transformers faiss-cpu")
 os.system("pip install -q pillow==11.0.0 torchaudio librosa soundfile")
 
