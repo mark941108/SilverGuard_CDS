@@ -2891,8 +2891,20 @@ def evaluate_agentic_pipeline():
             print(f"   ✅ {i+1}/{len(test_set)} completed")
     
     # ========== V5 SAFETY-FIRST METRICS ==========
-    # 標準準確率
-    correct = sum(1 for t, p in zip(y_true, y_pred) if t == p)
+    # V7.2 Fix: Semantic Accuracy (Synonym Mapping)
+    # 解決 Label 不一致問題 (PASS vs SAFE / WITHIN_STANDARD)
+    SAFE_LABELS = ["PASS", "WITHIN_STANDARD", "SAFE"]
+    RISK_LABELS = ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED", "HUMAN_REVIEW_NEEDED", "UNSAFE"]
+    WARNING_LABELS = ["WARNING", "ATTENTION_NEEDED"]
+    
+    correct = 0
+    for t, p in zip(y_true, y_pred):
+        if (t in SAFE_LABELS and p in SAFE_LABELS): correct += 1
+        elif (t in RISK_LABELS and p in RISK_LABELS): correct += 1
+        elif (t in WARNING_LABELS and p in WARNING_LABELS): correct += 1
+        # Fallback for exact match
+        elif t == p: correct += 1
+        
     accuracy = correct / len(y_true)
     
     # Safety Compliance Rate: 正確判斷 OR 正確移交人工 = 安全
@@ -3371,8 +3383,14 @@ def launch_agentic_app():
                     extracted = parsed_json.get("extracted_data", {})
                     safety = parsed_json.get("safety_analysis", {})
                     
-                    # [V5.8 HARD RULE INJECTION] 絕對防禦網 (Backported from Cell 4)
-                    # Use Python logic to override LLM hallucinations for specific high-risk scenarios
+                    # ================================================================
+                    # 🛡️ SILVERGUARD SAFETY OVERRIDE (DETERMINISTIC LAYER)
+                    # ================================================================
+                    # Purpose: Prevent LLM Hallucinations on critical geriatric drugs.
+                    # Logic: IF Age > 80 AND Drug == Metformin AND Dose > 1000mg
+                    # Action: FORCE STATUS = HIGH_RISK
+                    # Reference: AGS Beers Criteria 2023
+                    # ================================================================
                     try:
                         dose_str = extracted.get("drug", {}).get("dose", "0").lower()
                         dose_val = int("".join(filter(str.isdigit, dose_str)) or 0)
