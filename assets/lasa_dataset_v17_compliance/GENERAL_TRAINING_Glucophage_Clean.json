@@ -1,0 +1,12 @@
+{
+  "image_id": "GENERAL_TRAINING_Glucophage_Clean.jpg",
+  "drug_name": "Glucophage 500mg (Metformin)",
+  "diagnosis": "降血糖",
+  "is_trap": false,
+  "is_visual_mismatch": false,
+  "is_consistent": true,
+  "has_leakage": false,
+  "masked_name": true,
+  "quality_score": 1.0,
+  "compliance_checked": true
+}

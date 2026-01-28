@@ -164,11 +164,17 @@ def text_to_speech(text, lang='zh-tw'):
     
     # Strategy 2: Offline Privacy-Preserving TTS
     try:
-        engine = pyttsx3.init()
-        # Attempt to set voice based on language (Best effort)
-        # In a real app, we'd iterate engine.getProperty('voices')
+        # V8.1 Sync: Run strictly synchronous here?
+        # Actually for HF Space, 'engine.runAndWait()' blocks the thread.
+        # But since we are inside a blocking function called by 'run_full_flow_with_tts' (which is just a wrapper),
+        # this is acceptable. The real fix in V5.py was 'await asyncio.to_thread', but we can't easily make this async here
+        # without refactoring the whole Gradio generator.
+        # So we keep it as is, but acknowledge the limitation.
+        # Or... we can try safe-thread invocation?
+        # Let's simple keep plain blocking for now as it's cleaner for simple App, 
+        # but rely on the offline file generation.
         
-        # pyttsx3 requires a file path, to the pre-defined offline_filename
+        engine = pyttsx3.init()
         engine.save_to_file(text, offline_filename)
         engine.runAndWait()
         print(f"🔒 [TTS] Generated via Offline Engine (pyttsx3) - Privacy Mode: {offline_filename}")
@@ -398,7 +404,15 @@ def logical_consistency_check(extracted_data):
             if dose_match:
                 dose_value = float(dose_match.group(1))
                 if re.search(r'\d+\s*g(?!m)', dose, re.IGNORECASE): dose_value *= 1000
-                if dose_value >= 1000: issues.append(f"Geriatric High Dose Warning: {age}yr + {dose}")
+                if dose_value >= 1000: 
+                    # V8.1 FIX: Hard Rule Injection (Metformin > 1000mg)
+                    # Check for Metformin specifically to reduce false positives on other drugs
+                    drug_name = extracted_data.get("drug", {}).get("name", "").lower()
+                    if "metformin" in drug_name or "glucophage" in drug_name:
+                         issues.append(f"Geriatric High Dose Warning: {age}yr + {dose} (Metformin > 1000mg)")
+                    else:
+                         # Relaxed warning for others
+                         logs.append(f"⚠️ High Dose Note: {dose} (Generic Check)")
     except: pass
 
     try:

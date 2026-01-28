@@ -1,0 +1,12 @@
+{
+  "image_id": "GENERAL_TRAINING_Stilnox_Clean.jpg",
+  "drug_name": "Stilnox 10mg (Zolpidem)",
+  "diagnosis": "失眠",
+  "is_trap": false,
+  "is_visual_mismatch": false,
+  "is_consistent": true,
+  "has_leakage": false,
+  "masked_name": true,
+  "quality_score": 1.0,
+  "compliance_checked": true
+}

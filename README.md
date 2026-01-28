@@ -22,13 +22,13 @@
 ---
 
 ## 🚀 Quick Start
-> **Current Version:** V7.2 Final Submission (Stable)
+> **Current Version:** V8.2 Research Edition (Deployment Hardening + Logic Hotfix)
 
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
 > Please add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN` before running.
 
 1.  **Run All Cells**: Execute the notebook from top to bottom.
-2.  **Cell 5 (Core Agent Workflow)**: This cell runs the core MedGemma agent. It will output a JSON safety analysis.
+2.  **Cell 5 (Core Agent Workflow)**: This cell runs the core MedGemma agent (`SilverGuard_Impact_Research_V8.py`). It will output a JSON safety analysis.
 3.  **Cell 7 (SilverGuard UI)**: This cell generates the elder-friendly calendar UI and TTS audio.
 
 4.  **Screenshot**: Capture a screenshot of the terminal output (Cell 5) and the SilverGuard UI (Cell 7) for the demo.
@@ -652,16 +652,17 @@ Stage 5: High Risk Demo & SilverGuard UI (Cell 7/10)
 ---
 
 ## 📁 Project Structure
-
 ```
 The MedGemma Impact Challenge/
-├── AI_Pharmacist_Guardian_V5.py    # Complete training code (V5.0 Impact Edition)
-├── README.md                # This file
-├── requirements.txt         # Dependencies
-└── medgemma_training_data_v5/
-    ├── medgemma_v5_*.png    # Synthetic drug bag images
-    ├── dataset_v5_train.json  # Training split (90%)
-    └── dataset_v5_test.json   # Testing split (10%)
+├── SilverGuard_Impact_Research_V8.py   # Main Agentic Pipeline (V8.2 Research Ed)
+├── README.md                           # This file
+├── requirements.txt                    # Dependencies
+├── Dockerfile                          # Cloud Deployment Config
+├── medgemma_data.py                    # Single Source of Truth
+├── assets/
+│   ├── stress_test/                    # [Test] Inference Exam (Dirty Images)
+│   └── lasa_dataset_v17_compliance/    # [Train] Training Data (Clean Images)
+└── generate_v16_fusion.py              # Data Generator
 ```
 
 ---

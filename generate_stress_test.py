@@ -43,8 +43,7 @@ def get_font(size):
                 f.write(r.content)
             print(f"   ✅ 字體下載成功")
         except Exception as e:
-            print(f"   ⚠️ 字體下載失敗: {e}，使用預設字體")
-            return ImageFont.load_default()
+            pass # Keep silent fall back
     
     try:
         return ImageFont.truetype(FONT_PATH, size)
@@ -383,27 +382,71 @@ PATIENTS = [
     {"name": "陳淑芬", "gender": "女 (F)", "id": "D223456789"},
 ]
 
-DRUGS = [
-    # 1. Diabetes
-    {"id": "D001", "cat": "糖尿病", "cht": "庫魯化錠", "eng": "Glucophage (Metformin)", 
-     "dose": "5000mg", "usage": "BID", "timing": "飯後", "color": "white", "shape": "circle",
-     "warning": "避免空腹服用，若有噁心嘔吐請告知醫師。禁止飲酒。", "indication": "第二型糖尿病"},
-     
-    # 2. Hypertension (Norvasc) - Octagonal
-    {"id": "D002", "cat": "高血壓", "cht": "脈優錠", "eng": "Norvasc (Amlodipine)", 
-     "dose": "5mg", "usage": "QD", "timing": "早餐後", "color": "white", "shape": "octagon",
-     "warning": "可能會造成頭暈或腳水腫。請定期量血壓。", "indication": "高血壓、心絞痛"},
-     
-    # 3. Anticoagulant (Warfarin)
-    {"id": "D003", "cat": "心臟科", "cht": "可邁丁錠", "eng": "Coumadin (Warfarin)", 
-     "dose": "5mg", "usage": "QD", "timing": "睡前", "color": "pink", "shape": "circle",
-     "warning": "⚠️ 易出血。刷牙請用軟毛刷。禁止食用柚子/蔓越莓。", "indication": "預防血栓"},
-     
-    # 4. Sedative
-    {"id": "D004", "cat": "失眠", "cht": "史蒂諾斯", "eng": "Stilnox (Zolpidem)", 
-     "dose": "10mg", "usage": "QN", "timing": "睡前", "color": "white", "shape": "oval",
-     "warning": "⚠️ 服用後請立即就寢。夢遊風險。禁止操作機械。", "indication": "短期失眠治療"},
+# ==========================================
+# 5. Database (Authentic Taiwan Data - SYNCED)
+# ==========================================
+from medgemma_data import DRUG_DATABASE as MASTER_DB
+
+PATIENTS = [
+    {"name": "王大明", "gender": "男 (M)", "id": "A123456789"},
+    {"name": "林美玉", "gender": "女 (F)", "id": "B223456789"},
+    {"name": "張志明", "gender": "男 (M)", "id": "C123456789"},
+    {"name": "陳淑芬", "gender": "女 (F)", "id": "D223456789"},
 ]
+
+def get_synced_drugs():
+    """ Adapter: DRUG_DATABASE (V5) -> Stress Test Schema (V9) """
+    synced_list = []
+    pid_counter = 1
+    
+    for category, drugs in MASTER_DB.items():
+        for d in drugs:
+            # 1. Parse Appearance (Simplified for Stress Test)
+            app = d["appearance"]
+            shape = "circle"
+            color = "white"
+            
+            # Shape
+            if "長" in app or "橢" in app: shape = "oval"
+            elif "八角" in app: shape = "octagon"
+            
+            # Color
+            if "粉" in app or "紅" in app: color = "pink"
+            elif "黃" in app: color = "yellow"
+            
+            # 2. Parse Usage/Timing
+            usage = "BID"
+            timing = "飯後"
+            u_tag = d["default_usage"]
+            
+            if "QD" in u_tag: 
+                usage = "QD"
+                if "bedtime" in u_tag or "HS" in u_tag: 
+                    usage = "QN" # Map to Stress Test QN
+                    timing = "睡前"
+                elif "before" in u_tag: timing = "飯前"
+            elif "TID" in u_tag: usage = "TID"
+            
+            # 3. Create Object
+            synced_list.append({
+                "id": d["code"],
+                "cat": d["indication"], # Use indication as category display
+                "cht": d["name_zh"],
+                "eng": f"{d['name_en']} ({d['generic']})",
+                "dose": d["dose"],
+                "usage": usage,
+                "timing": timing,
+                "color": color,
+                "shape": shape,
+                "warning": d["warning"],
+                "indication": d["indication"]
+            })
+            pid_counter += 1
+            
+    return synced_list
+
+DRUGS = get_synced_drugs()
+print(f"✅ Synced {len(DRUGS)} drugs from Source of Truth (medgemma_data.py)")
 
 if __name__ == "__main__":
     from PIL import ImageEnhance # Import needed for optical stress

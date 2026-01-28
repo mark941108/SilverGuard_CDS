@@ -1,0 +1,12 @@
+{
+  "image_id": "GENERAL_TRAINING_Hydralazine_Trap.jpg",
+  "drug_name": "Hydralazine 25mg (Hydralazine)",
+  "diagnosis": "高血壓",
+  "is_trap": true,
+  "is_visual_mismatch": true,
+  "is_consistent": false,
+  "has_leakage": false,
+  "masked_name": true,
+  "quality_score": 1.0,
+  "compliance_checked": true
+}

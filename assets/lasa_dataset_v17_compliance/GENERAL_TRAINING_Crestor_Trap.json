@@ -1,0 +1,12 @@
+{
+  "image_id": "GENERAL_TRAINING_Crestor_Trap.jpg",
+  "drug_name": "Crestor 10mg (Rosuvastatin)",
+  "diagnosis": "降血脂",
+  "is_trap": true,
+  "is_visual_mismatch": true,
+  "is_consistent": false,
+  "has_leakage": false,
+  "masked_name": true,
+  "quality_score": 1.0,
+  "compliance_checked": true
+}

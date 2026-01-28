@@ -1,0 +1,10 @@
+{
+  "image_id": "DOSAGE_COLOR_TRAP_Xarelto_Clean.jpg",
+  "drug_name": "Xarelto 20mg",
+  "diagnosis": "預防中風",
+  "is_trap": false,
+  "is_shape_mismatch": false,
+  "has_leakage": false,
+  "masked_name": true,
+  "quality_score": 0.8
+}

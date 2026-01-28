@@ -1,0 +1,12 @@
+{
+  "image_id": "LOOK_ALIKE_SHAPE_Daonil_Clean.jpg",
+  "drug_name": "Daonil 5mg (Glibenclamide)",
+  "diagnosis": "降血糖",
+  "is_trap": false,
+  "is_visual_mismatch": false,
+  "is_consistent": true,
+  "has_leakage": false,
+  "masked_name": true,
+  "quality_score": 1.0,
+  "compliance_checked": true
+}

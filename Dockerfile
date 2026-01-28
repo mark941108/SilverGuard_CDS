@@ -5,10 +5,15 @@ FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
 WORKDIR /app
 
 # Install system dependencies
-# espeak-ng: Required for SilverGuard TTS (Text-to-Speech)
-# libsndfile1: Required for audio processing
+# espeak/libespeak1: Required for pyttsx3 (Offline TTS)
+# tesseract-ocr: Required for Optical Character Recognition (OCR) 
+# ffmpeg: Required for audio processing/conversion
 RUN apt-get update && apt-get install -y \
-    espeak-ng \
+    tesseract-ocr \
+    libtesseract-dev \
+    espeak \
+    libespeak1 \
+    ffmpeg \
     libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 

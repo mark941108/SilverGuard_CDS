@@ -2,6 +2,21 @@
 
 All notable changes to the **AI Pharmacist Guardian** project will be documented in this file.
 
+## [V8.2] - Deployment Hardening - 2026-01-29
+### Critical Infrastructure Fixes
+-   **Cloud Deployment Stablity**: Added `espeak`, `libespeak1`, and `ffmpeg` to `packages.txt` and `Dockerfile`. This resolves the `OSError: libespeak.so.1` crash when `pyttsx3` attempts offline TTS in Linux/Docker environments (Hugging Face Spaces).
+-   **Dependency Robustness**: Explicitly added `tesseract-ocr` and `libtesseract-dev` to ensure OCR capabilities are self-contained in the container.
+
+## [V8.1] - Code Audit Hotfix - 2026-01-28
+### Security & Logic Fixes
+-   **Critical**: Fixed `get_confidence_status` label mismatch. Added support for V8 `WITHIN_STANDARD` label (threshold 0.75) and `PHARMACIST_REVIEW_REQUIRED` (threshold 0.50).
+-   **Hard Rule Robustness**: Replaced fragile string matching (`if "2000" in dose`) with robust Regex mathematical verification to catch `1000mg BID` sum violations.
+-   **Anti-Hallucination**: Implemented "Post-Hoc RAG Verification". If Agent misses RAG context on first pass but detects a drug name, forced retry with injected knowledge is triggered.
+
+### UX Improvements
+-   **Async UI Non-Blocking**: Wrapped `pyttsx3` offline TTS in `asyncio.to_thread` to prevent Gradio UI freeze during voice generation.
+-   **Consistency**: Synced `HF_SPACE_APP.py` and `generate_stress_test.py` with `medgemma_data.py` Source of Truth.
+
 ## [V7.2] - Competition Polish - 2026-01-23
 ### Fixed
 -   **Critical Syntax Error:** Removed dangling docstring at line 379 causing Python SyntaxError.

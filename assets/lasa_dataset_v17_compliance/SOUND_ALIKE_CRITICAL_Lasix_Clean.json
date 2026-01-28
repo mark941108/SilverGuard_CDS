@@ -1,0 +1,12 @@
+{
+  "image_id": "SOUND_ALIKE_CRITICAL_Lasix_Clean.jpg",
+  "drug_name": "Lasix 40mg (Furosemide)",
+  "diagnosis": "高血壓/水腫",
+  "is_trap": false,
+  "is_visual_mismatch": false,
+  "is_consistent": true,
+  "has_leakage": false,
+  "masked_name": true,
+  "quality_score": 1.0,
+  "compliance_checked": true
+}

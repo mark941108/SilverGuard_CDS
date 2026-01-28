@@ -1,0 +1,10 @@
+{
+  "image_id": "SPELLING_ALIKE_Celexa_Clean.jpg",
+  "drug_name": "Celexa 20mg",
+  "diagnosis": "憂鬱症",
+  "is_trap": false,
+  "is_shape_mismatch": false,
+  "has_leakage": false,
+  "masked_name": true,
+  "quality_score": 0.8
+}

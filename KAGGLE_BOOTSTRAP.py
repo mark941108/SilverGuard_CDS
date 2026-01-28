@@ -93,11 +93,12 @@ print("   ✅ HuggingFace 登入成功")
 # STEP 4: 執行主程式
 # ============================================================================
 print("\n" + "=" * 80)
-print("🚀 啟動 AI Pharmacist Guardian V5.0 Impact Edition")
+print("\n" + "=" * 80)
+print("🚀 啟動 SilverGuard: Impact Research Edition (V8.2)")
 print("=" * 80)
 
-# 🔥 正確的檔名
-%run AI_Pharmacist_Guardian_V5.py
+# 🔥 正確的檔名 (Updated for V8)
+%run SilverGuard_Impact_Research_V8.py
 
 print("\n" + "=" * 80)
 print("🎉 執行完成！請查看上方輸出")
