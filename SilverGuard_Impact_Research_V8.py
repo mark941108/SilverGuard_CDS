@@ -304,7 +304,11 @@ USAGE_MAPPING = {
     "QD_bedtime": {"text_zh": "每日一次 睡前服用", "text_en": "Once daily at bedtime", "grid_time": [0,0,0,1], "grid_food": [0,0,0], "freq": 1},
     "BID_meals_after": {"text_zh": "每日兩次 早晚飯後", "text_en": "Twice daily after meals", "grid_time": [1,0,1,0], "grid_food": [0,1,0], "freq": 2},
     "QD_breakfast_before": {"text_zh": "每日一次 早餐飯前", "text_en": "Once daily before breakfast", "grid_time": [1,0,0,0], "grid_food": [1,0,0], "freq": 1},
+    "QD_meals_before": {"text_zh": "每日一次 飯前服用", "text_en": "Once daily before meals", "grid_time": [1,0,0,0], "grid_food": [1,0,0], "freq": 1},
+    "QD_meals_with": {"text_zh": "每日一次 隨餐服用", "text_en": "Once daily with meals", "grid_time": [1,0,0,0], "grid_food": [0,1,0], "freq": 1},
+    "BID_morning_noon": {"text_zh": "每日兩次 早午服用", "text_en": "Twice daily (Morning/Noon)", "grid_time": [1,1,0,0], "grid_food": [0,1,0], "freq": 2},
     "TID_meals_after": {"text_zh": "每日三次 三餐飯後", "text_en": "Three times daily after meals", "grid_time": [1,1,1,0], "grid_food": [0,1,0], "freq": 3},
+    "Q4H_prn": {"text_zh": "必要時服用 (每4小時)", "text_en": "Take as needed (q4h)", "grid_time": [0,0,0,0], "grid_food": [0,0,0], "freq": 0},
 }
 
 # ===== 藥物資料庫 (SYNCED with medgemma_data.py) =====
