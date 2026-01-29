@@ -2520,6 +2520,44 @@ SAFE_TRANSLATIONS = {
     }
 }
 
+def clean_text_for_tts(text):
+    """
+    🧹 TTS 專用文字清洗器
+    將視覺符號 (Markdown/Emoji) 轉換為聽覺停頓或移除，
+    確保語音流暢自然，適合長輩聆聽。
+    """
+    if not text: return ""
+    import re
+
+    # 1. 移除 Markdown 語法 (粗體、斜體)
+    # 將 "**注意**" 變為 "注意"
+    text = text.replace("**", "").replace("__", "").replace("##", "")
+    
+    # 2. 轉換關鍵語意圖示 (將重要的圖示轉為語音)
+    text = text.replace("⚠️", "注意！").replace("⚠", "注意！")
+    text = text.replace("⛔", "危險！").replace("🚫", "禁止！")
+    
+    # 3. 移除裝飾性 Emoji (老人不需要聽這些)
+    # 範圍涵蓋常見圖示：✅, 💊, 🟢, 📋, 👵, 👋 等
+    # 使用 Unicode Range 移除所有表情符號
+    text = re.sub(r'[\U00010000-\U0010ffff]', '', text)
+    
+    # 4. 處理標點符號與排版 (優化停頓)
+    # 將換行轉為逗號，避免黏在一起
+    text = text.replace("\n", "，")
+    # 將括號轉為輕微停頓 (逗號)
+    text = text.replace("(", "，").replace(")", "，")
+    text = text.replace("（", "，").replace("）", "，")
+    # 移除多餘的空白與連續標點
+    text = re.sub(r'[，,]{2,}', '，', text) # 避免 "，，"
+    text = re.sub(r'\s+', ' ', text)       # 避免 "   "
+    
+    # 5. 針對劑量的特殊處理 (Edge Case)
+    # 避免唸成 "mg" (毫克) -> 有些引擎唸不好，可選轉中文
+    # text = text.replace("mg", "毫克").replace("ml", "毫升") 
+    
+    return text.strip()
+
 def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
     """
     🏥 SilverGuard Privacy-First TTS Architecture
@@ -2534,6 +2572,10 @@ def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
     import os
     from IPython.display import Audio, display
     
+    # ✅ STEP 1: 先清洗文字
+    clean_text = clean_text_for_tts(text)
+    print(f"🗣️ [TTS Pre-processing] Original: {len(text)} chars -> Clean: {len(clean_text)} chars")
+
     filename = "./elder_instruction.mp3"
     
     # 1. 🟢 優先策略：離線模式 (Privacy First)
@@ -2544,7 +2586,8 @@ def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
             engine = pyttsx3.init()
             # 調整語速給長輩 (rate 預設約 200)
             engine.setProperty('rate', 140) 
-            engine.save_to_file(text, filename)
+            # 👇 注意這裡改用 clean_text
+            engine.save_to_file(clean_text, filename)
             engine.runAndWait()
             
             display(Audio(filename, autoplay=False))
@@ -2557,7 +2600,8 @@ def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
     try:
         from gtts import gTTS
         print(f"📡 [Cloud] 連線至 Google TTS (注意：資料將傳輸至外部)") 
-        tts = gTTS(text=text, lang=lang, slow=True)
+        # 👇 注意這裡改用 clean_text, 建議 slow=False
+        tts = gTTS(text=clean_text, lang=lang, slow=False)
         tts.save(filename)
         display(Audio(filename, autoplay=False))
         return filename

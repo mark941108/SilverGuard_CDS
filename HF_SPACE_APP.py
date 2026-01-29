@@ -157,6 +157,25 @@ def transcribe_audio(audio_path, expected_lang="en"):
 # ============================================================================
 # NOTE: ADAPTER_MODEL and BASE_MODEL already defined at top of file
 
+def clean_text_for_tts(text):
+    """
+    🧹 TTS Text Cleaning Middleware
+    Strips visual artifacts (Markdown/Emojis) to optimize for auditory experience.
+    """
+    if not text: return ""
+    import re
+    # 1. Remove Markdown
+    text = text.replace("**", "").replace("__", "").replace("##", "")
+    # 2. Convert Semantics
+    text = text.replace("⚠️", "Warning!").replace("⛔", "Danger!").replace("🚫", "Stop!")
+    # 3. Remove Emojis
+    text = re.sub(r'[\U00010000-\U0010ffff]', '', text)
+    # 4. Punctuation
+    text = text.replace("\n", ", ").replace("(", ", ").replace(")", ", ")
+    text = re.sub(r'[，,]{2,}', ', ', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
 def text_to_speech(text, lang='zh-tw'):
     """
     Hybrid Privacy Architecture:
@@ -168,12 +187,15 @@ def text_to_speech(text, lang='zh-tw'):
     # Define a default filename to prevent UnboundLocalError
     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
         offline_filename = f.name
+        
+    # ✅ STEP 1: Clean Text
+    clean_text = clean_text_for_tts(text)
 
     # Strategy 1: Online Neural TTS (Privacy Trade-off for Quality)
     if not OFFLINE_MODE:
         try:
             from gtts import gTTS
-            tts = gTTS(text=text, lang=lang, slow=True)
+            tts = gTTS(text=clean_text, lang=lang, slow=False) # Optimized: slow=False
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
                 online_filename = f.name
             tts.save(online_filename)
@@ -194,8 +216,9 @@ def text_to_speech(text, lang='zh-tw'):
         # Let's simple keep plain blocking for now as it's cleaner for simple App, 
         # but rely on the offline file generation.
         
+        
         engine = pyttsx3.init()
-        engine.save_to_file(text, offline_filename)
+        engine.save_to_file(clean_text, offline_filename)
         engine.runAndWait()
         print(f"🔒 [TTS] Generated via Offline Engine (pyttsx3) - Privacy Mode: {offline_filename}")
         return offline_filename
