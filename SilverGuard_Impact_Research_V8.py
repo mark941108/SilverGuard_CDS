@@ -139,6 +139,12 @@ import os
 # [FIX] 加入 libespeak1 以支援 pyttsx3 (Linux 環境必須)
 os.system("apt-get update && apt-get install -y libespeak1")
 
+# [V12.10 Optimization] Enable CuDNN Benchmark for T4
+import torch
+if torch.cuda.is_available():
+    torch.backends.cudnn.benchmark = True
+    print("🚀 CuDNN Benchmark Enabled")
+
 # [FIX] 加入 pyttsx3 到 pip 安裝列表
 os.system("pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3")
 os.system("pip install -q --force-reinstall 'huggingface-hub<1.0'") # [V8.8 FIX] Pin version to satisfy transformers requirement
@@ -583,10 +589,12 @@ def inject_medical_risk(case_data):
             original_dose = case_data["drug"]["dose"]
             
             # V7 Fix: Only inject truly dangerous doses based on drug type
+            status = "HIGH_RISK"
             if "glucophage" in drug_lower or "metformin" in drug_lower:
                 # Metformin: Max 2550mg/day, but elderly with eGFR<45 should not exceed 1000mg
                 case_data["drug"]["dose"] = "2000mg"
-                reasoning = "⚠️ [AGS Beers Criteria 2023] 病患 88 歲，Metformin 2000mg 超過老年建議劑量上限 (eGFR<45 應≤1000mg)，增加乳酸中毒風險。"
+                reasoning = "⚠️ [AGS Beers Criteria] 偵測到 Metformin 高劑量，但缺少腎功能數據(eGFR)。請確認 eGFR > 30 mL/min 以確保安全。"
+                status = "MISSING_DATA"
             elif "lipitor" in drug_lower or "atorvastatin" in drug_lower:
                 # Atorvastatin: Max 80mg, but elderly often start at 10-20mg
                 case_data["drug"]["dose"] = "80mg"
@@ -604,9 +612,10 @@ def inject_medical_risk(case_data):
                     "timing_zh": u["text_zh"], "timing_en": u["text_en"],
                     "grid_time": u["grid_time"], "grid_food": u["grid_food"], "quantity": 56
                 }
-                reasoning = "⚠️ [AGS Beers Criteria 2023] 病患 88 歲，Metformin 2000mg 超過老年建議劑量上限，增加乳酸中毒風險。"
+                reasoning = "⚠️ [AGS Beers Criteria] 偵測到 Metformin 高劑量，但缺少腎功能數據(eGFR)。請確認 eGFR > 30 mL/min 以確保安全。"
+                status = "MISSING_DATA"
             
-            safety_check = {"status": "HIGH_RISK", "reasoning": reasoning}
+            safety_check = {"status": status, "reasoning": reasoning}
         
         # V7.1 NEW: Aspirin 分辨測試 (50% PASS, 50% HIGH_RISK)
         elif trap_type == "aspirin_check":
@@ -1121,7 +1130,7 @@ args = TrainingArguments(
     output_dir=OUTPUT_DIR,
     per_device_train_batch_size=1,
     per_device_eval_batch_size=1,
-    gradient_accumulation_steps=8,
+    gradient_accumulation_steps=4,
     num_train_epochs=3,
     learning_rate=1e-4,
     lr_scheduler_type="cosine",
