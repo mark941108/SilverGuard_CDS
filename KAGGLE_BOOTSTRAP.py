@@ -1,11 +1,13 @@
 """
 ================================================================================
-🏥 AI Pharmacist Guardian - Kaggle Bootstrap (V12.1 Golden Configuration)
+🏥 AI Pharmacist Guardian - Kaggle Bootstrap (V12.2 Platinum Stable)
 ================================================================================
-📋 戰略更新對應 (V12.1):
-   1. [STABILITY] 回歸 PyTorch 2.5.1 + Transformers 4.46 (工業界穩定版)。
-   2. [LOGIC]     修正 Metformin 判斷邏輯 (eGFR Check)。
-   3. [COMPLIANCE] 強化藥師法第 19 條標示。
+📋 戰略更新對應 (V12.2):
+   1. [CRITICAL] 強制鎖定 Transformers < 5.0.0。
+      原因：Transformers 5.0.0 引入了 Gemma 3 架構，強制要求 PyTorch >= 2.6.0。
+      為了維持 T4 穩定性 (使用 PyTorch 2.5.1)，必須禁止升級到 5.0。
+   2. [LOGIC] 維持 Metformin eGFR 檢查邏輯。
+   3. [COMPLIANCE] 維持藥師法第 19 條標示。
 ================================================================================
 """
 
@@ -19,7 +21,7 @@ import re
 from kaggle_secrets import UserSecretsClient
 
 print("=" * 80)
-print("🏥 AI Pharmacist Guardian - Bootstrap (V12.1 Golden Config)")
+print("🏥 AI Pharmacist Guardian - Bootstrap (V12.2 Platinum Stable)")
 print("=" * 80)
 
 # 1. 讀取金鑰
@@ -49,7 +51,7 @@ print("   ✅ Repository 下載完成")
 # ============================================================================
 # STEP 2: 執行「開腦手術」 (Critical Surgery) - 修復所有已知問題
 # ============================================================================
-print("\n[3/6] 正在對代碼進行外科手術 (V12.1 Logic Updates)...")
+print("\n[3/6] 正在對代碼進行外科手術 (V12.2 Logic Updates)...")
 
 target_file = "SilverGuard_Impact_Research_V8.py"
 
@@ -57,7 +59,7 @@ with open(target_file, "r", encoding="utf-8") as f:
     content = f.read()
 
 # --- 手術 A: 修正 Metformin 邏輯 (Hard Rule -> Missing Data) ---
-# 將 Metformin > 1000mg 的硬性 HIGH_RISK 警告改為 MISSING_DATA
+# 將 Metformin > 1000mg 的硬性 HIGH_RISK 警告改為 MISSING_DATA (如果尚未修改)
 if 'safety["status"] = "HIGH_RISK"' in content and 'Metformin > 1000mg' in content:
     print("   🔧 手術 A: 修正 Metformin 規則 (High Risk -> Missing Data)...")
     content = content.replace(
@@ -77,11 +79,16 @@ if "gradient_checkpointing=True" in content:
 content = re.sub(r"per_device_train_batch_size\s*=\s*\d+", "per_device_train_batch_size=1", content)
 content = re.sub(r"gradient_accumulation_steps\s*=\s*\d+", "gradient_accumulation_steps=8", content)
 
+# --- 手術 D: 修復縮排錯誤 (Extra Safety) ---
+# 針對 User 之前回報的 IndentationError 進行防禦性檢查
+# 雖然 User 說已經修復，但 Bootstrap 手術可能會再次觸發
+# 這裡我們不做 Blind Regex Replace，相信 Git Pull 下來的版本已經修復
+
 # 寫回檔案
 with open(target_file, "w", encoding="utf-8") as f:
     f.write(content)
 
-print("   ✅ V12.1 手術完成！")
+print("   ✅ V12.2 手術完成！")
 
 # %%
 # ============================================================================
@@ -92,9 +99,9 @@ print("\n[4/6] 清理衝突套件...")
 
 # %%
 # ============================================================================
-# STEP 4: 乾淨安裝 (The Pave) - V12.1 黃金依賴矩陣
+# STEP 4: 乾淨安裝 (The Pave) - V12.2 白金依賴矩陣
 # ============================================================================
-print("\n[5/6] 安裝黃金版本組合 (PyTorch 2.5.1 + Transformers 4.46)...")
+print("\n[5/6] 安裝白金版本組合 (PyTorch 2.5.1 + Transformers 4.x)...")
 
 # 1. 系統依賴
 !apt-get update -y && apt-get install -y libespeak1 libsndfile1 ffmpeg
@@ -103,10 +110,11 @@ print("\n[5/6] 安裝黃金版本組合 (PyTorch 2.5.1 + Transformers 4.46)...")
 print("   ⬇️ 安裝 PyTorch 2.5.1 Ecosystem...")
 !pip install --no-cache-dir torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
 
-# 3. Hugging Face Stack (Stable)
-print("   ⬇️ 安裝 Hugging Face Stack (Transformers 4.46+)...")
+# 3. Hugging Face Stack (PINNED VERSION)
+# 🔥 V12.2 CRITICAL FIX: 禁止安裝 Transformers 5.0+
+print("   ⬇️ 安裝 Hugging Face Stack (Forced Transformers 4.x)...")
 !pip install -U "huggingface-hub>=0.26.0"
-!pip install -U "transformers>=4.46.0"
+!pip install -U "transformers>=4.46.0,<5.0.0"
 !pip install -U accelerate bitsandbytes peft datasets
 
 # 4. RAG 與應用層
@@ -130,7 +138,7 @@ from huggingface_hub import login
 login(token=hf_token)
 
 print("\n" + "=" * 80)
-print("🚀 啟動 SilverGuard: Impact Research Edition (V12.1 Golden)")
+print("🚀 啟動 SilverGuard: Impact Research Edition (V12.2 Platinum)")
 print("=" * 80)
 
 # 執行
