@@ -40,7 +40,7 @@ To ensure transparency and "Intellectual Honesty," we disclose the following lim
     The model was trained primarily on **synthetic drug bag images** generated to mimic Taiwanese hospital standards. While we applied adversarial augmentation (Sim2Real techniques), performance on extremely noisy real-world images may vary.
 
 2.  **Limited Knowledge Base (POC Scope):**
-    The current safety logic is hardcoded for a **12-drug prototype** (representing major chronic diseases like Hypertension and Diabetes). It does not contain a comprehensive database of all FDA-approved drugs.
+    The current safety logic is hardcoded for a **17-drug prototype** (representing major chronic diseases like Hypertension and Diabetes). It does not contain a comprehensive database of all FDA-approved drugs.
 
 3.  **Language Specificity:**
     The model is heavily optimized for **Traditional Chinese** and English medical terminology used in Taiwan. Performance on other languages or scripts is untrained.
