@@ -1117,6 +1117,7 @@ except Exception as e:
 dataset = dataset.train_test_split(test_size=0.05)
 
 print("[4/5] Configuring training...")
+args = TrainingArguments(
     output_dir=OUTPUT_DIR,
     per_device_train_batch_size=1,
     per_device_eval_batch_size=1,
