@@ -1,6 +1,6 @@
 """
 ================================================================================
-🏥 AI Pharmacist Guardian - Kaggle Bootstrap Script
+🏥 AI Pharmacist Guardian - Kaggle Bootstrap Script (V9.0 Safe Mode)
 ================================================================================
 📋 使用方式：
    1. 在 Kaggle Notebook 中新建一個 Cell
@@ -22,7 +22,7 @@ from kaggle_secrets import UserSecretsClient
 import os
 
 print("=" * 80)
-print("🏥 AI Pharmacist Guardian - Kaggle Bootstrap")
+print("🏥 AI Pharmacist Guardian - Kaggle Bootstrap (V9.0)")
 print("=" * 80)
 
 # 讀取 Secrets
@@ -69,12 +69,15 @@ print("   ✅ Repository 下載完成")
 print("\n[3/4] 安裝依賴套件...")
 
 # 核心依賴
-!pip install -q -U "huggingface-hub<1.0" bitsandbytes peft accelerate datasets
+!pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets
 !pip install -q transformers>=4.50.0
 !pip install -q pillow==11.0.0 torchaudio librosa soundfile
 
-# 專案依賴
-!pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts
+# 專案依賴 (包含 V8 新增的依賴)
+!pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3 sentence-transformers faiss-cpu
+
+# [FIX] 系統依賴 (Linux) - 支援 pyttsx3 音訊合成
+!apt-get update -y && apt-get install -y libespeak1
 
 print("   ✅ 依賴安裝完成")
 

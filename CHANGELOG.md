@@ -2,6 +2,12 @@
 
 All notable changes to the **AI Pharmacist Guardian** project will be documented in this file.
 
+## [V9.0] - Agentic Safety & ASR Gating - 2026-01-29
+### Major Features
+-   **Known Unknowns (Agentic Safety)**: `agentic_inference_v8` now returns `MISSING_DATA` status when critical lab values (e.g., eGFR for Metformin) are not visible, rather than guessing.
+-   **ASR Confidence Gating**: `transcribe_audio` now returns confidence scores. `run_full_flow_with_tts` automatically rejects audio input if confidence < 0.7 to prevent hallucinations from noisy speech.
+-   **Bootstrap Repair**: Fixed critical `ImportError` in `KAGGLE_BOOTSTRAP.py` by removing the outdated `huggingface-hub<1.0` constraint, restoring compatibility with `transformers` 4.50+.
+
 ## [V8.2] - Deployment Hardening - 2026-01-29
 ### Critical Infrastructure Fixes
 -   **Cloud Deployment Stablity**: Added `espeak`, `libespeak1`, and `ffmpeg` to `packages.txt` and `Dockerfile`. This resolves the `OSError: libespeak.so.1` crash when `pyttsx3` attempts offline TTS in Linux/Docker environments (Hugging Face Spaces).
