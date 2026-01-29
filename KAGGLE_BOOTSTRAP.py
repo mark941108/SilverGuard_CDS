@@ -1,14 +1,14 @@
 """
 ================================================================================
-🏥 AI Pharmacist Guardian - Kaggle Bootstrap (V12.8 Omni-Nexus)
+🏥 AI Pharmacist Guardian - Kaggle Bootstrap (V12.10 Stability)
 ================================================================================
-📋 戰略更新對應 (V12.8 Final Fix):
-   1. [SMART SYNC] 優先使用本地上傳檔案 (Local Override Mode)。
-      解決：修正了「本地修改後，Bootstrap 卻從 GitHub 拉取舊版」的邏輯死循環。
-      如果偵測到 SilverGuard_Impact_Research_V8.py 存在，直接使用，不 Clone。
-   2. [STABILITY] 鎖定 2026 T4 黃金組合 (PyTorch 2.6.0 + cu118)。
-      解決：避免使用不穩定的 cu12x，改用最成熟的 cu118。
-   3. [SAFETY] 鎖定 Transformers 4.48+ (避開 5.0.0 早期風險)。
+📋 戰略更新對應 (V12.10 Hotfix):
+   1. [REVERT] 降級 Transformers 至 4.47.1。
+      原因：4.57.x 依然觸發 DryRunError，證明新版 API 與 huggingface-hub 不相容。
+      解決：回到 2025 年底最穩定的 4.47.1 版本。
+   2. [CLEANUP] 移除「手術刀邏輯 (Surgery)」。
+      原因：直接使用乾淨上傳的代碼，不進行 Runtime Regex Replace。
+      目的：消除因 Regex 匹配失敗導致的潛在錯誤。
 ================================================================================
 """
 
@@ -18,12 +18,12 @@
 # ============================================================================
 import os
 import sys
-import shutil # Added for Smart Sync
+import shutil 
 import re
 from kaggle_secrets import UserSecretsClient
 
 print("=" * 80)
-print("🏥 AI Pharmacist Guardian - Bootstrap (V12.8 Omni-Nexus)")
+print("🏥 AI Pharmacist Guardian - Bootstrap (V12.10 Stability)")
 print("=" * 80)
 
 # 1. 讀取金鑰
@@ -85,57 +85,11 @@ print(f"   📂 當前工作目錄: {os.getcwd()}")
 
 # %%
 # ============================================================================
-# STEP 2: 執行「開腦手術」 (Critical Surgery) - 修復所有已知問題
+# STEP 2: (SKIPPED) 移除手術刀邏輯 - 直接使用乾淨代碼
 # ============================================================================
-print("\n[3/6] 正在對代碼進行外科手術 (V12.2 Logic Updates)...")
-
-target_file = "SilverGuard_Impact_Research_V8.py"
-
-with open(target_file, "r", encoding="utf-8") as f:
-    content = f.read()
-
-# --- 手術 A: 修正 Metformin 邏輯 (Hard Rule -> Missing Data) ---
-# 將 Metformin > 1000mg 的硬性 HIGH_RISK 警告改為 MISSING_DATA (如果尚未修改)
-if 'safety["status"] = "HIGH_RISK"' in content and 'Metformin > 1000mg' in content:
-    print("   🔧 手術 A: 修正 Metformin 規則 (High Risk -> Missing Data)...")
-    content = content.replace(
-        'safety["status"] = "HIGH_RISK"',
-        'safety["status"] = "MISSING_DATA"'
-    ).replace(
-        'safety["reasoning"] = "⚠️ [System Hard Rule] Metformin 每日劑量超過 1000mg，對於腎功能衰退的老年人具有高度乳酸中毒風險。"',
-        'safety["reasoning"] = "⚠️ [AGS Beers Criteria] 偵測到 Metformin 高劑量，但缺少腎功能數據(eGFR)。請確認 eGFR > 30 mL/min 以確保安全。"'
-    )
-
-# --- 手術 B: 解除死鎖 (Disable Gradient Checkpointing) ---
-# 使用 Regex 強制關閉，解決 PyTorch 2.6 的潛在 Deadlock 問題
-if re.search(r"gradient_checkpointing\s*=\s*True", content):
-    print("   🔧 手術 B: 強制關閉 Gradient Checkpointing (Fix Deadlock)...")
-    content = re.sub(r"gradient_checkpointing\s*=\s*True", "gradient_checkpointing=False", content)
-
-# --- 手術 C: 防止 OOM (Reduce Batch Size) ---
-# --- 手術 C: 防止 OOM (Reduce Batch Size) ---
-content = re.sub(r"per_device_train_batch_size\s*=\s*\d+", "per_device_train_batch_size=1", content)
-content = re.sub(r"gradient_accumulation_steps\s*=\s*\d+", "gradient_accumulation_steps=4", content)
-
-# --- 手術 E: 硬體加速 (CuDNN Benchmark) ---
-if "torch.backends.cudnn.benchmark" not in content:
-    print("   🔧 手術 E: 啟用 CuDNN Benchmark (Hardware Optimization)...")
-    # 在 import torch 之後插入（假設文件開頭有 import，或者我們插入在開頭附近）
-    # 更安全的方法是找個穩定的插入點，例如在 STEP 0 或 STEP 1 的 log 之後，或者直接在開頭 import block 後
-    # 這裡我們選擇直接在 main block 開始處插入，或替換一個已知的行
-    # 簡單暴力：在 content 開頭加入
-    content = "import torch\ntorch.backends.cudnn.benchmark = True\n" + content
-
-# --- 手術 D: 修復縮排錯誤 (Extra Safety) ---
-# 針對 User 之前回報的 IndentationError 進行防禦性檢查
-# 雖然 User 說已經修復，但 Bootstrap 手術可能會再次觸發
-# 這裡我們不做 Blind Regex Replace，相信 Git Pull 下來的版本已經修復
-
-# 寫回檔案
-with open(target_file, "w", encoding="utf-8") as f:
-    f.write(content)
-
-print("   ✅ V12.2 手術完成！")
+print("\n[3/6] Skipping Surgery (Using Clean Code V8)...")
+# 原本這裡有 Regex Replace 代碼，現已移除以確保穩定性。
+# 請確保上傳的 SilverGuard_Impact_Research_V8.py 已經包含正確的 eGFR 邏輯。
 
 # %%
 # ============================================================================
@@ -163,10 +117,11 @@ print("   ☢️ 清理衝突套件...")
 print("   ⬇️ 安裝 PyTorch 2.6.0 Ecosystem (CUDA 11.8)...")
 !pip install --no-cache-dir torch==2.6.0+cu118 torchvision==0.21.0+cu118 torchaudio==2.6.0+cu118 --index-url https://download.pytorch.org/whl/cu118
 
-# 4. Hugging Face Stack (鎖定穩定版)
-# 建議使用 4.48+ 以支援 Gemma 3 架構，避開剛發布的 5.0.0 潛在 bug
-print("   ⬇️ 安裝 Hugging Face Stack...")
-!pip install -U "huggingface-hub>=0.27.0" "transformers>=4.48.0,<5.0.0" accelerate bitsandbytes peft datasets
+# 4. Hugging Face Stack (鎖定 4.47.1 舊版穩定)
+# 原因: 4.57+ 和 5.0.0 都與 huggingface_hub 0.36 有相容性問題 (DryRunError)
+# 解決: 回退到 4.47.1 (2025 Late Stable)，這是最安全的選擇
+print("   ⬇️ 安裝 Hugging Face Stack (Legacy Stable)...")
+!pip install -U "huggingface-hub>=0.27.0" "transformers==4.47.1" accelerate bitsandbytes peft datasets
 
 # 5. 應用層依賴 (RAG, Vision, Audio)
 print("   ⬇️ 安裝應用層依賴...")
@@ -187,7 +142,7 @@ from huggingface_hub import login
 login(token=hf_token)
 
 print("\n" + "=" * 80)
-print("🚀 啟動 SilverGuard: Impact Research Edition (V12.8 Omni-Nexus)")
+print("🚀 啟動 SilverGuard: Impact Research Edition (V12.10 Stability)")
 print("=" * 80)
 
 # 執行
