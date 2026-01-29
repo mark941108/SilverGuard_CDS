@@ -68,13 +68,17 @@ print("   ✅ Repository 下載完成")
 # ============================================================================
 print("\n[3/4] 安裝依賴套件...")
 
-# 核心依賴
-!pip install -q -U huggingface-hub bitsandbytes peft accelerate datasets
-!pip install -q transformers>=4.50.0
-!pip install -q pillow==11.0.0 torchaudio librosa soundfile
-
-# 專案依賴 (包含 V8 新增的依賴)
-!pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3 sentence-transformers faiss-cpu
+# 📦 安裝全部依賴 (合併為單一指令以確保版本解析正確)
+# [CRITICAL] 必須一次性安裝所有套件，避免分次安裝導致的各種版本衝突 (如 huggingface-hub vs sentence-transformers)
+!pip uninstall -y huggingface-hub
+!pip install -q -U \
+    huggingface-hub \
+    "transformers>=4.50.0" \
+    bitsandbytes peft accelerate datasets \
+    "pillow==11.0.0" torchaudio librosa soundfile \
+    qrcode[pil] "albumentations==1.3.1" opencv-python-headless \
+    gTTS edge-tts nest_asyncio pyttsx3 \
+    sentence-transformers faiss-cpu
 
 # [FIX] 系統依賴 (Linux) - 支援 pyttsx3 音訊合成
 !apt-get update -y && apt-get install -y libespeak1
