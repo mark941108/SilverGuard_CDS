@@ -11,6 +11,8 @@ We take patient privacy seriously. This project is architected as an **Edge AI**
 *   **Ephemeral Storage:** RAM is cleared after each inference session. We do not persist patient data on the device storage unless explicitly configured for local logging (which is disabled by default).
 
 > **Verification:** You can verify this behavior by running the application in an offline environment (air-gapped). The core inference pipeline remains fully functional.
+>
+> *Note: For demonstration purposes, the default configuration ("Demo Mode") may utilize cloud APIs (e.g., gTTS, OpenFDA) for enhanced UX. Production deployments must explicitly set `OFFLINE_MODE=True` to enforce the air-gapped security boundary described above.*
 
 ## 🐛 Reporting a Vulnerability
 

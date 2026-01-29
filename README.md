@@ -388,13 +388,13 @@ Attempt 2 (Temp 0.2): "Drug: Glucophage, Dosage: 500mg"
 
 ### Efficient PEFT Fine-Tuning (LoRA)
 - **Volume**: 600 synthetic drug bag images
-- **Diversity**: **13 Drug Types** across 6 categories (Hypertension, Diabetes, Cardiac, etc.)
+- **Diversity**: **17 Distinct Medications** across 6 chronic disease categories (Hypertension, Diabetes, Cardiac, Gastric, CNS, Lipid).
 - **Risk Injection**: **4 Risk Patterns** (Elderly Overdose, Wrong Timing, Drug Interaction, Renal Risk)
 - **Augmentation**: Albumentations (Perspective, Rotate, Brightness, Noise)
 
 > **⚠️ Sim2Real Gap Acknowledgment (Critical Limitation):** This model is trained **exclusively on synthetic data** (programmatically generated images). However, we have upgraded the generator to strictly follow the **Taiwan Pharmacist Act (藥師法)** labeling standards—including **Noto Sans CJK TC fonts**, **Dispensing Date**, and **Drug Appearance** fields—to maximize structural realism. The features "Appearance" and "Chart No" are now included to match hospital standards.
 
-> **📚 Prototype Scope (12 Drugs Only):** The `DRUG_DATABASE` contains only **12 medications** across 6 categories. This is a **deliberate POC (Proof of Concept) design**, not a production system. If an unknown drug is encountered, the Mock-RAG will return "NOT_FOUND" and trigger human review. In production (Phase 4), this local dictionary would be replaced by real-time queries to RxNorm/Micromedex APIs. We prioritize demonstrating the *safety architecture* over knowledge breadth—the pipeline correctly *admits its limitations* rather than inventing answers.
+> **📚 Prototype Scope (17 Drugs):** The `DRUG_DATABASE` contains **17 representative medications** across 6 categories. This is a **deliberate POC (Proof of Concept) design**, not a production system. If an unknown drug is encountered, the RAG system (Hybrid Vector/Mock) will return "NOT_FOUND" and trigger human review. In production (Phase 4), this local dictionary would be replaced by real-time queries to RxNorm/Micromedex APIs. We prioritize demonstrating the *safety architecture* over knowledge breadth—the pipeline correctly *admits its limitations* rather than inventing answers.
 
 ### Model Configuration
 | Parameter | Value |
@@ -587,8 +587,10 @@ To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disc
 *   **Why?**: This prevents "Hallucination Loops". If the model argues that "Cyanide is safe", the Symbolic Layer overrides it. We define "Agentic" as the *interaction* between these two systems (Retry Loop), not just the Neural network itself.
 
 ### 3. RAG Knowledge Base Scope
-*   **Proof of Concept**: The "Clinical Knowledge Base" is currently a local vector store containing **7 representative drugs** (Metformin, Zolpidem, Aspirin, etc.) to demonstrate the *search-and-retrieve* architecture.
-*   **Limit**: Queries for drugs outside this set will trigger a "General Logic Check" rather than a specific literature review.
+*   **Proof of Concept**: The "Clinical Knowledge Base" utilizes a **Hybrid Strategy**.
+    *   **Edge/Demo**: A lightweight **Mock-RAG (Dictionary/Fuzzy Match)** or **Local FAISS** is used for zero-latency, offline-capable demonstration.
+    *   **Production Goal**: Scalable Vector Database (ChromaDB) indexing millions of drugs.
+*   **Current Limit**: Contains **17 representative drugs**. Queries for drugs outside this set will trigger a "General Logic Check" rather than a specific literature review.
 
 ---
 
