@@ -1335,6 +1335,44 @@ def get_confidence_status(confidence, predicted_status="UNKNOWN"):
     else:
         return "LOW_CONFIDENCE", f"⚠️ Unsure ({confidence:.1%}) -> ESCALATE"
 
+def normalize_dose_to_mg(dose_str):
+    """
+    🧪 Helper: Normalize raw dosage string to milligrams (mg)
+    Handles: "500 mg", "0.5 g", "1000 mcg"
+    Returns: (float_value_in_mg, is_valid_conversion)
+    """
+    import re
+    if not dose_str: return 0.0, False
+    
+    try:
+        # Lowercase and remove whitespace
+        s = dose_str.lower().replace(" ", "")
+        
+        # Regex to find number + unit
+        match = re.search(r'([\d\.]+)(mg|g|mcg|ug)', s)
+        if not match:
+             # Fallback: finding just numbers might be risky, assume not analyzable
+             # But if string is just "500", assume mg? No, safer to fail.
+             # Wait, logic check uses just number if > 1000. 
+             # Let's try to parse just the number if no unit found, but flag as raw.
+             # Actually, for safety, strictly require unit or assume mg if number looks like common pills?
+             # Let's stick to strict unit parsing for conversions.
+             nums = re.findall(r'\d+', s)
+             if nums: return float(nums[0]), False # Raw number, unsure unit
+             return 0.0, False
+
+        value = float(match.group(1))
+        unit = match.group(2)
+        
+        if unit == 'g':
+            return value * 1000.0, True
+        elif unit in ['mcg', 'ug']:
+            return value / 1000.0, True
+        else: # mg
+            return value, True
+    except:
+        return 0.0, False
+
 def logical_consistency_check(extracted_data, safety_analysis):
     """
     Logical Consistency Check (Rule-Based) - V6 版本
@@ -1363,22 +1401,18 @@ def logical_consistency_check(extracted_data, safety_analysis):
             issues.append(f"非預期兒童年齡: {age}歲 → 需人工確認")
         # 老人用藥需特別注意
         if age > 80:
-            dose = extracted_data.get("drug", {}).get("dose", "")
-            # V6.3 FIX: 優先抓取單位 (mg/g/mcg) 前面的數字
-            # 修正：避免 "2 tablets of 500mg" 抓到 "2" 而非 "500"
-            dose_match = re.search(r'(\d+)\s*(?:mg|g|mcg)', dose, re.IGNORECASE)
+            dose_str = extracted_data.get("drug", {}).get("dose", "")
             
-            if dose_match:
-                dose_value = int(dose_match.group(1))
-                # V7.2 FIX: 完整單位換算 (mg/g/mcg/ug)
-                # mcg/ug (微克) = mg / 1000，不應誤殺 "Vitamin B12 1000mcg"
-                if re.search(r'\d+\s*(mcg|ug)', dose, re.IGNORECASE):
-                    dose_value /= 1000  # 1000mcg = 1mg，安全劑量
-                elif re.search(r'\d+\s*g(?!m)', dose, re.IGNORECASE):  # g but not gm/gram
-                    dose_value *= 1000  # 1g = 1000mg
-                # 只有 >= 1000mg 才是真正的高劑量警示 (e.g., Metformin 1000mg)
-                if dose_value >= 1000:
-                    issues.append(f"老人高劑量警示: {age}歲 + {dose}")
+            # [REFACTORED] Use normalize_dose_to_mg
+            mg_val, is_valid_unit = normalize_dose_to_mg(str(dose_str))
+            
+            # Risk Logic: Metformin > 1000mg is absolute daily max for frail elderly.
+            # Usually single pill max is 1000mg. Daily dose matters more.
+            # But let's assume if single pill > 1000mg (unlikely) or if context implies high daily
+            # Here we alert on high pill strength.
+            if mg_val >= 1000:
+                 issues.append(f"老人高劑量警示: {age}歲 + {dose_str} (={mg_val}mg)")
+                 
     except (ValueError, TypeError):
         pass
     
@@ -1391,16 +1425,6 @@ def logical_consistency_check(extracted_data, safety_analysis):
     except (KeyError, TypeError):
         pass
     
-    # 3. V6 NEW: Mock-RAG Drug Validation (REMOVED for Agentic Purity)
-    # [STRATEGIC REFACTOR] 
-    # Logic: We no longer peek at the Dictionary (Ground Truth) here.
-    # Validation is now delegated to the "System 2" Agentic Loop which queries
-    # the Vector RAG. If the drug is unknown/incorrect, the regex checks above
-    # or the subsequent confidence check will catch it.
-    
-    # <--- DICTIONARY LOOKUP REMOVED --->
-
-    
     # 4. Safety Analysis 與 Extracted Data 一致性
     status = safety_analysis.get("status", "")
     reasoning = safety_analysis.get("reasoning", "")
@@ -1409,6 +1433,11 @@ def logical_consistency_check(extracted_data, safety_analysis):
     if status == "HIGH_RISK" and drug_name and drug_name.lower() not in reasoning.lower():
         issues.append("推理內容未提及藥名")
     
+    # [V12.16 New] Article 19 Check
+    if status == "INVALID_FORMAT":
+         # If model says invalid format, we shouldn't fail logic check, unless reasoning is empty
+         pass
+
     if issues:
         # V6.4 FIX: Critical Safety - Do NOT retry on unknown drugs (Infinite Loop Trap)
         if any("藥物未在知識庫中" in issue for issue in issues):
@@ -1856,23 +1885,17 @@ def agentic_inference(model, processor, img_path, verbose=True):
                 dose_val = ex_dg.get("dose", "0")
                 
                 if age_val >= 80 and ("glucophage" in raw_txt or "metformin" in raw_txt):
-                    # V8.1 Fix: Use Regex Math instead of String Matching
-                    # Logic: "1000mg BID" -> 2000mg total. "500mg TID" -> 1500mg total.
-                    # Simple heuristic: Look for dose numbers > 1000 OR (dose >= 500 AND usage implies >2 times)
-                    # But for absolute safety, we just look for high numbers in dose string
-                    # Or rely on the "dose_val" which is just a string from extraction
+                    # V12.16 Audit Fix: Use normalize_dose_to_mg for robust check
+                    # Logic: "2g" -> 2000mg -> Trigger. "500 mg" -> 500 -> Safe.
                     
-                    # Better Hard Rule: Extract all numbers from dose string
-                    nums = [int(n) for n in re.findall(r'\d+', dose_val)]
-                    # If any single pill is > 1000mg (rare for Metformin, usually max 1000)
-                    is_overdose = any(n > 1000 for n in nums)
+                    mg_val, is_valid_unit = normalize_dose_to_mg(dose_val)
                     
-                    # Or check for "2000" explicitly again as a fallback, but also check total if possible?
-                    # Let's keep it robust: If "2000" literal exists OR if single dose > 1000
-                    if "2000" in dose_val or is_overdose:
-                         parsed_json["safety_analysis"]["status"] = "PHARMACIST_REVIEW_REQUIRED" # V8.1 Update Label
-                         parsed_json["safety_analysis"]["reasoning"] = "⛔ HARD RULE TRIGGERED: Geriatric Max Dose Exceeded (80yr+ & Metformin > 1000mg)"
-                         if verbose: print(f"   🛑 [HARD RULE] Force-flagged HIGH_RISK for Geriatric Safety")
+                    # Hard Rule Trigger: >1000mg or explicit dangerous strings
+                    # Note: 2g = 2000mg > 1000mg => True
+                    if mg_val > 1000 or "2000" in str(dose_val):
+                         parsed_json["safety_analysis"]["status"] = "PHARMACIST_REVIEW_REQUIRED" 
+                         parsed_json["safety_analysis"]["reasoning"] = f"⛔ HARD RULE TRIGGERED: Geriatric Max Dose Exceeded (80yr+ & Metformin {mg_val}mg > 1000mg)"
+                         if verbose: print(f"   🛑 [HARD RULE] Force-flagged HIGH_RISK for Geriatric Safety (Dose={mg_val}mg)")
             except:
                 pass # 避免硬規則導致 crash
             
