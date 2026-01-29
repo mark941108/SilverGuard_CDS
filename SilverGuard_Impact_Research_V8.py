@@ -1083,7 +1083,7 @@ model = AutoModelForImageTextToText.from_pretrained(
     device_map="auto", torch_dtype=torch.float16, trust_remote_code=True
 )
 
-model.gradient_checkpointing_enable()
+# model.gradient_checkpointing_enable()
 model = prepare_model_for_kbit_training(model)
 model.enable_input_require_grads()
 model.config.use_cache = False
@@ -1117,18 +1117,17 @@ except Exception as e:
 dataset = dataset.train_test_split(test_size=0.05)
 
 print("[4/5] Configuring training...")
-args = TrainingArguments(
     output_dir=OUTPUT_DIR,
     per_device_train_batch_size=1,
     per_device_eval_batch_size=1,
-    gradient_accumulation_steps=4,
+    gradient_accumulation_steps=8,
     num_train_epochs=3,
     learning_rate=1e-4,
     lr_scheduler_type="cosine",
     warmup_ratio=0.1,
     optim="paged_adamw_8bit",
     bf16=False, fp16=True,
-    gradient_checkpointing=True,
+    gradient_checkpointing=False,
     save_strategy="epoch",
     eval_strategy="epoch",
     save_total_limit=2,
