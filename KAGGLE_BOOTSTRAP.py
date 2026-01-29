@@ -1,14 +1,11 @@
-"""
 ================================================================================
-🏥 AI Pharmacist Guardian - Kaggle Bootstrap (V12.10 Stability)
+🏥 AI Pharmacist Guardian - Kaggle Bootstrap (V12.13 Gemma 3 Fix)
 ================================================================================
-📋 戰略更新對應 (V12.10 Hotfix):
-   1. [REVERT] 降級 Transformers 至 4.47.1。
-      原因：4.57.x 依然觸發 DryRunError，證明新版 API 與 huggingface-hub 不相容。
-      解決：回到 2025 年底最穩定的 4.47.1 版本。
-   2. [CLEANUP] 移除「手術刀邏輯 (Surgery)」。
-      原因：直接使用乾淨上傳的代碼，不進行 Runtime Regex Replace。
-      目的：消除因 Regex 匹配失敗導致的潛在錯誤。
+📋 戰略更新對應 (V12.13 Hotfix):
+   1. [UPGRADE] 升級 Transformers 至 >= 4.51.0 (支援 Gemma 3)。
+      原因：MedGemma 1.5 使用 Gemma 3 架構，舊版 4.47.1 發生 Model Type Error。
+      風險管理：DryRunError 預期已由 V8.py 的 pip 禁用 (Silence Internal Pip) 解決。
+   2. [CLEANUP] 保持移除「手術刀邏輯」。
 ================================================================================
 """
 
@@ -23,7 +20,7 @@ import re
 from kaggle_secrets import UserSecretsClient
 
 print("=" * 80)
-print("🏥 AI Pharmacist Guardian - Bootstrap (V12.10 Stability)")
+print("🏥 AI Pharmacist Guardian - Bootstrap (V12.13 Gemma 3 Fix)")
 print("=" * 80)
 
 # 1. 讀取金鑰
@@ -117,11 +114,11 @@ print("   ☢️ 清理衝突套件...")
 print("   ⬇️ 安裝 PyTorch 2.6.0 Ecosystem (CUDA 11.8)...")
 !pip install --no-cache-dir torch==2.6.0+cu118 torchvision==0.21.0+cu118 torchaudio==2.6.0+cu118 --index-url https://download.pytorch.org/whl/cu118
 
-# 4. Hugging Face Stack (鎖定 4.47.1 舊版穩定)
-# 原因: 4.57+ 和 5.0.0 都與 huggingface_hub 0.36 有相容性問題 (DryRunError)
-# 解決: 回退到 4.47.1 (2025 Late Stable)，這是最安全的選擇
-print("   ⬇️ 安裝 Hugging Face Stack (Legacy Stable)...")
-!pip install -U "huggingface-hub>=0.27.0" "transformers==4.47.1" accelerate bitsandbytes peft datasets
+# 4. Hugging Face Stack (升級支援 Gemma 3)
+# 原因: Gemma 3 架構需要最新版 Transformers (>=4.51.0)
+# 修正: 不再鎖定 4.47.1，改為安裝最新穩定版
+print("   ⬇️ 安裝 Hugging Face Stack (Gemma 3 Support)...")
+!pip install -U "huggingface-hub>=0.29.0" "transformers>=4.51.0" accelerate bitsandbytes peft datasets
 
 # 5. 應用層依賴 (RAG, Vision, Audio)
 print("   ⬇️ 安裝應用層依賴...")
@@ -142,7 +139,7 @@ from huggingface_hub import login
 login(token=hf_token)
 
 print("\n" + "=" * 80)
-print("🚀 啟動 SilverGuard: Impact Research Edition (V12.10 Stability)")
+print("🚀 啟動 SilverGuard: Impact Research Edition (V12.13 Gemma 3 Fix)")
 print("=" * 80)
 
 # 執行
