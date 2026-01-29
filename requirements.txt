@@ -2,12 +2,12 @@
 # For Kaggle V5 Training Pipeline
 
 # Core ML (Enforce recent versions for Gemma 3 architecture)
-transformers>=4.50.0
+transformers>=4.51.0
 accelerate>=0.26.0
 bitsandbytes>=0.43.0
 peft>=0.10.0
 datasets
-huggingface_hub
+huggingface_hub>=0.29.0
 
 # RAG Knowledge Base (S-Tier Upgrade)
 sentence-transformers
