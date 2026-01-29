@@ -21,6 +21,12 @@ import pyttsx3 # V7.5 FIX: Missing Import
 # It loads the fine-tuned adapter from Hugging Face Hub (Bonus 1) and runs inference.
 # ============================================================================
 
+# [SECURITY] V12.15 Hardening: Dependency Hell Prevention
+# Explicitly check for critical external modules before starting the app.
+if not os.path.exists("medgemma_data.py"):
+    raise RuntimeError("❌ CRITICAL: 'medgemma_data.py' is missing! Please upload it to Hugging Face Files.")
+print("✅ Dependency Check: medgemma_data.py found.")
+
 # 1. Configuration
 HF_TOKEN = os.environ.get("HUGGINGFACE_TOKEN")
 BASE_MODEL = "google/medgemma-1.5-4b-it"
@@ -66,6 +72,24 @@ except Exception as e:
 # ============================================================================
 # Global pipeline removed to save memory. Loaded on-demand in transcribe_audio().
 
+# [SECURITY] V12.15 Hardening: Global Lazy Loading (Singleton)
+# Prevents "Suicidal Reloading" on every request.
+MEDASR_PIPELINE = None
+
+def get_medasr_pipeline():
+    global MEDASR_PIPELINE
+    if MEDASR_PIPELINE is None:
+        print("⏳ [LazyLoad] Initializing MedASR Pipeline (One-time)...")
+        from transformers import pipeline
+        MEDASR_PIPELINE = pipeline(
+            "automatic-speech-recognition",
+            model="google/medasr",
+            token=HF_TOKEN,
+            device="cpu", 
+            torch_dtype=torch.float32
+        )
+    return MEDASR_PIPELINE
+
 @spaces.GPU(duration=30)
 def transcribe_audio(audio_path, expected_lang="en"):
     """
@@ -83,31 +107,27 @@ def transcribe_audio(audio_path, expected_lang="en"):
     import re
     
     try:
-        logs.append("⏳ [LazyLoad] Loading Primary Model: google/medasr...")
-        from transformers import pipeline
+    
+    try:
+        logs.append("⏳ [LazyLoad] Accessing MedASR Model...")
         import librosa
         
-        # Load Model (CPU-only to save VRAM)
-        medasr = pipeline(
-            "automatic-speech-recognition",
-            model="google/medasr",
-            token=HF_TOKEN,
-            device="cpu", 
-            torch_dtype=torch.float32
-        )
+        # [SECURITY] V12.15 Hardening: Use Global Single Instance
+        medasr = get_medasr_pipeline()
         
         # Inference
         audio, sr = librosa.load(audio_path, sr=16000)
         result = medasr({"array": audio, "sampling_rate": 16000})
         transcription = result.get("text", "")
         
-        logs.append(f"🎤 [MedASR] Raw Output: \"{transcription}\"")
+        # [SECURITY] V12.15 Hardening: Privacy Log Masking (HIPAA)
+        masked_log = transcription[:2] + "***" if len(transcription) > 2 else "***"
+        logs.append(f"🎤 [MedASR] Transcript captured (Length: {len(transcription)} chars). Content: {masked_log}")
         
-        # Cleanup
-        del medasr
-        gc.collect()
-        torch.cuda.empty_cache()
-        logs.append("🧹 [LazyLoad] MedASR resources released.")
+        # Cleanup (No longer deleting model, just clearing temp vars)
+        del audio
+        # gc.collect() # Not needed for global persistence
+        # torch.cuda.empty_cache()
         
         # --- AGENTIC FALLBACK LOGIC ---
         # Heuristic: If we expect traditional Chinese (zh-TW) but MedASR gave us English (ASCII),
