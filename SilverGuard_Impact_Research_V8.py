@@ -146,10 +146,11 @@ if torch.cuda.is_available():
     print("🚀 CuDNN Benchmark Enabled")
 
 # [FIX] 加入 pyttsx3 到 pip 安裝列表
-os.system("pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3")
-os.system("pip install -q --force-reinstall 'huggingface-hub<1.0'") # [V8.8 FIX] Pin version to satisfy transformers requirement
-os.system("pip install -q -U bitsandbytes peft accelerate datasets transformers>=4.50.0 sentence-transformers faiss-cpu")
-os.system("pip install -q pillow==11.0.0 torchaudio librosa soundfile")
+# [FIX] Bootstrap Script handles environment. Disabling internal pip installs to prevent version conflicts.
+# os.system("pip install -q qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3")
+# os.system("pip install -q --force-reinstall 'huggingface-hub<1.0'") 
+# os.system("pip install -q -U bitsandbytes peft accelerate datasets transformers>=4.50.0 sentence-transformers faiss-cpu")
+# os.system("pip install -q pillow==11.0.0 torchaudio librosa soundfile")
 
 # %%
 # ===== 驗證安裝並登入 =====
@@ -849,7 +850,7 @@ def main_cell2():
     OUTPUT_DIR_V5 = Path("./medgemma_training_data_v5")
     OUTPUT_DIR_V5.mkdir(exist_ok=True, parents=True)
     dataset = []
-    stats = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0}
+    stats = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0, "MISSING_DATA": 0}
     
     print(f"\n{'='*60}")
     print(f"🏭 MedSimplifier V5 Data Factory (Impact Edition)")
@@ -919,6 +920,7 @@ def main_cell2():
     print(f"   🟢 PASS: {stats['PASS']}")
     print(f"   🟡 WARNING: {stats['WARNING']}")
     print(f"   🔴 HIGH_RISK: {stats['HIGH_RISK']}")
+    print(f"   ❓ MISSING_DATA: {stats['MISSING_DATA']}")
     print(f"{'='*60}")
 
 if __name__ == "__main__":
@@ -2032,7 +2034,7 @@ def main_cell4():
         f"{BASE_DIR}/medgemma_v5_0550.png",
     ]
     
-    results = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0, "HUMAN_REVIEW": 0, "REJECTED": 0}
+    results = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0, "MISSING_DATA": 0, "HUMAN_REVIEW": 0, "REJECTED": 0}
     
     for img_path in test_images:
         if not os.path.exists(img_path):
@@ -2049,6 +2051,8 @@ def main_cell4():
             results["HIGH_RISK"] += 1
         elif final == "HUMAN_REVIEW_NEEDED":
             results["HUMAN_REVIEW"] += 1
+        elif final == "MISSING_DATA":
+            results["MISSING_DATA"] += 1
         else:
             results["REJECTED"] += 1
     
@@ -2058,8 +2062,9 @@ def main_cell4():
     print(f"🟢 PASS: {results['PASS']}")
     print(f"🟡 WARNING: {results['WARNING']}")
     print(f"🔴 HIGH_RISK: {results['HIGH_RISK']}")
-    print(f"❓ HUMAN REVIEW: {results['HUMAN_REVIEW']}")
-    print(f"❌ REJECTED: {results['REJECTED']}")
+    print(f"   ❓ MISSING_DATA: {results['MISSING_DATA']}")
+    print(f"   ❓ HUMAN REVIEW: {results['HUMAN_REVIEW']}")
+    print(f"   ❌ REJECTED: {results['REJECTED']}")
     
     total = sum(results.values())
     # Autonomy Rate: Percentage of cases handled WITHOUT human review (Pass + Warning + High Risk) / Total
