@@ -3230,8 +3230,8 @@ def transcribe_audio(audio_path):
     except Exception as e:
         return f"Error: {e}", False, 0.0
 
-# 2. OpenFDA Agentic Tool
-def check_drug_interaction(drug_a, drug_b):
+# 2. Offline Safety Knowledge Graph (Sandbox Mode)
+def offline_safety_knowledge_graph(drug_a, drug_b):
     if not drug_a or not drug_b: return "⚠️ Enter two drugs."
     
     # Simple Alias Check (Reuse global or define local)
@@ -3434,9 +3434,9 @@ def launch_agentic_app():
                         # Rule 1: Metformin > 1000mg for Elderly
                         if "metformin" in drug_name or "glucophage" in drug_name:
                             if dose_val > 1000: # Strict limit for elderly (eGFR proxy)
-                                print("   🛡️ [HARD RULE] Triggered: Metformin > 1000mg detected. Forcing HIGH_RISK.")
-                                safety["status"] = "HIGH_RISK"
-                                safety["reasoning"] = "⚠️ [System Hard Rule] Metformin 每日劑量超過 1000mg，對於腎功能衰退的老年人具有高度乳酸中毒風險。"
+                                print("   🛡️ [HARD RULE] Triggered: Metformin > 1000mg detected. Forcing MISSING_DATA (eGFR Check).")
+                                safety["status"] = "MISSING_DATA"
+                                safety["reasoning"] = "⚠️ [AGS Beers Criteria] 偵測到 Metformin 高劑量，但缺少腎功能數據(eGFR)。請確認 eGFR > 30 mL/min 以確保安全。"
                                 parsed_json["safety_analysis"] = safety # Update JSON
                     except Exception as e:
                         print(f"   ⚠️ Hard Rule Check Warning: {e}")
