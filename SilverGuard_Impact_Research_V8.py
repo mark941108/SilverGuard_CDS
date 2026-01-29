@@ -1417,6 +1417,26 @@ def logical_consistency_check(extracted_data, safety_analysis):
     
     if issues: return False, f"Schema Error: {'; '.join(issues)}"
     
+    # 0. [Audit Fix] Unknown Drug Interception (The "Reality Gap" Fix)
+    # Check against local DB (Source of Truth) to prevent hallucinating safety for unknown drugs
+    drug_name = extracted_data.get("drug", {}).get("name", "")
+    if drug_name:
+        found_in_db = False
+        target = drug_name.lower().strip()
+        # Check aliases
+        if target in DRUG_ALIASES: target = DRUG_ALIASES[target]
+        
+        # Simple exact/partial match
+        for cat, drugs in _SYNTHETIC_DATA_GEN_SOURCE.items():
+            for d in drugs:
+                if target in d["name_en"].lower() or target in d["generic"].lower():
+                    found_in_db = True
+                    break
+            if found_in_db: break
+        
+        if not found_in_db:
+             issues.append(f"Drug not in knowledge base: {drug_name} (Unknown Drug Interception)")
+    
     # 1. 年齡合理性
     try:
         age = int(extracted_data.get("patient", {}).get("age", 0))
@@ -2498,8 +2518,8 @@ def json_to_elderly_speech(result_json):
 這包「{friendly_drug}」上面的劑量寫著 {dose}，
 機器人查了一下資料，覺得跟一般老人家用的習慣不太一樣。
 
-👉 為了安全起見，這包藥我們先放旁邊，
-麻煩您拿給藥局的哥哥姊姊看一下，確認沒問題我們再吃，好不好？
+👉 為了安全起見，建議您先不要服用，
+可以拿給藥局的哥哥姊姊重新確認一下，這樣比較安心喔！
 {disclaimer}
 """
         elif status in ["WARNING", "ATTENTION_NEEDED"]:
