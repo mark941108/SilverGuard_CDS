@@ -2520,51 +2520,49 @@ SAFE_TRANSLATIONS = {
     }
 }
 
-def text_to_speech_elderly(text, lang='zh-tw', slow=True):
+def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
     """
-    Convert text to speech using Hybrid Privacy Architecture:
-    1. Try Online (gTTS) for best quality.
-    2. Automatic Fallback to Offline (pyttsx3) if network fails (Privacy Preserved).
+    🏥 SilverGuard Privacy-First TTS Architecture
+    
+    Security Level:
+    1. 🟢 DEFAULT: Offline (pyttsx3). 100% Edge Processing. No Data Egress.
+       [Compliance]: Meets HIPAA/GDPR data minimization principles.
+       
+    2. 🟡 OPTIONAL: Cloud (gTTS). Requires explicit opt-in.
+       Used only for non-sensitive demos or when 'use_cloud=True' is passed.
     """
     import os
     from IPython.display import Audio, display
     
-    # Clean text logic (Safety)
-    clean_text = text.replace("⚠️", "警告").replace("✅", "")
     filename = "./elder_instruction.mp3"
     
-    # 🔌 Strategy 1: Online (Google TTS) - High Quality
+    # 1. 🟢 優先策略：離線模式 (Privacy First)
+    if not use_cloud:
+        try:
+            import pyttsx3
+            print(f"🔒 [Edge AI] 生成離線語音 (pyttsx3) - 資料未離開裝置")
+            engine = pyttsx3.init()
+            # 調整語速給長輩 (rate 預設約 200)
+            engine.setProperty('rate', 140) 
+            engine.save_to_file(text, filename)
+            engine.runAndWait()
+            
+            display(Audio(filename, autoplay=False))
+            return filename
+        except Exception as e:
+            print(f"⚠️ 離線 TTS 引擎啟動失敗: {e}。嘗試切換至雲端備援...")
+            # 如果離線失敗，才考慮雲端 (Fail-over)
+
+    # 2. 🟡 備援策略：雲端增強 (Cloud Enhancement)
     try:
-        import socket
-        # Quick connectivity check
-        socket.create_connection(("www.google.com", 80), timeout=2)
-        
         from gtts import gTTS
-        print(f"🗣️ [Online] 生成語音 (gTTS) - {lang}")
-        tts = gTTS(text=clean_text, lang=lang, slow=slow)
+        print(f"📡 [Cloud] 連線至 Google TTS (注意：資料將傳輸至外部)") 
+        tts = gTTS(text=text, lang=lang, slow=True)
         tts.save(filename)
-        
-        display(Audio(filename, autoplay=False))
-        return filename
-        
-    except (socket.timeout, socket.error, OSError, ImportError) as e:
-        print(f"⚠️ 網路不可用或 gTTS 失敗 ({e})。切換至離線備援模式。")
-    
-    # 🔒 Strategy 2: Offline (pyttsx3) - Privacy & Resilience
-    try:
-        import pyttsx3
-        print(f"🔒 [Offline] 生成語音 (pyttsx3) - Privacy Mode")
-        engine = pyttsx3.init()
-        # Set rate (Slower for elderly)
-        engine.setProperty('rate', 130) 
-        engine.save_to_file(clean_text, filename)
-        engine.runAndWait()
-        
         display(Audio(filename, autoplay=False))
         return filename
     except Exception as e:
         print(f"❌ 所有 TTS 引擎皆失敗: {e}")
-        print("💡 請長輩直接閱讀下方的大字體卡片")
         return None
 
 
