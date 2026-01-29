@@ -75,7 +75,7 @@ print("\n[3/4] 安裝依賴套件...")
     huggingface-hub \
     "transformers>=4.50.0" \
     bitsandbytes peft accelerate datasets \
-    "pillow==11.0.0" torchaudio librosa soundfile \
+    "pillow==11.0.0" torch torchvision torchaudio librosa soundfile \
     qrcode[pil] "albumentations==1.3.1" opencv-python-headless \
     gTTS edge-tts nest_asyncio pyttsx3 \
     sentence-transformers faiss-cpu
