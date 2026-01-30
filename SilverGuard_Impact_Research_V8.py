@@ -299,14 +299,28 @@ except ImportError:
     import cv2
 
 # ===== 配置 =====
-OUTPUT_DIR = Path("medgemma_training_data_v5")
+# [V16 INTEGRATION] 智能檢測：優先使用 V16 超擬真數據
+USE_V16_DATA = os.getenv("MEDGEMMA_USE_V16_DATA", "0") == "1"
+V16_DATA_DIR = os.getenv("MEDGEMMA_V16_DIR", "./assets/lasa_dataset_v17_compliance")
+
+if USE_V16_DATA and os.path.exists(V16_DATA_DIR):
+    OUTPUT_DIR = Path(V16_DATA_DIR)
+    print(f"✅ [V16 MODE] Using Hyper-Realistic Dataset from: {OUTPUT_DIR}")
+    SKIP_DATA_GENERATION = True  # 跳過 Cell 2 生成
+else:
+    OUTPUT_DIR = Path("medgemma_training_data_v5")
+    print(f"⚠️ [V5 MODE] Using Internal Generator: {OUTPUT_DIR}")
+    SKIP_DATA_GENERATION = False
+
 IMG_SIZE = 896
 NUM_SAMPLES = 600
 EASY_MODE_COUNT = 300
 HARD_MODE_COUNT = 300
 
 print(f"🚀 MedGemma V5 Impact Edition")
-print(f"目標: {NUM_SAMPLES} 張 (含 30% 安全邏輯注入)")
+if not SKIP_DATA_GENERATION:
+    print(f"目標: {NUM_SAMPLES} 張 (含 30% 安全邏輯注入)")
+
 
 # ===== 醫院資訊 =====
 HOSPITAL_INFO = {
@@ -1012,7 +1026,15 @@ def main_cell2():
     print(f"{'='*60}")
 
 if __name__ == "__main__":
-    main_cell2()
+    # [V16 INTEGRATION] 檢查是否應跳過生成
+    if SKIP_DATA_GENERATION:
+        print("\n" + "="*60)
+        print("⏩ SKIPPING DATA GENERATION (Using V16 Dataset)")
+        print(f"   V16 Data Directory: {OUTPUT_DIR}")
+        print("="*60)
+    else:
+        main_cell2()
+
 
 
 # %%
@@ -1056,9 +1078,25 @@ import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 MODEL_ID = "google/medgemma-1.5-4b-it"
-DATA_PATH = "./medgemma_training_data_v5/dataset_v5_train.json" # V5 Fix: Use Train Split
-IMAGE_DIR = "./medgemma_training_data_v5"
-OUTPUT_DIR = "./medgemma_lora_output_v5"
+
+# [V16 INTEGRATION] 智能路徑切換
+if USE_V16_DATA and os.path.exists(V16_DATA_DIR):
+    # V16 Mode: Use hyper-realistic dataset
+    BASE_DIR = V16_DATA_DIR
+    DATA_PATH = f"{BASE_DIR}/dataset_v16_train.json"
+    IMAGE_DIR = BASE_DIR
+    OUTPUT_DIR_TRAINING = "./medgemma_lora_output_v16"
+    print(f"✅ [TRAINING] Using V16 Dataset: {DATA_PATH}")
+else:
+    # V5 Mode: Use internal generator
+    BASE_DIR = "./medgemma_training_data_v5"
+    DATA_PATH = f"{BASE_DIR}/dataset_v5_train.json"
+    IMAGE_DIR = BASE_DIR
+    OUTPUT_DIR_TRAINING = "./medgemma_lora_output_v5"
+    print(f"⚠️ [TRAINING] Using V5 Dataset: {DATA_PATH}")
+
+OUTPUT_DIR = OUTPUT_DIR_TRAINING  # Rename for clarity
+
 
 # V6 Auto-Detect: Check if judge has attached the dataset
 possible_path = "/kaggle/input/medgemma-v5-lora-adapter"

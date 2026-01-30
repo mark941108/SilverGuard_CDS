@@ -134,7 +134,7 @@ print("   ✅ 所有依賴安裝完成！")
 # ============================================================================
 # STEP 5: 啟動主程式
 # ============================================================================
-print("\n[6/6] 系統啟動...")
+print("\n[6/7] 系統啟動...")
 
 from huggingface_hub import login
 login(token=hf_token)
@@ -143,5 +143,63 @@ print("\n" + "=" * 80)
 print("🚀 啟動 SilverGuard: Impact Research Edition (V12.13 Gemma 3 Fix)")
 print("=" * 80)
 
-# 執行
+# ============================================================================
+# 🔥 PHASE 1: V16 超擬真數據生成 (Impact Challenge Edition)
+# ============================================================================
+print("\n" + "=" * 80)
+print("🎨 PHASE 1: V16 Hyper-Realistic Data Generation")
+print("=" * 80)
+
+# Check if V16 data already exists (skip if running multiple times)
+import os
+v16_train_json = "./assets/lasa_dataset_v17_compliance/dataset_v16_train.json"
+
+if os.path.exists(v16_train_json):
+    print(f"⏩ V16 Dataset already exists at {v16_train_json}")
+    print("   Skipping generation to save time...")
+else:
+    print("🏭 Generating V16 Dataset (3D Pills + QR Codes + Human Touch)...")
+    try:
+        %run generate_v16_fusion.py
+        print("✅ V16 Dataset Generation Complete!")
+    except Exception as e:
+        print(f"⚠️ V16 Generation Failed: {e}")
+        print("   Falling back to V8 internal generator...")
+
+# ============================================================================
+# 🔥 PHASE 2: Stress Test 生成 (用於推論測試)
+# ============================================================================
+print("\n" + "=" * 80)
+print("🧪 PHASE 2: Stress Test Generation (Inference Demo)")
+print("=" * 80)
+
+stress_test_dir = "./assets/stress_test"
+if os.path.exists(stress_test_dir) and len(os.listdir(stress_test_dir)) > 0:
+    print(f"⏩ Stress Test already exists at {stress_test_dir}")
+else:
+    print("🔥 Generating Stress Test Cases (Edge Case Validation)...")
+    try:
+        %run generate_stress_test.py
+        print("✅ Stress Test Generation Complete!")
+    except Exception as e:
+        print(f"⚠️ Stress Test Generation Failed: {e}")
+
+# ============================================================================
+# 🔥 PHASE 3: 執行主程式 (V8 Training + Inference)
+# ============================================================================
+print("\n" + "=" * 80)
+print("🧠 PHASE 3: Launching SilverGuard V8 Training Pipeline")
+print("=" * 80)
+
+# 設定環境變數，讓 V8 使用 V16 數據
+if os.path.exists(v16_train_json):
+    os.environ["MEDGEMMA_USE_V16_DATA"] = "1"
+    os.environ["MEDGEMMA_V16_DIR"] = "./assets/lasa_dataset_v17_compliance"
+    print("✅ V8 will use V16 Hyper-Realistic Dataset")
+else:
+    os.environ["MEDGEMMA_USE_V16_DATA"] = "0"
+    print("⚠️ V8 will use internal V5 generator (fallback)")
+
+# 執行主程式
 %run SilverGuard_Impact_Research_V8.py
+
