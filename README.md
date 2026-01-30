@@ -1017,16 +1017,6 @@ The MedGemma Impact Challenge/
 └── generate_v16_fusion.py              # Data Generator
 ```
 
----
-
-## 🎯 Competition Track
-
-| Track | Description | Fit |
-|-------|-------------|-----|
-| **Main Track** | Best overall project | ⭐⭐⭐⭐ |
-| **Agentic Workflow Prize** | Best intelligent agent workflow | ⭐⭐⭐⭐⭐ |
-
----
 
 ## 🤖 AI Assistance Disclosure
 
