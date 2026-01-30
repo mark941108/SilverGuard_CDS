@@ -1,5 +1,5 @@
 ### Project name
-**SilverGuard: Intelligent Medication Safety Assistant (V5.0 Impact Edition)**
+**SilverGuard: Intelligent Medication Safety Assistant (V1.0 Impact Edition)**
 
 ### Track Selection
 * **Main Track**
@@ -178,7 +178,7 @@ Our V10 Data Generator is strictly codified against **Article 19 of Taiwan's Pha
   author={Wang, Yuan-dao},
   year={2026},
   publisher={Kaggle MedGemma Impact Challenge},
-  note={V5.0 Impact Edition}
+  note={V1.0 Impact Edition}
 }
 ```
 

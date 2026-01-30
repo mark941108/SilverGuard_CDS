@@ -2,7 +2,7 @@
 # For Kaggle V5 Training Pipeline
 
 # Core ML (Enforce recent versions for Gemma 3 architecture)
-transformers>=4.51.0
+transformers==4.51.2
 accelerate>=0.26.0
 bitsandbytes>=0.43.0
 peft>=0.10.0
@@ -22,13 +22,14 @@ opencv-python-headless
 qrcode[pil]
 
 # Demo & UI
-gradio>=4.0.0
+gradio==4.44.0
 matplotlib
 seaborn
 scikit-learn
 
 # Utilities (Explicitly listed for robustness)
-torch
+torch==2.1.2
+padding-oracle
 numpy
 requests
 

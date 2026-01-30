@@ -22,7 +22,7 @@
 ---
 
 ## 🚀 Quick Start
-> **Current Version:** V8.2 Research Edition (Deployment Hardening + Logic Hotfix)
+> **Current Version:** V1.0 Impact Edition (Internal Build: v8.2)
 
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
 > Please add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN` before running.

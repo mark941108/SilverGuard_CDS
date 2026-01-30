@@ -11,7 +11,7 @@ tags:
 - safety
 ---
 
-# Model Card for MedGemma Guardian (V5.0 Impact Edition)
+# Model Card for MedGemma Guardian (V1.0 Impact Edition)
 
 ## 📋 Model Details
 

@@ -1,6 +1,6 @@
 """
 ================================================================================
-🏥 SilverGuard: Impact Research Edition (V8.2)
+🏥 SilverGuard: V1.0 Impact Edition (Engine v8.2)
    "Agentic Safety Research Prototype"
 ================================================================================
 
@@ -29,7 +29,7 @@ Steps:
 🏥 Project: SilverGuard (Intelligent Medication Safety)
 🎯 Target: Kaggle MedGemma Impact Challenge - Agentic Workflow Prize
 📅 Last Updated: 2026-01-29
-📌 Version: V8.2 (Deployment Hardening + Logic Hotfix)
+📌 Version: V1.0 Impact Edition (Engine Build: v8.2)
 
 Technical Foundation:
 - Model: google/medgemma-1.5-4b-it (HAI-DEF Framework)
@@ -605,7 +605,8 @@ def inject_medical_risk(case_data):
             "zolpidem_overdose",   # V5.0: FDA says 10mg is 2x elderly max
             "wrong_time", 
             "warfarin_risk",
-            "renal_concern"
+            "drug_interaction",
+            "kidney_risk"  # 🔴 FIX: Changed from "renal_concern" to match logic below
         ])
         
         if trap_type == "elderly_overdose":
@@ -921,6 +922,11 @@ def main_cell2():
         
         if (i + 1) % 50 == 0:
             print(f"✅ {i+1}/{NUM_SAMPLES} [{difficulty}]")
+    
+    # 🔴 FIX: Shuffle before splitting to ensure balanced distribution
+    import random
+    random.seed(42) # Ensure reproducibility
+    random.shuffle(dataset)
     
     # --- 關鍵修改：明確切分 Train / Test (防止 Data Leakage) ---
     # 固定前 90% 為訓練，後 10% 為測試，確保完全隔離
@@ -1335,7 +1341,8 @@ def calculate_confidence(model, outputs, processor):
         
         return confidence
     except Exception as e:
-        return 0.75  # Conservative fallback (triggers Human Review at 80% threshold)
+        print(f"⚠️ Confidence Calc Failed: {e}")
+        return 0.0  # 🔴 FIX: Return 0.0 to force LOW_CONFIDENCE -> HUMAN_REVIEW
 
 
 def get_confidence_status(confidence, predicted_status="UNKNOWN"):
@@ -1753,7 +1760,8 @@ def agentic_inference(model, processor, img_path, verbose=True):
         result["confidence"] = {"score": 0.0, "status": "REJECTED", "message": quality_msg}
         return result
 
-    while current_try <= MAX_RETRIES:
+    # 🔴 FIX: Use a clear FOR loop instead of WHILE
+    for current_try in range(MAX_RETRIES + 1):
         if verbose:
             if current_try == 0:
                 print("\n[2/4] 🧠 VLM Reasoning (MedGemma)...")
@@ -1976,7 +1984,7 @@ def agentic_inference(model, processor, img_path, verbose=True):
                 )
                 
                 result["agentic_retries"] = result.get("agentic_retries", 0) + 1
-                current_try += 1
+                # current_try += 1 # 🔴 FIX: Removed for loop
                 continue  # RETRY THE LOOP
             
             # [V8.1 NEW] 🔄 POST-HOC RAG VERIFICATION (The "Double Check" Logic)
@@ -1995,11 +2003,12 @@ def agentic_inference(model, processor, img_path, verbose=True):
                              # This will naturally trigger the retry loop in next iteration because we didn't break yet?
                              # Wait, we need to force retry.
                              # Set correction context and continue
+
                              rag_context = (
                                 f"\n\n[📚 RAG KNOWLEDGE BASE | Confidence: HIGH]:\n{knowledge}\n"
                                 f"(⚠️ SYSTEM 2 OVERRIDE: Re-evaluate logic using this official guideline.)"
                              )
-                             current_try += 1
+                             # current_try += 1 # 🔴 FIX: Removed for loop
                              continue  # FORCE RETRY
             # =========================================
             
@@ -2051,7 +2060,7 @@ def agentic_inference(model, processor, img_path, verbose=True):
                 )
                 
                 result["agentic_retries"] = result.get("agentic_retries", 0) + 1
-                current_try += 1
+                # current_try += 1 # 🔴 FIX: Removed for loop
                 continue
             else:
                 result["vlm_output"]["raw"] = response

@@ -106,9 +106,7 @@ def transcribe_audio(audio_path, expected_lang="en"):
     import gc
     import re
     
-    try:
-    
-    try:
+
         logs.append("⏳ [LazyLoad] Accessing MedASR Model...")
         import librosa
         
@@ -775,7 +773,7 @@ def health_check():
     return status
 
 with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
-    gr.Markdown("# 🏥 SilverGuard: Intelligent Medication Safety System")
+    gr.Markdown("# 🏥 SilverGuard: Intelligent Medication Safety System")\n    gr.Markdown("**Release v1.0 | Powered by MedGemma**")
     
     # Disclaimer Header (Enhanced Visibility)
     gr.HTML("""
