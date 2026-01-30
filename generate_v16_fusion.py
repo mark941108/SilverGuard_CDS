@@ -30,7 +30,13 @@ except ImportError:
 # ==========================================
 # 1. 基礎配置 (Setup): V25 Safety & Compliance
 # ==========================================
-OUTPUT_DIR = "assets/lasa_dataset_v17_compliance"
+# [V16] Dynamic Path for Kaggle vs Local
+if os.path.exists("/kaggle/working"):
+    BASE_DIR = "/kaggle/working"
+else:
+    BASE_DIR = "."
+
+OUTPUT_DIR = os.path.join(BASE_DIR, "assets/lasa_dataset_v17_compliance")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 IMG_SIZE = 896
 
