@@ -13,7 +13,7 @@
 > *"We are not claiming to have solved medicine. We do claim to have solved the **architecture of safety** within a medical AI agent."* — MedGemma Impact Team
 
 [![MedGemma](https://img.shields.io/badge/Model-MedGemma%201.5--4B-blue)](https://huggingface.co/google/medgemma-1.5-4b-it)
-[![License](https://img.shields.io/badge/License-CC%20BY%204.0-green)](https://creativecommons.org/licenses/by/4.0/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Kaggle](https://img.shields.io/badge/Kaggle-Agentic%20Workflow%20Prize-FFD700)](https://www.kaggle.com/competitions/med-gemma-impact-challenge)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces)
@@ -46,7 +46,7 @@ docker run --gpus all -it silverguard-agent
 *   **👵 SilverGuard Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Simulated Taiwanese Mandarin) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Clinically Verified Translations** (Indonesian/Vietnamese) for non-Chinese speaking caregivers.
 *   **🗣️ Local Dialect Support**: Capable of **Localized Taiwanese Mandarin (Taiwan-Accent)** TTS, crucial for communicating with the 65+ demographic in rural Taiwan.
-*   **� Privacy First**: **Core Inference Runs 100% Locally** on T4 GPU (Hybrid Privacy Model: De-identified TTS/API data is ephemeral).
+*   **🔐 Privacy First**: **Core Inference Runs 100% Locally** on T4 GPU (Hybrid Privacy Model: De-identified TTS/API data is ephemeral).
 *   **🧠 Agentic Self-Correction**: "Think before speaking" loop with hallucination checks.
 
 ## ⚡ Judges' Executive Summary (30-Second Insight)
@@ -59,7 +59,7 @@ docker run --gpus all -it silverguard-agent
 | **Social Impact** | **SilverGuard**: Translates JSON alerts into elder-friendly TTS audio + large-font calendars |
 | **Privacy Claim** | **Hybrid Architecture**: Local PHI processing, anonymized external DB queries |
 | **Why MedGemma** | Medical reasoning to catch dosage errors that general VLMs miss, 100% local on T4 GPU |
-| **Edge AI Tech** | Leveraging **Gemma 3's MatFormer architecture** to run efficiently on legacy T4 GPUs |
+| **Edge AI Tech** | Leveraging **Gemma 1.5's efficient Transformer architecture** to run on legacy T4 GPUs |
 
 > **🏆 Target: Agentic Workflow Prize** — This is a TRUE Agent with retry behavior, not just conditional logic.
 
@@ -898,7 +898,7 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 *   **Thresholding:** We use a conservative logic where `WARNING` is only triggered if specific contraindications (e.g., Age > 80 + High Dose) are met, rather than generic warnings.
 *   **Visual Hierarchy:** SilverGuard's UI uses distinct color coding (Red for lethal, Yellow for caution) so pharmacists can prioritize their attention. Our internal testing shows a specificity of ~92%, ensuring alerts are meaningful.
 
-#### Q2: The `DRUG_DATABASE` currently has only 12 drugs. Is this scalable?
+#### Q2: The `DRUG_DATABASE` currently has only 17 distinct medications. Is this scalable?
 **A: Yes, we use a "Lightweight Proto-Strategy" for edge demo efficiency.**
 *   **Architecture Note:** For this **Edge-AI Prototype**, we implemented a zero-latency dictionary lookup.
 *   **Production Vision:** The `retrieve_drug_info` interface is designed to be **hot-swapped** with a scalable Vector Database (e.g., ChromaDB) or RxNorm API in Phase 2, without changing the core reasoning logic.
@@ -926,7 +926,7 @@ SilverGuard is an **Offline-First**, LLM-powered visual QA system designed to be
 
 ### ⚖️ Non-Affiliation & Disclaimer
 ⚠️ **Disclaimer**: This project is a **"Sim2Real Prototype"** for the Kaggle MedGemma Challenge. It demonstrates a **Human-in-the-Loop Triage Tool**, NOT a diagnostic medical device.
-⚠️ **POC Limitation**: The current knowledge base is a subset of 12 common geriatric drugs for architectural demonstration. Production deployment requires integration with full-scale drug databases (e.g., RxNorm, Micromedex).
+⚠️ **POC Limitation**: The current knowledge base is a subset of 17 distinct medications for architectural demonstration. Production deployment requires integration with full-scale drug databases (e.g., RxNorm, Micromedex).
 ⚠️ **Transparency Report**:
 *   **Privacy**: Core VLM inference runs 100% offline.
 *   **TTS**: For this demo, Google Translate API (`gTTS`) is used for high-quality audio. Production systems must use offline engines (e.g., MMS-TTS) for full air-gapped compliance.
