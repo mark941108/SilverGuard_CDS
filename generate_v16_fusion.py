@@ -577,19 +577,123 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False):
 
 if __name__ == "__main__":
     download_fonts() 
-    print("🚀 MedGemma V26: Human Pharmacist & Instructions Started...")
+    print("🚀 MedGemma V16 Expansion: Full Drug Library Started...")
     
-    # [V26] Update LASA_PAIRS with Dosage Instructions
-    LASA_PAIRS["SOUND_ALIKE_CRITICAL"][0]["dosage_instruction"] = "每日1次，早上服用 (避免夜尿)" # Lasix
-    LASA_PAIRS["SOUND_ALIKE_CRITICAL"][1]["dosage_instruction"] = "每日1次，飯前30分鐘服用" # Losec
-    LASA_PAIRS["LOOK_ALIKE_SHAPE"][0]["dosage_instruction"] = "每日1次，隨餐服用 (增加吸收)" # Xarelto
-    LASA_PAIRS["LOOK_ALIKE_SHAPE"][1]["dosage_instruction"] = "每日2次，飯後服用" # Dilatrend
+    # ===== PHASE 1: Load Complete Drug Library =====
+    print("\n📚 Loading Complete Drug Database from medgemma_data.py...")
+    try:
+        from medgemma_data import get_renderable_data
+        LASA_PAIRS = get_renderable_data()
+        total_drugs = sum(len(v) for v in LASA_PAIRS.values())
+        print(f"✅ Loaded {total_drugs} drugs")
+        for cat, drugs in LASA_PAIRS.items():
+            print(f"   - {cat}: {len(drugs)} drugs")
+    except ImportError:
+        print("⚠️ medgemma_data.py not found, using hardcoded LASA_PAIRS")
+        total_drugs = sum(len(v) for v in LASA_PAIRS.values())
+    
+    # ===== PHASE 2: Generate Variants =====
+    import random
+    import json
+    from datetime import datetime
+    
+    random.seed(42)
+    VARIANTS_PER_DRUG = 30
+    TRAP_PROBABILITY = 0.3
+    
+    PATIENT_AGES = list(range(65, 95))
+    PATIENT_NAMES = ["陳金龍", "林美玉", "張志明", "李建國", "王秀英", "黃明德", "劉淑芬", "吳文雄"]
+    
+    print(f"\n🏭 Generating {total_drugs} drugs × {VARIANTS_PER_DRUG} variants = {total_drugs * VARIANTS_PER_DRUG} samples\n")
     
     count = 0
+    generated_files = []
+    
     for cat, drugs in LASA_PAIRS.items():
-         for d in drugs:
-            generate_v26_human_bag(f"{OUTPUT_DIR}/{cat}_{d['name'].split()[0]}_Clean.jpg", cat, d, False)
-            generate_v26_human_bag(f"{OUTPUT_DIR}/{cat}_{d['name'].split()[0]}_Trap.jpg", cat, d, True)
-            count += 2
+        for drug_idx, d in enumerate(drugs):
+            drug_shortname = d['name'].split()[0]
+            print(f"🔄 [{cat}] {drug_shortname}...", end="")
+            
+            for variant_idx in range(VARIANTS_PER_DRUG):
+                is_trap = random.random() < TRAP_PROBABILITY
+                filename = f"{OUTPUT_DIR}/{cat}_{drug_shortname}_V{variant_idx:03d}.jpg"
                 
-    print(f"🎉 V26 Generated {count} Human Samples in {OUTPUT_DIR}")
+                patient_age = random.choice(PATIENT_AGES)
+                patient_name = random.choice(PATIENT_NAMES)
+                
+                generate_v26_human_bag(filename, cat, d, is_trap)
+                
+                generated_files.append({
+                    "filename": os.path.basename(filename),
+                    "category": cat,
+                    "drug_data": d,
+                    "is_trap": is_trap,
+                    "patient_age": patient_age,
+                    "patient_name": patient_name
+                })
+                count += 1
+            
+            print(f" ✓ {VARIANTS_PER_DRUG} variants")
+    
+    print(f"\n🎉 Generated {count} samples in {OUTPUT_DIR}")
+    
+    # ===== PHASE 3: Generate Training JSON =====
+    print("\n📦 Generating Training Dataset JSON...")
+    
+    dataset = []
+    for idx, item in enumerate(generated_files):
+        drug_name = item['drug_data']['name']
+        is_trap = item['is_trap']
+        patient_age = item['patient_age']
+        dose_match = drug_name.split()[1] if len(drug_name.split()) > 1 else "N/A"
+        
+        if is_trap:
+            if item['category'] == "SOUND_ALIKE_CRITICAL":
+                status = "PHARMACIST_REVIEW_REQUIRED"
+                reasoning = f"Step 1: Patient age {patient_age}. Drug {drug_name}. Step 2: SOUND-ALIKE category. Step 3: Verify with pharmacist. Ref: ISMP."
+            elif patient_age >= 85:
+                status = "ATTENTION_NEEDED"
+                reasoning = f"Step 1: Elderly {patient_age}. Drug {drug_name}. Step 2: Beers 2023 dose reduction for >80. Step 3: Consult physician."
+            else:
+                status = "WARNING"
+                reasoning = f"Step 1: Drug {drug_name}. Step 2: Visual mismatch. Step 3: Verify appearance."
+        else:
+            status = "WITHIN_STANDARD"
+            reasoning = f"Step 1: Age {patient_age}. Drug {drug_name}. Step 2: Appropriate. Step 3: No critical issues."
+        
+        gpt_response = json.dumps({
+            "extracted_data": {
+                "patient": {"name": item['patient_name'], "age": patient_age},
+                "drug": {"name": drug_name, "name_zh": item['drug_data']['zh'], "dose": dose_match},
+                "usage": item['drug_data'].get('dosage_instruction', '遵照醫囑')
+            },
+            "safety_analysis": {"status": status, "reasoning": reasoning}
+        }, ensure_ascii=False)
+        
+        dataset.append({
+            "id": f"V16_{idx:05d}",
+            "image": item['filename'],
+            "difficulty": "hard" if is_trap else "easy",
+            "risk_status": status,
+            "conversations": [
+                {"from": "human", "value": "You are 'SilverGuard CDS', a Clinical Decision Support System. Analyze this prescription image and output JSON with 'extracted_data' and 'safety_analysis'.\n<image>"},
+                {"from": "gpt", "value": gpt_response}
+            ]
+        })
+    
+    random.shuffle(dataset)
+    split_idx = int(len(dataset) * 0.9)
+    train_data = dataset[:split_idx]
+    test_data = dataset[split_idx:]
+    
+    with open(f"{OUTPUT_DIR}/dataset_v16_train.json", "w", encoding="utf-8") as f:
+        json.dump(train_data, f, ensure_ascii=False, indent=2)
+    with open(f"{OUTPUT_DIR}/dataset_v16_test.json", "w", encoding="utf-8") as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=2)
+    with open(f"{OUTPUT_DIR}/dataset_v16_full.json", "w", encoding="utf-8") as f:
+        json.dump(dataset, f, ensure_ascii=False, indent=2)
+    
+    print(f"✅ Train: {len(train_data)} | Test: {len(test_data)} | Total: {len(dataset)}")
+    print(f"\n" + "="*80)
+    print(f"🎯 V16 Expansion Complete: {len(dataset)} samples ready!")
+    print(f"="*80)
