@@ -13,11 +13,13 @@
 > *"We are not claiming to have solved medicine. We do claim to have solved the **architecture of safety** within a medical AI agent."* — MedGemma Impact Team
 
 [![MedGemma](https://img.shields.io/badge/Model-MedGemma%201.5--4B-blue)](https://huggingface.co/google/medgemma-1.5-4b-it)
+[![MedASR](https://img.shields.io/badge/Model-MedASR-green)](https://huggingface.co/google/medasr)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Kaggle](https://img.shields.io/badge/Kaggle-Agentic%20Workflow%20Prize-FFD700)](https://www.kaggle.com/competitions/med-gemma-impact-challenge)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces)
 [![Docker](https://img.shields.io/badge/Docker-Compatible-blue?logo=docker)](#docker-reproducibility-optional)
+
 
 ---
 
