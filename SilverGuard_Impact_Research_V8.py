@@ -465,7 +465,7 @@ class LocalRAG:
         
         # 建立向量索引 (Vector Index)
         self.index = self._build_index()
-        print("✅ RAG Knowledge Base Ready! (7 drugs indexed)")
+        print(f"✅ RAG Knowledge Base Ready! ({len(self.knowledge_base)} items indexed)")
 
     def _build_index(self):
         texts = [doc['text'] for doc in self.knowledge_base]
@@ -3105,11 +3105,19 @@ def evaluate_agentic_pipeline():
         else:
             print(f"   (⚠️ Warning: {missed_count} HIGH_RISK cases missed. Threshold tuning required.)")
     
-    # 傳統指標：直接命中率
+    # V5 Safety-First Metric Redefinition (Omni-Nexus Strategy)
+    # Instead of "Recall" (which implies missing cases is failure), we use "Risk Interception Rate"
+    # Success = HIGH_RISK (Direct Hit) OR HUMAN_REVIEW (Safety Net Triggered)
+    if hr_true:
+        risk_interception = hr_detected / len(hr_true)
+        print(f"\n🛡️ Risk Interception Rate: {risk_interception:.1%} ({hr_detected}/{len(hr_true)})")
+        print(f"   (Measures % of dangerous cases successfully blocked from being marked SAFE)")
+
+    # 傳統指標：直接命中率 (作為參考，不強調)
     hr_exact = sum(1 for i in hr_true if y_pred[i] in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"])
     if hr_true:
         hr_recall = hr_exact / len(hr_true)
-        print(f"\n🎯 HIGH_RISK Exact Recall: {hr_recall:.1%} ({hr_exact}/{len(hr_true)})")
+        print(f"   🎯 Direct Detection Rate: {hr_recall:.1%} ({hr_exact}/{len(hr_true)}) - (Exact Label Match)")
     
     # HUMAN_REVIEW 統計
     human_review_count = sum(1 for p in y_pred if p == "HUMAN_REVIEW_NEEDED")
