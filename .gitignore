@@ -52,3 +52,6 @@ Thumbs.db
 # Internal Dev Docs (Local Only)
 
 .agent/
+
+# Sim2Physical Original Photos (Keep only selected photos in assets/sim2physical/)
+TAKE A PHOTO/
