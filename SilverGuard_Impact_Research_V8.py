@@ -199,12 +199,68 @@ Cell 2: MedGemma V5 數據生成器 (Impact Edition)
 import json
 import random
 import os
+import re  # V12.32: Added for TTS symbol cleaning
 import requests
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from datetime import datetime, timedelta
 import qrcode
 import numpy as np
+
+# ============================================================================
+# V12.32 P0 FIX: TTS Symbol Cleaning Function
+# ============================================================================
+def clean_text_for_tts(text):
+    """
+    清理 TTS 語音輸出的特殊符號
+    
+    Strategy:
+    1. 移除所有 Emoji 與特殊符號
+    2. 保留標點符號（。，！？）
+    3. 保留英數字與中文
+    
+    Args:
+        text: 原始文字
+    
+    Returns:
+        清理後的文字
+    """
+    if not text:
+        return ""
+    
+    original_len = len(text)
+    
+    # 1. 移除常見 Emoji（全面列表）
+    emoji_pattern = re.compile(
+        "["
+        "\\U0001F600-\\U0001F64F"  # 表情符號
+        "\\U0001F300-\\U0001F5FF"  # 符號與圖標
+        "\\U0001F680-\\U0001F6FF"  # 交通與地圖
+        "\\U0001F1E0-\\U0001F1FF"  # 旗幟
+        "\\U00002700-\\U000027BF"  # 裝飾符號
+        "\\U0001F900-\\U0001F9FF"  # 補充符號
+        "\\U00002600-\\U000026FF"  # 雜項符號
+        "\\U0001FA70-\\U0001FAFF"  # 符號與圖標擴展
+        "]+", 
+        flags=re.UNICODE
+    )
+    text = emoji_pattern.sub('', text)
+    
+    # 2. 移除常見特殊符號（保留基本標點）
+    symbols_to_remove = [
+        '✓', '✅', '❌', '⚠️', '→', '➜', '▲', '●', '■', '□', '◆', '☑️',
+        '【', '】', '《', '》', '「', '」', '『', '』', '〈', '〉'
+    ]
+    for symbol in symbols_to_remove:
+        text = text.replace(symbol, '')
+    
+    # 3. 移除多餘空格
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    cleaned_len = len(text)
+    print(f"🗣️ [TTS Pre-processing] Original: {original_len} chars -> Clean: {cleaned_len} chars")
+    
+    return text
 
 # ===== V5.5 Audit Fix: Reproducibility =====
 def seed_everything(seed=42):
@@ -1345,23 +1401,24 @@ def calculate_confidence(model, outputs, processor):
         return 0.0  # 🔴 FIX: Return 0.0 to force LOW_CONFIDENCE -> HUMAN_REVIEW
 
 
-def get_confidence_status(confidence, predicted_status="UNKNOWN"):
+def get_confidence_status(confidence, predicted_status="UNKNOWN", custom_threshold=None):
     """
     [V5.8 Paranoid Safety Tuning]
+    [V12.32 P1 Update: Support custom threshold for dynamic adjustment]
     戰略目標：High Risk Recall 必須是 100%。
     手段：對危險訊號採取「零容忍」策略。
     """
-    # 1. 危險訊號 (HIGH_RISK, WARNING)：門檻降到地板 (0.50)
-    # 只要模型有一點點感覺不對，就直接發警報，不允許它猶豫
-    # V8.1 Fix: Updated Labels (WITHIN_STANDARD, PHARMACIST_REVIEW_REQUIRED)
-    risk_labels = ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED", "WARNING", "ATTENTION_NEEDED", "UNSAFE"]
-    
-    if predicted_status in risk_labels:
-        threshold = 0.50 
-    
-    # 2. 安全訊號 (PASS, WITHIN_STANDARD)：門檻適度放寬 (0.75)
+    # V12.32: If custom threshold provided (P1 fix), use it
+    if custom_threshold is not None:
+        threshold = custom_threshold
     else:
-        threshold = 0.75 
+        # Original logic: 危險訊號門檻 0.50，安全訊號門檻 0.75
+        risk_labels = ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED", "WARNING", "ATTENTION_NEEDED", "UNSAFE"]
+        
+        if predicted_status in risk_labels:
+            threshold = 0.50 
+        else:
+            threshold = 0.75 
 
     if confidence >= threshold:
         return "HIGH_CONFIDENCE", f"✅ Conf: {confidence:.1%} (Th: {threshold})"
@@ -1909,7 +1966,6 @@ def agentic_inference(model, processor, img_path, verbose=True):
         # We will set a temporary status here, and refine it later or we parse earlier?
         # Actually, let's parse JSON FIRST (swap Stage 3 and 4 order conceptually) or just calculate RAW score here.
         # The user wants get_confidence_status to take `predicted_status`.
-        # So I will move `get_confidence_status` call to AFTER parsing.
         
         confidence = calculate_confidence(model, outputs, processor)
         # Store raw confidence for now
@@ -2012,14 +2068,29 @@ def agentic_inference(model, processor, img_path, verbose=True):
                              continue  # FORCE RETRY
             # =========================================
             
-            # Determine final status
-            # [V5.7 Asymmetric Flow]
-            status = safety.get("status", "UNKNOWN")
-            conf_status, conf_msg = get_confidence_status(confidence, status)
+            # Determine            
+            # ===== STAGE 3: Confidence-based Decision =====
+            # V12.32 P1 FIX: Adaptive Confidence Threshold
+            # For HIGH_RISK cases, use lower threshold (70%) to catch more dangerous cases
+            # For normal cases, maintain stricter threshold (75%)
+            final_status = parsed_json.get("safety_analysis", {}).get("status", "UNKNOWN")
+            
+            # Dynamic threshold based on predicted risk level
+            if final_status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"]:
+                CONFIDENCE_THRESHOLD = 0.70  # More permissive for dangerous cases
+                threshold_label = "HIGH_RISK mode"
+            else:
+                CONFIDENCE_THRESHOLD = 0.75  # Stricter for normal cases
+                threshold_label = "NORMAL mode"
+            
+            conf_status, conf_msg = get_confidence_status(confidence, final_status, CONFIDENCE_THRESHOLD) # Pass threshold to function
             result["confidence"]["status"] = conf_status
             result["confidence"]["message"] = conf_msg
-            if verbose: print(f"   📊 Dynamic Confidence: {conf_msg}")
-
+            
+            if verbose:
+                print(f"   💯 Confidence: {confidence:.1%} (Threshold: {CONFIDENCE_THRESHOLD:.0%} {threshold_label})")
+                print(f"   🎯 Status: {conf_status}")
+            
             # [V5.7 Safety-First Decision Logic]
             
             # 情境 A: 邏輯檢查失敗 (Grounding Failed)
