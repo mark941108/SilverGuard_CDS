@@ -275,8 +275,8 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
 
     # --- 1. Top Header ---
     draw.text((40, 25), "MedGemma 聯合醫療體系", fill="#003366", font=f_h1)
-    draw.text((40, 65), "地址: 新北市新莊區中正路 999 號", fill="gray", font=get_font(18))  # P0: 法規補全
-    draw.text((40, 90), "用藥諮詢: (02) 2345-6789", fill="red", font=f_h2)
+    draw.text((40, 68), "地址: 新北市新莊區中正路 999 號", fill="gray", font=get_font(18))  # P0: 法規補全
+    draw.text((40, 95), "用藥諮詢: (02) 2345-6789", fill="red", font=f_h2)
     
     # QR Code
     try:
@@ -287,19 +287,19 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
         img.paste(qr_img, (IMG_WIDTH-qr_img.width-20, 20))
     except Exception as e: print(f"⚠️ QR Error: {e}")
     
-    draw.line([(30, 120), (IMG_WIDTH-30, 120)], fill="#003366", width=3)  # 調整位置以容納地址
+    draw.line([(30, 130), (IMG_WIDTH-30, 130)], fill="#003366", width=3)  # 調整位置，增加上方空間
 
     # --- 2. Patient Info ---
-    y_p = 140  # 調整起始位置
+    y_p = 150  # 調整起始位置，增加與上方線條的距離
     draw.text((40, y_p), f"姓名: {patient['name']}", fill="black", font=f_h1)
     draw.text((350, y_p+5), f"{patient['gender']}", fill="black", font=f_h2)
-    draw.text((40, y_p+45), f"調劑日: 115/01/22", fill="black", font=f_body)
-    draw.text((40, y_p+70), f"調劑藥師: 王專業", fill="black", font=f_body)  # P0: 法規補全
+    draw.text((40, y_p+50), f"調劑日: 115/01/22", fill="black", font=f_body)
+    draw.text((40, y_p+78), f"調劑藥師: 王專業", fill="black", font=f_body)  # P0: 法規補全，增加間距
     
-    draw.line([(30, y_p+80), (IMG_WIDTH-30, y_p+80)], fill="gray", width=2)
+    draw.line([(30, y_p+110), (IMG_WIDTH-30, y_p+110)], fill="gray", width=2)  # 增加與藥師文字的距離
 
     # --- 3. Drug Info ---
-    y_drug = 230
+    y_drug = 280  # 調整起始位置，增加與上方的距離
     color_map = {"高血壓": "green", "糖尿病": "orange", "失眠": "blue"}
     bar_color = color_map.get(drug['cat'], "gray")
     draw.rectangle([15, y_drug, 30, y_drug+100], fill=bar_color)
@@ -330,25 +330,25 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     draw.text((45, y_drug+100), f"適應症: {drug['indication']}", fill="black", font=f_body)
 
     # --- 4. Usage Box ---
-    y_usage = 370
-    draw.rectangle([(40, y_usage), (856, y_usage+80)], outline="black", width=2)
+    y_usage = 420  # 調整起始位置
+    draw.rectangle([(40, y_usage), (856, y_usage+85)], outline="black", width=2)  # 稍微加高
     usage_text = {"BID": "每日兩次，早晚", "TID": "每日三次", "QD": "每日一次，早上", "QN": "每日一次，睡前"}
     timing_icon = "🍚" if "飯後" in drug['timing'] else "⏰"
-    draw.text((60, y_usage+25), f"{timing_icon} {usage_text.get(drug['usage'], drug['usage'])} ({drug['timing']})", fill="black", font=f_h2)
+    draw.text((60, y_usage+28), f"{timing_icon} {usage_text.get(drug['usage'], drug['usage'])} ({drug['timing']})", fill="black", font=f_h2)  # 置中
 
     # --- 5. Warning Box ---
-    y_warn = 480
-    draw.rectangle([40, y_warn, 856, y_warn+100], fill=(255, 245, 245), outline="red", width=2)
-    draw.text((55, y_warn+10), "[!] 警語:", fill="red", font=f_warn)  # 簡化符號避免渲染問題
+    y_warn = 530  # 調整起始位置，增加與上方的距離
+    draw.rectangle([40, y_warn, 856, y_warn+105], fill=(255, 245, 245), outline="red", width=2)  # 稍微加高
+    draw.text((55, y_warn+15), "[!] 警語:", fill="red", font=f_warn)  # 簡化符號避免渲染問題，增加上邊距
     warning_text = drug['warning'][:30] + "..." if len(drug['warning']) > 30 else drug['warning']
-    draw.text((55, y_warn+45), warning_text, fill="red", font=f_body)
-    if "開車" in drug['warning']: draw_warning_icon(draw, 780, y_warn+50, 40, "car")
-    if "酒" in drug['warning']: draw_warning_icon(draw, 830, y_warn+50, 40, "wine")
+    draw.text((55, y_warn+50), warning_text, fill="red", font=f_body)  # 增加與標題的距離
+    if "開車" in drug['warning']: draw_warning_icon(draw, 780, y_warn+55, 40, "car")
+    if "酒" in drug['warning']: draw_warning_icon(draw, 830, y_warn+55, 40, "wine")
 
     # --- 6. Footer ---
-    y_foot = 610
+    y_foot = 660  # 調整起始位置，增加與上方的距離
     draw.line([(30, y_foot), (IMG_WIDTH-30, y_foot)], fill="gray", width=1)
-    draw.text((40, y_foot+15), "【三核對】□姓名 □外觀 □用法", fill="black", font=f_body)
+    draw.text((40, y_foot+20), "【三核對】□姓名 □外觀 □用法", fill="black", font=f_body)  # 增加上邊距
     
     # ==========================================
     # V12.1 CRITICAL FIX: Texture 與 Watermark 都應該受 clean_version 控制
