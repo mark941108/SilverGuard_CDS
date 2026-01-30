@@ -316,7 +316,7 @@ Our synthetic dataset adheres to **100% of the 13 mandatory items** specified in
 **AI Pharmacist Guardian** + **SilverGuard** is a human-centered healthcare AI that:
 
 1. **📷 Visual Recognition** - Extract prescription from drug bag images (end-to-end VLM, no OCR)
-2. **🎤 Voice Context** - Integrate caregiver audio logs (MedASR) for deeper safety checks
+2. **🎤 Voice Context** - Integrate caregiver audio logs ([Google MedASR](https://huggingface.co/google/medasr)) for deeper safety checks
 3. **🔍 Safety Analysis** - Detect medication risks for elderly patients
 4. **👴 SilverGuard Mode** - TTS voice readout + Large-font UI for cognitively impaired users
 
@@ -1247,7 +1247,15 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 SilverGuard is an **Offline-First**, LLM-powered visual QA system designed to be the logic layer between elderly patients and their medications. It runs locally on edge devices (T4 GPU optimized), providing a **privacy-preserving** safety net that detects errors before pills are swallowed.
 
 *(Note: Demo features like High-Quality TTS use hybrid cloud services for presentation, but the core safety architecture is designed for 100% air-gapped deployment.)*
-*   **Pipeline:** We use **Google MedASR** to transcribe the voice log into text, and then inject this text into MedGemma's context window with a specific system prompt: `[📢 CAREGIVER VOICE NOTE]`.
+*   **Pipeline:** We use **[Google MedASR](https://huggingface.co/google/medasr)** (Medical Automated Speech Recognition) to transcribe caregiver voice logs into text, then inject this text into MedGemma's context window with a specific system prompt: `[📢 CAREGIVER VOICE NOTE]`.
+
+*   **MedASR Advantages**:
+    - **Medical Terminology**: 58% fewer errors than Whisper Large-V3 on medical dictation (5.2% vs. 12.5% WER on chest X-ray dictations)
+    - **Conformer Architecture**: 105M parameters optimized for medical domain
+    - **Multilingual Support**: Handles medical terms across languages
+    - **Official Documentation**: [Google HAI-DEF](https://developers.google.com/health-ai-developer-foundations/medasr)
+
+*   **Use Case**: Migrant caregivers (Indonesian/Vietnamese) can dictate observations in their native language, which MedASR transcribes with medical terminology intact, enabling MedGemma to cross-reference with the prescription.
 *   **Benefit:** This allows the agent to perform "Cross-Modal Reasoning" (e.g., comparing visual pills vs. auditory allergy warnings) without the massive compute cost of training a new audio encoder.
 
 ---
