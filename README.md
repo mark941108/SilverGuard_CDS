@@ -933,11 +933,13 @@ To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disc
 
 ---
 
-## 🚀 Quick Start
+## 🔬 Reproducibility Guide (Advanced)
 
-### Running on Kaggle (Safe Mode)
+> **For judges who want to deep-dive into the technical implementation and reproduce results on Kaggle**
 
-To avoid path errors (FileNotFoundError) and ensure all dependencies are loaded correctly, usage of the **"Root Execution Strategy"** is required.
+### Running on Kaggle (Bootstrap Strategy)
+
+To avoid path errors (FileNotFoundError) and ensure all dependencies are loaded correctly, we use the **"Root Execution Strategy"**.
 
 **Step 1:** Create a new Kaggle Notebook  
 **Step 2:** Add your `GITHUB_TOKEN` and `HUGGINGFACE_TOKEN` to Kaggle Secrets.  
@@ -977,17 +979,17 @@ print("🔧 Installing Dependencies...")
 # 5. Launch MedGemma Impact Pipeline
 print("🚀 Launching MedGemma Impact Pipeline...")
 # This runs Data Gen -> Training -> Agent Demo sequentially
-!python AI_Pharmacist_Guardian_V5.py
+!python SilverGuard_Impact_Research_V8.py
 ```
 
 ### Pipeline Stages (Automated)
-The script `KAGGLE_V4_COMPLETE.py` automates the entire flow:
+The main script automates the entire flow:
 ```
-Stage 1: Environment Setup & Auth
-Stage 2: Data Generation (600 images + Taiwan Standard Risk Injection)
-Stage 3: QLoRA Fine-Tuning (MedGemma 1.5-4B)
-Stage 4: Agentic Pipeline Testing & Validation
-Stage 5: High Risk Demo & SilverGuard UI (Cell 7/10)
+Stage 1: Environment Setup & HuggingFace Auth
+Stage 2: Synthetic Data Generation (600 images + Taiwan Standard Risk Injection)
+Stage 3: QLoRA Fine-Tuning (MedGemma 1.5-4B, 3 epochs)
+Stage 4: Agentic Pipeline Testing & Confusion Matrix
+Stage 5: High Risk Demo & SilverGuard UI
 ```
 
 ---
