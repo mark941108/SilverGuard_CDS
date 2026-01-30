@@ -2,6 +2,27 @@
 
 All notable changes to the **AI Pharmacist Guardian** project will be documented in this file.
 
+## [V12.22] - "Impact Edition" Final Audit - 2026-01-30
+### Security & Compliance
+-   **Security Audit Wave 2**: Added **Sandwich Defense** documentation for Prompt Injection and honest disclosure of **OOD Logic Limitations**.
+-   **Economic Precision**: Refined "Zero Cost" claims to "**Zero Marginal Cost**" with economic footnotes in README.
+-   **Metadata Alignment**: Synced `CITATION.cff`, `LICENSE`, and `Dockerfile` to **V1.0 Impact Edition**.
+
+### Privacy Architecture
+-   **Hybrid Privacy Table**: Explicitly documented the "Hybrid Privacy Architecture" in README, clarifying that core inference is 100% local while TTS uses anonymized APIs in demo mode.
+-   **Ephemeral Session Design**: Added detailed logic in `SECURITY.md` explaining how Gradio sessions handle temporary files (RAM-only processing).
+
+## [V12.16] - UX & Stability Hardening - 2026-01-30
+### Feature Polish
+-   **TTS Middleware**: Implemented `clean_text_for_tts()` to sanitize medical output (removing markdown/emojis) for fluid voice synthesis.
+-   **Lazy Loading**: Optimized `MedASR` loading in `HF_SPACE_APP.py` to prevent OOM errors on Hugging Face Spaces free tier.
+-   **Privacy Masking**: Added sensitive data masking in logs to ensure GDPR compliance during debug sessions.
+
+## [V12.0] - "Diamond Native" Infrastructure - 2026-01-29
+### Core Engine Upgrade
+-   **PyTorch 2.6.0 + CUDA 11.8**: Upgraded core infrastructure to support the latest Gemma 3 architecture while maintaining compatibility with Kaggle's T4 GPUs.
+-   **Bootstrap Repair**: Rewrote `KAGGLE_BOOTSTRAP.py` to handle `huggingface-hub` version conflicts and force-reinstall critical dependencies.
+
 ## [V9.0] - Agentic Safety & ASR Gating - 2026-01-29
 ### Major Features
 -   **Known Unknowns (Agentic Safety)**: `agentic_inference_v8` now returns `MISSING_DATA` status when critical lab values (e.g., eGFR for Metformin) are not visible, rather than guessing.
