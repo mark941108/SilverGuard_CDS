@@ -47,7 +47,7 @@ docker run --gpus all -it silverguard-agent
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Clinically Verified Translations** (Indonesian/Vietnamese) for non-Chinese speaking caregivers.
 *   **🗣️ Local Dialect Support**: Capable of **Localized Taiwanese Mandarin (Taiwan-Accent)** TTS, crucial for communicating with the 65+ demographic in rural Taiwan.
 *   **🔐 Privacy First**: **Core Inference Runs 100% Locally** on T4 GPU (Hybrid Privacy Model: De-identified TTS/API data is ephemeral).
-*   **🧠 Agentic Self-Correction**: "Think before speaking" loop with hallucination checks.
+*   **🧠 Agentic Reflection Pattern**: "Think before speaking" loop with self-critique and refinement (Andrew Ng, 2024).
 
 ## ⚡ Judges' Executive Summary (30-Second Insight)
 
@@ -55,13 +55,13 @@ docker run --gpus all -it silverguard-agent
 |----------|--------|
 | **The Problem** | Elderly patients face **7x higher** medication error risk, costing **$42B/year** globally |
 | **The Solution** | An **Offline Edge-AI Agent** that intercepts prescription errors from drug bag images |
-| **The "Secret Sauce"** | **Self-Correction Loop**: Agent detects logic flaws → modifies prompt → retries with lower temperature |
+| **The "Secret Sauce"** | **Agentic Reflection Pattern**: Agent critiques its output → injects error context → refines with lower temperature |
 | **Social Impact** | **SilverGuard**: Translates JSON alerts into elder-friendly TTS audio + large-font calendars |
 | **Privacy Claim** | **Hybrid Architecture**: Local PHI processing, anonymized external DB queries |
 | **Why MedGemma** | Medical reasoning to catch dosage errors that general VLMs miss, 100% local on T4 GPU |
 | **Edge AI Tech** | Leveraging **Gemma 1.5's efficient Transformer architecture** to run on legacy T4 GPUs |
 
-> **🏆 Target: Agentic Workflow Prize** — This is a TRUE Agent with retry behavior, not just conditional logic.
+> **🏆 Target: Agentic Workflow Prize** — This implements Andrew Ng's Reflection Pattern (2024): iterative self-critique with test-time compute, not just conditional logic.
 
 ### 🏆 Competitive Edge & Architecture
 
@@ -79,6 +79,44 @@ docker run --gpus all -it silverguard-agent
 
 > **Key Insight:** GPT-4's critical limitations in clinical deployment are **Privacy** and **Cost**. MedGemma Guardian ensures robust privacy compliance with local PHI processing.
 
+
+
+## 🤖 Agentic Reflection Pattern (Andrew Ng, 2024)
+
+SilverGuard implements the **Reflection Pattern**, one of the foundational Agentic Design Patterns introduced by Andrew Ng in 2024. Instead of generating a final answer in one pass (zero-shot), our system operates in an iterative loop of **Generate → Critique → Refine**:
+
+```mermaid
+graph LR
+    A[Input: Drug Bag Image] --> B{Generate<br/>Temperature 0.6}
+    B -->|Initial Draft| C{Critique<br/>Logic Consistency Check}
+    C -->|✅ Pass| D[Final Output:<br/>Safety Alert]
+    C -->|❌ Fail| E[Refine<br/>Temperature 0.2 + Error Context]
+    E -->|Retry with Constraints| B
+    
+    style E fill:#ffcccc,stroke:#cc0000,stroke-width:2px
+    style C fill:#cce5ff,stroke:#0066cc,stroke-width:2px
+    style D fill:#ccffcc,stroke:#00cc00,stroke-width:2px
+    
+    subgraph "🔁 Agentic Reflection Pattern (Ng, 2024)"
+        B
+        C
+        E
+    end
+```
+
+### Why This Matters
+
+**Andrew Ng's Key Insight**: GPT-3.5 with a Reflection loop can sometimes **outperform GPT-4** in zero-shot tasks (demonstrated in coding benchmarks).
+
+**Our Implementation**:
+1. **Generate** (Temp 0.6): Draft extraction with creative exploration
+2. **Critique** (Deterministic): Symbolic logic validation of dosage math and drug interactions
+3. **Refine** (Temp 0.2): Error-aware re-generation with tighter constraints
+
+**Critical Distinction**:  
+This is **NOT** general-purpose AGI. This is **domain-constrained reflection** within a safety cage designed for medical applications. In healthcare, even "agentic" systems must operate within deterministic guardrails.
+
+*Reference*: Ng, A. (2024). "Agentic Design Patterns." *The Batch*, DeepLearning.AI.
 
 ---
 
