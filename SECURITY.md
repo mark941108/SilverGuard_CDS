@@ -8,11 +8,18 @@ We take patient privacy seriously. This project is architected as an **Edge AI**
 
 *   **100% Local Processing:** All Patient Health Information (PHI), including drug bag images and voice logs, is processed locally on the deployment device (e.g., T4 GPU, Jetson Orin).
 *   **Zero Data Egress:** No PHI is transmitted to external cloud servers or third-party APIs for inference.
-*   **Ephemeral Storage:** RAM is cleared after each inference session. We do not persist patient data on the device storage unless explicitly configured for local logging (which is disabled by default).
+*   **Ephemeral Session Design:** 
+    - **Processing**: All inference operations run in-memory (RAM). No patient data is written to permanent storage.
+    - **Temporary Files**: Demo mode uses Gradio's default file handling (uploaded images/audio are temporarily cached). In production deployments:
+      - Configure containerized ephemeral storage (Docker `--rm` flag ensures all session data is deleted on container termination)
+      - Use `tempfile.TemporaryDirectory()` for automatic cleanup of session artifacts
+      - Deploy cron jobs to clear `/tmp/silverguard_*` files hourly
+    - **Database**: No patient database. Each session is stateless and isolated.
 
 > **Verification:** You can verify this behavior by running the application in an offline environment (air-gapped). The core inference pipeline remains fully functional.
 >
 > *Note: For demonstration purposes, the default configuration ("Demo Mode") may utilize cloud APIs (e.g., gTTS, OpenFDA) for enhanced UX. Production deployments must explicitly set `OFFLINE_MODE=True` to enforce the air-gapped security boundary described above.*
+
 
 ## 🐛 Reporting a Vulnerability
 

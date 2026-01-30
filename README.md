@@ -69,13 +69,16 @@ docker run --gpus all -it silverguard-agent
 |:---------------------|:------------------------------|:-------------------------------|:----------------------|
 | **Privacy (HIPAA/GDPR)** | ✅ **Privacy-First (Zero PII Egress)** | ❌ **High Risk** (Data uploaded to cloud) | ✅ Safe |
 | **Edge Deployment** | ✅ **< 4GB VRAM** (Runs on old clinic PCs) | ❌ Impossible (Requires internet) | N/A |
-| **Cost per Prescription** | ✅ **< $0.001 USD** (Nearly free) | ⚠️ ~$0.03 USD (Expensive at scale) | ⚠️ Expensive (Labor) |
+| **Cost per Prescription** | ✅ **Zero Marginal Cost*** (< $0.001 USD per inference) | ⚠️ ~$0.03 USD (Expensive at scale) | ⚠️ Expensive (Labor) |
 | **Code-Switching (Mixed Script)** | ✅ **Native-Grade** (Fine-tuned for EN/ZH) | 🟡 A-Tier (Occasional hallucinations) | ✅ Native |
 | **Safety Mechanism** | ✅ **Agentic Self-Correction + Refuse When Uncertain** | ⚠️ Black Box (Hard to control hallucinations) | ✅ Professional Judgment |
 | **24/7 Availability** | ✅ **Always On** | ✅ Always On | ❌ Limited by shifts |
 | **Scalability** | ✅ **One GPU → ∞ pharmacies** | ✅ Scalable (but costly) | ❌ Linear (hire more) |
 
+> \* **Zero Marginal Cost**: After initial hardware investment (~$300 for edge device), each additional inference incurs virtually zero cost (no cloud API fees, negligible electricity). This is the economic advantage of Edge AI over Cloud-based solutions.
+
 > **Key Insight:** GPT-4's critical limitations in clinical deployment are **Privacy** and **Cost**. MedGemma Guardian ensures robust privacy compliance with local PHI processing.
+
 
 ---
 

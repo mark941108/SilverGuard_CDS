@@ -32,21 +32,29 @@ This model is designed to assist licensed pharmacists and caregivers in verifyin
 -   **Intended Users:** Pharmacists, Clinical Staff, and Caregivers (via SilverGuard interface).
 -   **Out of Scope:** This model is **NOT** a diagnostic tool. It should not be used to prescribe medication or replace professional medical judgment.
 
-## ⚠️ Limitations & Bias
+## ⚠️ Limitations & Known Issues
 
-To ensure transparency and "Intellectual Honesty," we disclose the following limitations:
+This is a **research prototype** and has several important limitations:
 
-1.  **Synthetic Training Data (Sim2Real Gap):**
+1.  **Training Data (Sim2Real Gap):**
     The model was trained primarily on **synthetic drug bag images** generated to mimic Taiwanese hospital standards. While we applied adversarial augmentation (Sim2Real techniques), performance on extremely noisy real-world images may vary.
 
 2.  **Limited Knowledge Base (POC Scope):**
     The current safety logic is hardcoded for a **17-drug prototype** (representing major chronic diseases like Hypertension and Diabetes). It does not contain a comprehensive database of all FDA-approved drugs.
 
-3.  **Language Specificity:**
-    The model is heavily optimized for **Traditional Chinese** and English medical terminology used in Taiwan. Performance on other languages or scripts is untrained.
+3.  **Out-of-Distribution (OOD) Detection Limitation:**
+    The OOD gate (`check_is_prescription`) relies on **semantic validation** of VLM output rather than a dedicated image classifier.
+    
+    - **Risk**: If the VLM hallucinates medical keywords for a non-prescription image (e.g., a photograph of unrelated objects), the OOD gate may incorrectly classify it as valid input.
+    - **Mitigation**: The subsequent **Logic Consistency Check** layer serves as a secondary safety net, flagging anomalous outputs (e.g., impossible dosages, unknown drugs) for human review.
+    - **Future Enhancement**: Integrate a lightweight pre-filter (e.g., CLIP-based zero-shot classification) to verify "Is this a medical document?" before VLM inference.
 
-4.  **No Clinical Validation:**
-    This is a research prototype and has not undergone clinical trials or FDA/MDR certification.
+4.  **Language Support:**
+    Currently optimized for **Traditional Chinese (Taiwan)** + **English** code-switching. Other languages require fine-tuning.
+
+5.  **Not a Replacement for Pharmacists:**
+    This system is a **Clinical Decision Support Tool (CDSS)**, not a licensed medical device. All outputs must be verified by qualified healthcare professionals.
+ or FDA/MDR certification.
 
 ## ⚙️ Training Data
 
