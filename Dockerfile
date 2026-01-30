@@ -29,6 +29,6 @@ COPY . .
 ENV OFFLINE_MODE=False
 ENV CUDA_VISIBLE_DEVICES=0
 
-# Default command to run the inference service
-# (Note: In a real deployment, this might be a FastAPI app or the Gradio interface)
+# Default command: Launch Gradio Interface (HF_SPACE_APP.py)
+# For production: Configure Docker with --rm flag for ephemeral storage
 CMD ["python", "HF_SPACE_APP.py"]

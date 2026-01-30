@@ -3,13 +3,15 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: "Wang"
     given-names: "Yuan-dao"
-title: "AI Pharmacist Guardian: The MedGemma Impact Challenge"
-version: 5.0.0
-date-released: 2026-02-24
+title: "SilverGuard: Intelligent Medication Safety System (V1.0 Impact Edition)"
+version: 1.0.0
+date-released: 2026-01-30
 url: "https://kaggle.com/competitions/med-gemma-impact-challenge"
-license: "CC-BY-4.0"
+license: "MIT"
 keywords:
   - "medgemma"
   - "agentic-workflow"
   - "patient-safety"
   - "edge-ai"
+  - "silverguard"
+
