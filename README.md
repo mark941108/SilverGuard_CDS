@@ -127,7 +127,7 @@ docker run --gpus all -it silverguard-agent
 | **Why MedGemma** | Medical reasoning to catch dosage errors that general VLMs miss, 100% local on T4 GPU |
 | **Edge AI Tech** | Leveraging **Gemma 1.5's efficient Transformer architecture** to run on legacy T4 GPUs |
 
-> **🏆 Target: Agentic Workflow Prize** — This implements Andrew Ng's Reflection Pattern (2024): iterative self-critique with test-time compute, not just conditional logic.
+---
 
 ### 🏆 Competitive Edge & Architecture
 
