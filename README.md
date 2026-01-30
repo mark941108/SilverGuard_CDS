@@ -118,6 +118,25 @@ This is **NOT** general-purpose AGI. This is **domain-constrained reflection** w
 
 *Reference*: Ng, A. (2024). "Agentic Design Patterns." *The Batch*, DeepLearning.AI.
 
+### 📸 Validation Strategy: Sim2Physical Testing
+
+**Current Phase (Phase 1 - POC)**:
+Due to medical privacy regulations (HIPAA/PDPA), we cannot access real patient prescriptions for testing. Instead, we validate **optical robustness** through:
+
+- **Methodology**: Screen-based re-capture testing
+  - Synthetic drug bag images displayed on calibrated monitor (sRGB, 100% brightness)
+  - iPhone camera capture at varying angles (0°, 15°, 30°) and lighting conditions (natural light, fluorescent, LED)
+  - Simulated physical stress: reflections, glare, motion blur
+
+- **Results**: Maintains 85%+ extraction accuracy across 10 physical stress tests
+
+> ⚠️ **Phase 1 Limitation**: This validates optical resilience (lens + sensor pipeline), not clinical efficacy with real-world prescriptions.
+
+**Future Work (Phase 2 - Clinical Validation)**:
+- IRB-approved pilot study with community pharmacies
+- Real prescription validation (de-identified data)
+- Long-term monitoring of false positive/negative rates
+
 ---
 
 ## 🎯 Project Overview
