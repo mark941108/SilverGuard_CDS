@@ -339,7 +339,7 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     # --- 5. Warning Box ---
     y_warn = 480
     draw.rectangle([40, y_warn, 856, y_warn+100], fill=(255, 245, 245), outline="red", width=2)
-    draw.text((55, y_warn+10), "⚠️ 警語:", fill="red", font=f_warn)
+    draw.text((55, y_warn+10), "[!] 警語:", fill="red", font=f_warn)  # 簡化符號避免渲染問題
     warning_text = drug['warning'][:30] + "..." if len(drug['warning']) > 30 else drug['warning']
     draw.text((55, y_warn+45), warning_text, fill="red", font=f_body)
     if "開車" in drug['warning']: draw_warning_icon(draw, 780, y_warn+50, 40, "car")
@@ -350,9 +350,13 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     draw.line([(30, y_foot), (IMG_WIDTH-30, y_foot)], fill="gray", width=1)
     draw.text((40, y_foot+15), "【三核對】□姓名 □外觀 □用法", fill="black", font=f_body)
     
-    # Texture
-    try: img = apply_texture(img)
-    except: pass
+    # ==========================================
+    # V12.1 CRITICAL FIX: Texture 與 Watermark 都應該受 clean_version 控制
+    # ==========================================
+    if not clean_version:
+        # Texture (紙張紋理)
+        try: img = apply_texture(img)
+        except: pass
 
     # ==========================================
     # 🕵️ LEGAL PROTECTION: ANTI-FORGERY WATERMARK
