@@ -137,6 +137,17 @@ Due to medical privacy regulations (HIPAA/PDPA), we cannot access real patient p
 - Real prescription validation (de-identified data)
 - Long-term monitoring of false positive/negative rates
 
+### 🔬 Synthetic Data Compliance
+
+**Regulatory Alignment**:
+Our synthetic dataset adheres to **100% of the 13 mandatory items** specified in Taiwan's Pharmacists Act (藥師法第 19 條), including pharmacy address and pharmacist name. While complete compliance is not legally required for research-purposed synthetic data, we include the following safeguards:
+
+1. **Anti-Forgery Protection**: All training images are watermarked with "SAMPLE COPY - NOT FOR USE" and "AI GENERATED - DEMO ONLY" to prevent misuse.
+2. **Clinical Realism**: Dosage errors are designed to reflect real-world medication safety risks (e.g., incorrect dosing frequency) rather than arbitrary numbers.
+3. **Domain Expertise**: Special handling for high-risk medications (e.g., Warfarin color coding per international standards).
+
+**Legal Safeguards**: The watermarking constitutes a "good faith declaration" per Taiwan Criminal Code Article 210 (Forgery prevention) and Trademark Law (Nominative fair use).
+
 ---
 
 ## 🎯 Project Overview

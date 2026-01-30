@@ -261,8 +261,8 @@ def apply_optical_stress(img, severity=0):
 # Actually, the user asked to modify generate_v9_bag. Wait, the user instruction was "Add apply_optical_stress... Update Main Loop".
 # I will modify generate_v9_bag to accept `optical_severity` and call `apply_optical_stress` at the end.
 
-def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0):
-    """V11: 896x896 版本，支援光學壓力測試"""
+def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0, clean_version=False):
+    """V12: 法規完整版 + 光學壓力測試 + 乾淨版（供拍照）"""
     img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), "white")
     draw = ImageDraw.Draw(img)
     
@@ -275,7 +275,8 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
 
     # --- 1. Top Header ---
     draw.text((40, 25), "MedGemma 聯合醫療體系", fill="#003366", font=f_h1)
-    draw.text((40, 70), "用藥諮詢: (02) 2345-6789", fill="red", font=f_h2)
+    draw.text((40, 65), "地址: 新北市新莊區中正路 999 號", fill="gray", font=get_font(18))  # P0: 法規補全
+    draw.text((40, 90), "用藥諮詢: (02) 2345-6789", fill="red", font=f_h2)
     
     # QR Code
     try:
@@ -286,13 +287,14 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
         img.paste(qr_img, (IMG_WIDTH-qr_img.width-20, 20))
     except Exception as e: print(f"⚠️ QR Error: {e}")
     
-    draw.line([(30, 110), (IMG_WIDTH-30, 110)], fill="#003366", width=3)
+    draw.line([(30, 120), (IMG_WIDTH-30, 120)], fill="#003366", width=3)  # 調整位置以容納地址
 
     # --- 2. Patient Info ---
-    y_p = 130
+    y_p = 140  # 調整起始位置
     draw.text((40, y_p), f"姓名: {patient['name']}", fill="black", font=f_h1)
     draw.text((350, y_p+5), f"{patient['gender']}", fill="black", font=f_h2)
     draw.text((40, y_p+45), f"調劑日: 115/01/22", fill="black", font=f_body)
+    draw.text((40, y_p+70), f"調劑藥師: 王專業", fill="black", font=f_body)  # P0: 法規補全
     
     draw.line([(30, y_p+80), (IMG_WIDTH-30, y_p+80)], fill="gray", width=2)
 
@@ -305,13 +307,20 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     draw.text((45, y_drug), drug['cht'], fill="blue", font=f_huge)
     draw.text((45, y_drug+45), drug['eng'], fill="black", font=f_h2)
     
-    # Dose (Risk Injection)
+    # Dose (Risk Injection - P1: 臨床邏輯優化)
     dose_val = drug['dose']
+    original_usage = drug['usage']  # 保存原始頻率
     if is_danger:
-         # Strategic Risk Injection: Not just 5000mg
-         if "Metformin" in drug['eng']: dose_val = "2500mg (OD)" # Overdose
-         elif "Warfarin" in drug['eng']: dose_val = "10mg" # High bleeding risk
-         else: dose_val = "5000mg"
+         # P1: 更真實的臨床錯誤（頻率錯誤而非幻想藥丸）
+         if "Metformin" in drug['eng']: 
+             dose_val = "1000mg"  # 單顆劑量正常
+             drug['usage'] = "QID"  # 錯誤：每日 4 次 (總量 4000mg -> 乳酸中毒)
+         elif "Warfarin" in drug['eng']: 
+             dose_val = "10mg"  # 極高劑量（真實但罕見）
+             drug['warning'] += " ⚠️ 出血風險極高"  # 加強警語
+         else: 
+             dose_val = "500mg"
+             drug['usage'] = "Q2H"  # 錯誤：每 2 小時一次
          
     draw.text((500, y_drug), f"劑量: {dose_val}", fill="black", font=f_h2)
     draw.text((500, y_drug+35), "總量: 28 顆", fill="black", font=f_body)
@@ -350,18 +359,20 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     # ==========================================
     # Prevents "Forgery of Documents" accusations
     # Prevents Trademark Infringement confusion (Nominative Fair Use)
-    draw = ImageDraw.Draw(img) # Re-init draw on textured image if needed
-    wm_font = get_font(50)
-    
-    # Diagonal Watermark
-    txt_layer = Image.new("RGBA", img.size, (255,255,255,0))
-    d_ctx = ImageDraw.Draw(txt_layer)
-    d_ctx.text((200, 400), "SAMPLE COPY - NOT FOR USE", fill=(200, 200, 200, 120), font=wm_font)
-    d_ctx.text((150, 500), "AI GENERATED - DEMO ONLY", fill=(200, 200, 200, 120), font=wm_font)
-    
-    # Rotate watermark
-    txt_layer = txt_layer.rotate(30)
-    img = Image.alpha_composite(img.convert("RGBA"), txt_layer).convert("RGB")
+    # V12: 加入 clean_version 選項供 Sim2Physical 測試
+    if not clean_version:  # 只在非乾淨版加浮水印
+        draw = ImageDraw.Draw(img) # Re-init draw on textured image if needed
+        wm_font = get_font(50)
+        
+        # Diagonal Watermark
+        txt_layer = Image.new("RGBA", img.size, (255,255,255,0))
+        d_ctx = ImageDraw.Draw(txt_layer)
+        d_ctx.text((200, 400), "SAMPLE COPY - NOT FOR USE", fill=(200, 200, 200, 120), font=wm_font)
+        d_ctx.text((150, 500), "AI GENERATED - DEMO ONLY", fill=(200, 200, 200, 120), font=wm_font)
+        
+        # Rotate watermark
+        txt_layer = txt_layer.rotate(30)
+        img = Image.alpha_composite(img.convert("RGBA"), txt_layer).convert("RGB")
 
     # Optical Stress
     try: img = apply_optical_stress(img, severity=optical_severity)
@@ -414,6 +425,14 @@ def get_synced_drugs():
             if "粉" in app or "紅" in app: color = "pink"
             elif "黃" in app: color = "yellow"
             
+            # P2: Warfarin 專屬顏色邏輯（國際標準）
+            if "Warfarin" in d['name_en'] or "華法林" in d['name_zh']:
+                if "1" in d['dose']: color = "tan"
+                elif "2" in d['dose']: color = "purple"
+                elif "3" in d['dose']: color = "blue"
+                elif "5" in d['dose']: color = "pink"
+                elif "10" in d['dose']: color = "white"
+            
             # 2. Parse Usage/Timing
             usage = "BID"
             timing = "飯後"
@@ -450,7 +469,7 @@ print(f"✅ Synced {len(DRUGS)} drugs from Source of Truth (medgemma_data.py)")
 
 if __name__ == "__main__":
     from PIL import ImageEnhance # Import needed for optical stress
-    print("🏥 MedGemma Challenge Generator V11 (Strategic + Optical Stress)...")
+    print("🏥 MedGemma Challenge Generator V12 (Full Compliance + Clean Version)...")
     
     # 1. Generate 3 Perfect Images (Expect: PASS)
     for i in range(1, 4):
@@ -459,7 +478,7 @@ if __name__ == "__main__":
         generate_v9_bag(f"{OUTPUT_DIR}/demo_clean_{i}.jpg", p, d, is_danger=False, optical_severity=0)
         
     # 2. Generate 1 High Risk Image (Expect: HIGH_RISK logic trap)
-    p = PATIENTS[0] # High age
+    p = PATIENTS[0]
     d = DRUGS[0] # Metformin
     generate_v9_bag(f"{OUTPUT_DIR}/demo_high_risk.jpg", p, d, is_danger=True, optical_severity=0)
     
@@ -468,4 +487,11 @@ if __name__ == "__main__":
     d = random.choice(DRUGS)
     generate_v9_bag(f"{OUTPUT_DIR}/demo_blur_reject.jpg", p, d, is_danger=False, optical_severity=2)
     
-    print("🚀 All Challenge Assets Ready!")
+    # 4. 🎯 V12 新增：乾淨版（無浮水印）供 Sim2Physical 拍照測試
+    print("📸 Generating CLEAN versions for Sim2Physical testing...")
+    for i in range(1, 4):
+        p = random.choice(PATIENTS)
+        d = random.choice(DRUGS)
+        generate_v9_bag(f"{OUTPUT_DIR}/clean_photo_test_{i}.jpg", p, d, is_danger=False, optical_severity=0, clean_version=True)
+    
+    print("✅ All Assets Ready! (5 Standard + 3 Clean for Photo Test)")
