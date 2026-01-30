@@ -106,7 +106,7 @@ def transcribe_audio(audio_path, expected_lang="en"):
     import gc
     import re
     
-
+    try:
         logs.append("⏳ [LazyLoad] Accessing MedASR Model...")
         import librosa
         

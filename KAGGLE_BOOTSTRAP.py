@@ -108,7 +108,7 @@ print("\n[5/6] 安裝白金版本組合 (PyTorch 2.6.0 + cu118)...")
 
 # 2. 暴力移除舊版 (防止 Version Conflict)
 print("   ☢️ 清理衝突套件...")
-!pip uninstall -y torch torchvision torchaudio transformers huggingface_hub
+!pip uninstall -y torch torchvision torchaudio transformers huggingface_hub opencv-python
 
 # 3. PyTorch 2.6.0 (Stable for T4 in 2026)
 # 指定 cu118 版本以獲得最佳穩定性，避免 cu121/cu124 相容性問題
