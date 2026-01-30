@@ -36,8 +36,8 @@ This is SilverGuard CDS. A Clinical Decision Support prototype.
 
 ```text
 [Voiceover - English]
-Unlike cloud-based solutions, our entire pipeline runs locally on a single T-Four G-P-U.
-Zero PII leaves the device. Secure, offline-capable, and cost-effective.
+Unlike cloud-based solutions, our core inference runs locally on a single T-Four G-P-U.
+Zero patient data leaves the device. Secure, offline-capable, and cost-effective.
 ```
 
 ---
@@ -89,6 +89,8 @@ Reference-based safety alerts. Ensuring safety has no language barrier.
 [Voiceover - English]
 We are not replacing pharmacists. 
 We are giving them a second pair of eyes that never gets tired.
+
+Powered by MedGemma. Built for privacy. Designed for impact.
 
 This is SilverGuard CDS. 
 Safe. Scalable. And available now on Kaggle.
