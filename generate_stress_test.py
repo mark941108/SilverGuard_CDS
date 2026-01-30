@@ -213,12 +213,19 @@ def draw_usage_grid_2026(draw, x, y, w, h, drug):
             draw.line([cx-20, cy+60, cx+20, cy+40], fill="lightgray", width=3)
 
 def apply_texture(img):
-    overlay = Image.new("RGBA", img.size, (255, 252, 240, 20))
-    img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
-    arr = np.array(img)
-    noise = np.random.normal(0, 3, arr.shape).astype(np.uint8)
-    arr = np.clip(arr + noise, 0, 255).astype(np.uint8)
-    return Image.fromarray(arr)
+    """
+    加入紙張紋理（模擬真實藥袋的粗糙表面）
+    V12.33 Fix: 改為灰階噪點，移除 RGB 彩色雜訊
+    """
+    # 生成灰階噪點（單通道，-5 到 +5）
+    noise_gray = np.random.randint(-5, 6, (img.size[1], img.size[0]), dtype=np.int8)
+    
+    # 擴展到 RGB 三通道（相同值 = 灰階）
+    noise = np.stack([noise_gray, noise_gray, noise_gray], axis=-1)
+    
+    img_array = np.array(img)
+    textured = np.clip(img_array.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+    return Image.fromarray(textured)
 
 # ==========================================
 # New V11 Feature: Optical Corruption Module
