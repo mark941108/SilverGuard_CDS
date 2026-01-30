@@ -138,12 +138,16 @@ def apply_plastic_glare(img, intensity=0.5):
     img = Image.alpha_composite(img, overlay)
     return img.convert("RGB")
 
-def apply_optical_stress(img, severity=0):
+def apply_optical_stress(img, severity=0.5):
     """[Layer 2: Optics] 光學干擾"""
     if severity == 0: return img
     
-    # 1. Blur (Defocus)
-    img = img.filter(ImageFilter.GaussianBlur(radius=random.uniform(0.5, 1.5)))
+    # 1. Blur (Defocus) - Adjusted by severity
+    # severity 0.5 -> radius 1.0
+    # severity 1.0 -> radius 2.0
+    radius = severity * 2.0
+    if radius > 0:
+        img = img.filter(ImageFilter.GaussianBlur(radius=random.uniform(radius*0.8, radius*1.2)))
     
     # 2. Contrast/Brightness (Lighting conditions)
     enhancer = ImageEnhance.Contrast(img)
@@ -360,9 +364,22 @@ def generate_real_qr_code(data_dict, size=120):
     img = img.resize((size, size), Image.NEAREST)
     return img
 
-def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False):
+def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kwargs):
     # 🎨 1. Base Layer
-    bg_color = (random.randint(245, 255), random.randint(245, 255), random.randint(245, 255))
+    # Use external params if provided, else random
+    if "bg_color" in kwargs:
+        bg_name = kwargs["bg_color"]
+        # Map name to RGB
+        bg_map = {
+            "white": (255, 255, 255),
+            "cream": (255, 253, 208), 
+            "light_gray": (240, 240, 240),
+            "warm_white": (255, 250, 240)
+        }
+        bg_color = bg_map.get(bg_name, (255, 255, 255))
+    else:
+        bg_color = (random.randint(245, 255), random.randint(245, 255), random.randint(245, 255))
+        
     img = Image.new("RGB", (IMG_SIZE, IMG_SIZE), bg_color)
     draw = ImageDraw.Draw(img)
     
@@ -621,7 +638,17 @@ if __name__ == "__main__":
                 patient_age = random.choice(PATIENT_AGES)
                 patient_name = random.choice(PATIENT_NAMES)
                 
-                generate_v26_human_bag(filename, cat, d, is_trap)
+                # Select random parameters
+                bg_color = random.choice(["white", "cream", "light_gray", "warm_white"])
+                blur_level = random.choice([0.0, 0.5, 1.0]) # 0=Clear, 1=Blurry
+                glare_intensity = random.choice([0.3, 0.6, 0.9])
+                
+                generate_v26_human_bag(
+                    filename, cat, d, is_trap,
+                    bg_color=bg_color,
+                    blur_level=blur_level,
+                    glare_intensity=glare_intensity
+                )
                 
                 generated_files.append({
                     "filename": os.path.basename(filename),
@@ -629,7 +656,12 @@ if __name__ == "__main__":
                     "drug_data": d,
                     "is_trap": is_trap,
                     "patient_age": patient_age,
-                    "patient_name": patient_name
+                    "patient_name": patient_name,
+                    "visual_params": {
+                        "bg": bg_color,
+                        "blur": blur_level,
+                        "glare": glare_intensity
+                    }
                 })
                 count += 1
             
