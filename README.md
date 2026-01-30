@@ -1240,7 +1240,8 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 *   **The Philosophy:** In a clinical setting, waiting 5 seconds for a verified answer is acceptable; getting an instant but wrong answer (hallucination) creates severe risk.
 *   **Latency Guard:** We explicitly set `MAX_RETRIES = 2` to prevent infinite loops and ensure the system degrades gracefully to "Human Review Needed" if it takes too long.
 
-#### Q5: How> **"An architecture of safety isn't just about accuracy; it's about knowing when to ask for help."**
+#### Q5: What is the core philosophy of your safety architecture?
+**A: "An architecture of safety isn't just about accuracy; it's about knowing when to ask for help."**
 
 SilverGuard is an **Offline-First**, LLM-powered visual QA system designed to be the logic layer between elderly patients and their medications. It runs locally on edge devices (T4 GPU optimized), providing a **privacy-preserving** safety net that detects errors before pills are swallowed.
 
