@@ -373,7 +373,7 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     except: pass
 
 # ==========================================
-# 5. Database (Authentic Taiwan Data)
+# 5. Database (Regulatory-Compliant Synthetic Data)
 # ==========================================
 PATIENTS = [
     {"name": "王大明", "gender": "男 (M)", "id": "A123456789"},
@@ -383,7 +383,7 @@ PATIENTS = [
 ]
 
 # ==========================================
-# 5. Database (Authentic Taiwan Data - SYNCED)
+# 5. Database (Regulatory-Compliant Synthetic Data - SYNCED with medgemma_data.py)
 # ==========================================
 from medgemma_data import DRUG_DATABASE as MASTER_DB
 

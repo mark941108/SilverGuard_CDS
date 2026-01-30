@@ -107,10 +107,20 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 | ❌ Hallucination Risk | ✅ **Neuro-Symbolic Guardrails** |
 | ❌ High API costs | ✅ **Free, runs on single T4 GPU** |
 
+
 > [!NOTE]
-> **Hybrid Privacy Architecture:** All sensitive operations (image analysis, patient data extraction, safety reasoning) run 100% locally. Only the optional SilverGuard TTS feature uses cloud API (gTTS) for voice synthesis—**no PHI is transmitted**. Visual fallback available for fully air-gapped environments.
+> **Hybrid Privacy Architecture:**  
+> All **core operations** (image analysis, patient data extraction, safety reasoning) run **100% locally** on the device. The following table clarifies the data flow for each component:
 >
-> *Note: While MedGemma inference is offline, the prototype's TTS module utilizes Cloud APIs for high-fidelity demonstration. Production builds will utilize on-device TTS (e.g., Gemini Nano or localized models) to ensure full air-gapped compliance.*
+> | Component | Demo Mode | Production Mode | Data Transmitted |
+> |-----------|-----------|-----------------|------------------|
+> | **MedGemma Inference** | ✅ Local | ✅ Local | ❌ None |
+> | **Drug Image Analysis** | ✅ Local | ✅ Local | ❌ None |
+> | **Safety Logic Check** | ✅ Local | ✅ Local | ❌ None |
+> | **TTS Voice Synthesis** | ☁️ Cloud (gTTS) | ✅ Local (pyttsx3/MMS) | ⚠️ Anonymized Generic Text Only* |
+>
+> \* **Privacy Safeguard**: The gTTS API only receives **de-identified, generic phrases** (e.g., "請記得飯後服藥"). Patient names are replaced with "阿公/阿嬤" via `clean_text_for_tts()` before transmission. Set `OFFLINE_MODE=True` for fully air-gapped deployment.
+
 
 > [!IMPORTANT]
 > **Note on Medical Reasoning:** According to the [MedGemma Model Card](https://developers.google.com/health-ai-developer-foundations/medgemma/model-card), MedGemma is fine-tuned on medical text, question-answer pairs, and clinical data, aiming to reduce hallucinations. However, **clinical verification is always required.**

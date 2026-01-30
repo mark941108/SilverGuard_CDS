@@ -1733,7 +1733,7 @@ def agentic_inference(model, processor, img_path, verbose=True):
         "- 'safety_analysis.reasoning' MUST use facts, not commands.\n"
         "- Add 'silverguard_message' using the persona of a caring grandchild (貼心晚輩).\n"
         "- **PRIVACY RULE**: NEVER use the patient's real name in 'silverguard_message'. Use generic '阿公' or '阿嬤'.\n\n"
-        "### ONE-SHOT EXAMPLE (Authentic & Compliant):\n"
+        "### ONE-SHOT EXAMPLE (Regulatory-Compliant Format):\n"
         "{\n"
         "  \"extracted_data\": {\n"
         "    \"patient\": {\"name\": \"王大明\", \"age\": 88},\n"
