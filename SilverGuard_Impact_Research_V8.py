@@ -2211,15 +2211,22 @@ def main_cell4():
     print("    Implementing: Input Gate → Reasoning → Confidence → Grounding")
     print("="*80)
     
-    BASE_DIR = "./medgemma_training_data_v5"
-    
-    test_images = [
-        f"{BASE_DIR}/medgemma_v5_0000.png",
-        f"{BASE_DIR}/medgemma_v5_0100.png",
-        f"{BASE_DIR}/medgemma_v5_0300.png",
-        f"{BASE_DIR}/medgemma_v5_0400.png",
-        f"{BASE_DIR}/medgemma_v5_0550.png",
-    ]
+    # [V16 FIX] 動態路徑：優先使用 Stress Test（最難測試集）
+    if os.path.exists("./assets/stress_test"):
+        BASE_DIR = "./assets/stress_test"
+        print(f"✅ [Cell 4] Using Stress Test Data from: {BASE_DIR}")
+        import glob
+        test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))[:5]
+    else:
+        BASE_DIR = "./medgemma_training_data_v5"
+        print(f"⚠️ [Cell 4] Fallback to V5 data: {BASE_DIR}")
+        test_images = [
+            f"{BASE_DIR}/medgemma_v5_0000.png",
+            f"{BASE_DIR}/medgemma_v5_0100.png",
+            f"{BASE_DIR}/medgemma_v5_0300.png",
+            f"{BASE_DIR}/medgemma_v5_0400.png",
+            f"{BASE_DIR}/medgemma_v5_0550.png",
+        ]
     
     results = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0, "MISSING_DATA": 0, "HUMAN_REVIEW": 0, "REJECTED": 0}
     
@@ -2322,8 +2329,15 @@ def demo_agentic_high_risk():
 
     # 1. 讀取標註檔找出 High Risk 的 ID
     # 1. 讀取標註檔找出 High Risk 的 ID
-    json_path = "./medgemma_training_data_v5/dataset_v5_full.json" # V5 Fix: Use FULL dataset
-    img_dir = "./medgemma_training_data_v5"
+    # [V16 FIX] 動態路徑：優先使用 V16 高擬真數據
+    if os.path.exists("./assets/lasa_dataset_v17_compliance/dataset_v16_train.json"):
+        json_path = "./assets/lasa_dataset_v17_compliance/dataset_v16_train.json"
+        img_dir = "./assets/lasa_dataset_v17_compliance"
+        print(f"✅ [Cell 5 Demo] Using V16 High-Fidelity Data")
+    else:
+        json_path = "./medgemma_training_data_v5/dataset_v5_full.json"
+        img_dir = "./medgemma_training_data_v5"
+        print(f"⚠️ [Cell 5 Demo] Fallback to V5 data")
     
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -3129,8 +3143,15 @@ def evaluate_agentic_pipeline():
         return
     
     # V5 Fix: Use Test Split (prevent data leakage)
-    json_path = "./medgemma_training_data_v5/dataset_v5_test.json"
-    img_dir = "./medgemma_training_data_v5"
+    # [V16 FIX] 動態路徑：優先使用 V16 測試集
+    if os.path.exists("./assets/lasa_dataset_v17_compliance/dataset_v16_test.json"):
+        json_path = "./assets/lasa_dataset_v17_compliance/dataset_v16_test.json"
+        img_dir = "./assets/lasa_dataset_v17_compliance"
+        print(f"✅ [Cell 8 Eval] Evaluating on V16 Test Set")
+    else:
+        json_path = "./medgemma_training_data_v5/dataset_v5_test.json"
+        img_dir = "./medgemma_training_data_v5"
+        print(f"⚠️ [Cell 8 Eval] Fallback to V5 test set")
     
     try:
         with open(json_path, "r", encoding="utf-8") as f:
