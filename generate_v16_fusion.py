@@ -3,7 +3,7 @@ import random
 import math
 import requests
 import json
-import datetime
+
 import qrcode
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps
 
@@ -459,7 +459,7 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
     
     draw.text((px, py), f"姓名: {masked_name} (85歲)", fill="black", font=get_font(36, bold=True))
     
-    today_str = datetime.date.today().strftime("%Y/%m/%d")
+    today_str = datetime.now().strftime("%Y/%m/%d")
     draw.text((px+400, py+50), f"總量: 28 顆 (7天份)   日期: {today_str}", fill="black", font=get_font(24, bold=True))
     
     # Diagnosis

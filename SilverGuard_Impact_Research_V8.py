@@ -2142,7 +2142,7 @@ def agentic_inference(model, processor, img_path, verbose=True):
             elif conf_status == "LOW_CONFIDENCE":
                 # 特例：如果是 HIGH_RISK 且信心尚可 (>0.55)，為了安全起見，我們直接報 HIGH_RISK
                 # (寧可誤報危險，也不要因為信心不足而變成 HUMAN_REVIEW 導致藥師漏看)
-                if status == "HIGH_RISK" and confidence > 0.55:
+                if final_status == "HIGH_RISK" and confidence > 0.55:
                      result["final_status"] = "HIGH_RISK"
                      result["confidence"]["message"] += " (Force Escalated for Safety)"
                 else:
@@ -2150,7 +2150,7 @@ def agentic_inference(model, processor, img_path, verbose=True):
             
             # 情境 C: 一切正常 (High Confidence + Grounded)
             else:
-                result["final_status"] = status
+                result["final_status"] = final_status
             
             result["pipeline_status"] = "COMPLETE"
             break  # EXIT LOOP ON SUCCESS
