@@ -303,12 +303,24 @@ except ImportError:
 USE_V16_DATA = os.getenv("MEDGEMMA_USE_V16_DATA", "0") == "1"
 V16_DATA_DIR = os.getenv("MEDGEMMA_V16_DIR", "./assets/lasa_dataset_v17_compliance")
 
-if USE_V16_DATA and os.path.exists(V16_DATA_DIR):
+# 更精確的檢測：檢查 JSON 檔案是否存在
+v16_train_exists = os.path.exists(os.path.join(V16_DATA_DIR, "dataset_v16_train.json"))
+v16_test_exists = os.path.exists(os.path.join(V16_DATA_DIR, "dataset_v16_test.json"))
+
+if USE_V16_DATA and v16_train_exists and v16_test_exists:
     OUTPUT_DIR = Path(V16_DATA_DIR)
     print(f"✅ [V16 MODE] Using Hyper-Realistic Dataset from: {OUTPUT_DIR}")
+    print(f"   📊 Train Set: {os.path.join(V16_DATA_DIR, 'dataset_v16_train.json')}")
+    print(f"   📊 Test Set: {os.path.join(V16_DATA_DIR, 'dataset_v16_test.json')}")
     SKIP_DATA_GENERATION = True  # 跳過 Cell 2 生成
 else:
     OUTPUT_DIR = Path("medgemma_training_data_v5")
+    if USE_V16_DATA:
+        print(f"⚠️ [V16 MODE REQUESTED] But V16 data not found:")
+        print(f"   ENV MEDGEMMA_USE_V16_DATA={os.getenv('MEDGEMMA_USE_V16_DATA', 'NOT SET')}")
+        print(f"   ENV MEDGEMMA_V16_DIR={os.getenv('MEDGEMMA_V16_DIR', 'NOT SET')}")
+        print(f"   Train JSON exists: {v16_train_exists}")
+        print(f"   Test JSON exists: {v16_test_exists}")
     print(f"⚠️ [V5 MODE] Using Internal Generator: {OUTPUT_DIR}")
     SKIP_DATA_GENERATION = False
 
