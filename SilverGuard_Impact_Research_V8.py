@@ -300,18 +300,38 @@ except ImportError:
 
 # ===== 配置 =====
 # [V16 INTEGRATION] 智能檢測：優先使用 V16 超擬真數據
+# [OMNI-NEXUS FIX] 使用絕對路徑解決工作目錄錯位問題
+
+# 檢測是否在 Kaggle 環境
+IN_KAGGLE = os.path.exists("/kaggle/working")
+
+if IN_KAGGLE:
+    # Kaggle 環境：使用絕對路徑（因為 Bootstrap 會 cd 到子目錄）
+    V16_DATA_DIR_ABSOLUTE = "/kaggle/working/assets/lasa_dataset_v17_compliance"
+    STRESS_TEST_DIR_ABSOLUTE = "/kaggle/working/assets/stress_test"
+    print(f"🏢 [KAGGLE MODE] Using absolute paths")
+    print(f"   V16 Path: {V16_DATA_DIR_ABSOLUTE}")
+else:
+    # 本地環境：使用相對路徑
+    V16_DATA_DIR_ABSOLUTE = "./assets/lasa_dataset_v17_compliance"
+    STRESS_TEST_DIR_ABSOLUTE = "./assets/stress_test"
+    print(f"💻 [LOCAL MODE] Using relative paths")
+
+# 環境變數覆寫（如果 Bootstrap 有設定）
 USE_V16_DATA = os.getenv("MEDGEMMA_USE_V16_DATA", "0") == "1"
-V16_DATA_DIR = os.getenv("MEDGEMMA_V16_DIR", "./assets/lasa_dataset_v17_compliance")
+V16_DATA_DIR = os.getenv("MEDGEMMA_V16_DIR", V16_DATA_DIR_ABSOLUTE)
 
 # 更精確的檢測：檢查 JSON 檔案是否存在
-v16_train_exists = os.path.exists(os.path.join(V16_DATA_DIR, "dataset_v16_train.json"))
-v16_test_exists = os.path.exists(os.path.join(V16_DATA_DIR, "dataset_v16_test.json"))
+v16_train_json = os.path.join(V16_DATA_DIR, "dataset_v16_train.json")
+v16_test_json = os.path.join(V16_DATA_DIR, "dataset_v16_test.json")
+v16_train_exists = os.path.exists(v16_train_json)
+v16_test_exists = os.path.exists(v16_test_json)
 
 if USE_V16_DATA and v16_train_exists and v16_test_exists:
     OUTPUT_DIR = Path(V16_DATA_DIR)
     print(f"✅ [V16 MODE] Using Hyper-Realistic Dataset from: {OUTPUT_DIR}")
-    print(f"   📊 Train Set: {os.path.join(V16_DATA_DIR, 'dataset_v16_train.json')}")
-    print(f"   📊 Test Set: {os.path.join(V16_DATA_DIR, 'dataset_v16_test.json')}")
+    print(f"   📊 Train Set: {v16_train_json}")
+    print(f"   📊 Test Set: {v16_test_json}")
     SKIP_DATA_GENERATION = True  # 跳過 Cell 2 生成
 else:
     OUTPUT_DIR = Path("medgemma_training_data_v5")
@@ -319,8 +339,9 @@ else:
         print(f"⚠️ [V16 MODE REQUESTED] But V16 data not found:")
         print(f"   ENV MEDGEMMA_USE_V16_DATA={os.getenv('MEDGEMMA_USE_V16_DATA', 'NOT SET')}")
         print(f"   ENV MEDGEMMA_V16_DIR={os.getenv('MEDGEMMA_V16_DIR', 'NOT SET')}")
-        print(f"   Train JSON exists: {v16_train_exists}")
-        print(f"   Test JSON exists: {v16_test_exists}")
+        print(f"   Checking path: {V16_DATA_DIR}")
+        print(f"   Train JSON ({v16_train_json}): {v16_train_exists}")
+        print(f"   Test JSON ({v16_test_json}): {v16_test_exists}")
     print(f"⚠️ [V5 MODE] Using Internal Generator: {OUTPUT_DIR}")
     SKIP_DATA_GENERATION = False
 
@@ -2225,8 +2246,11 @@ def main_cell4():
     print("="*80)
     
     # [V16 FIX] 動態路徑：優先使用 Stress Test（最難測試集）
-    if os.path.exists("./assets/stress_test"):
-        BASE_DIR = "./assets/stress_test"
+    # 使用配置區定義的絕對路徑
+    stress_dir = STRESS_TEST_DIR_ABSOLUTE if 'STRESS_TEST_DIR_ABSOLUTE' in globals() else "./assets/stress_test"
+    
+    if os.path.exists(stress_dir):
+        BASE_DIR = stress_dir
         print(f"✅ [Cell 4] Using Stress Test Data from: {BASE_DIR}")
         import glob
         test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))[:5]
