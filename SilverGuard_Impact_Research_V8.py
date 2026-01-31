@@ -1559,18 +1559,36 @@ def logical_consistency_check(extracted_data, safety_analysis):
     if issues: return False, f"Schema Error: {'; '.join(issues)}"
     
     # 0. [Audit Fix] Unknown Drug Interception (The "Reality Gap" Fix)
+    #    [V8.2 Fix] Smart drug name extraction for VLM output format
     # Check against local DB (Source of Truth) to prevent hallucinating safety for unknown drugs
     drug_name = extracted_data.get("drug", {}).get("name", "")
     if drug_name:
         found_in_db = False
-        target = drug_name.lower().strip()
-        # Check aliases
-        if target in DRUG_ALIASES: target = DRUG_ALIASES[target]
         
-        # Simple exact/partial match
+        # ✅ Smart drug name extraction
+        # VLM often outputs: "Aspirin 100mg (ASA)" or "Glucophage 500mg (Metformin)"
+        # We need to extract core name: "Aspirin" or "Glucophage"
+        import re
+        # Step 1: Remove dosage patterns (e.g., "100mg", "5 mg", "500 mg")
+        clean_name = re.sub(r'\s*\d+\.?\d*\s*mg\b', '', drug_name, flags=re.IGNORECASE)
+        # Step 2: Remove parentheses and their content (e.g., "(ASA)", "(Metformin)")
+        clean_name = re.sub(r'\s*\([^)]*\)', '', clean_name)
+        # Step 3: Clean and normalize
+        target = clean_name.lower().strip()
+        
+        # Check aliases
+        if target in DRUG_ALIASES: 
+            target = DRUG_ALIASES[target]
+        
+        # Enhanced fuzzy match: check if ANY word in target matches db
         for cat, drugs in _SYNTHETIC_DATA_GEN_SOURCE.items():
             for d in drugs:
-                if target in d["name_en"].lower() or target in d["generic"].lower():
+                db_name_en = d["name_en"].lower()
+                db_generic = d["generic"].lower()
+                
+                # Match if target contains db name OR db name contains target
+                if (target in db_name_en or db_name_en in target or
+                    target in db_generic or db_generic in target):
                     found_in_db = True
                     break
             if found_in_db: break

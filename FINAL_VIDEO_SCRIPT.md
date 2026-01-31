@@ -71,7 +71,8 @@ Because getting an answer 3 seconds late is better than getting a wrong answer i
 Raw JSON is useless to a grandmother. 
 SilverGuard translates safety alerts into large-font visuals.
 
-And for Taiwan's 250,000 migrant caregivers, it speaks their language.
+But clarity isn't just for the elderly; it's for those who care for them.
+Taiwan's 250,000 migrant caregivers now have safety alerts in their language.
 
 [🔊 播放印尼語 TTS]
 "MOHON TANYA APOTEKER"
