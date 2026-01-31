@@ -3614,6 +3614,10 @@ def offline_safety_knowledge_graph(drug_a, drug_b):
     except:
         return "⚠️ API Error."
 
+# [FIX] Create alias for Gradio button callback compatibility
+check_drug_interaction = offline_safety_knowledge_graph
+
+
 # 3. Gradio Interface
 def launch_agentic_app():
     if 'model' not in globals():
