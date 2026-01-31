@@ -1713,7 +1713,12 @@ def parse_json_from_response(response):
 # ============================================================================
 # 🛡️ INPUT VALIDATION GATE (Red Team Fix)
 # ============================================================================
-BLUR_THRESHOLD = 100.0
+# [V16 FIX] Smart threshold adjustment: V16 images have intentional blur augmentation
+# to simulate real-world photos (sim2real), so we need a lower threshold.
+if USE_V16_DATA:
+    BLUR_THRESHOLD = 20.0  # V16 images have blur scores 30-50 due to augmentation
+else:
+    BLUR_THRESHOLD = 50.0  # V5 generated images are clearer
 
 def check_image_quality(image_path):
     """Refusal is safer than Hallucination."""
@@ -2373,16 +2378,20 @@ def demo_agentic_high_risk():
     print("   [5] 📢 Final Decision + Human Alert")
 
     # 1. 讀取標註檔找出 High Risk 的 ID
-    # 1. 讀取標註檔找出 High Risk 的 ID
-    # [V16 FIX] 動態路徑：優先使用 V16 高擬真數據
-    if os.path.exists("./assets/lasa_dataset_v17_compliance/dataset_v16_train.json"):
-        json_path = "./assets/lasa_dataset_v17_compliance/dataset_v16_train.json"
-        img_dir = "./assets/lasa_dataset_v17_compliance"
-        print(f"✅ [Cell 5 Demo] Using V16 High-Fidelity Data")
-    else:
+    # [V16 FIX] 使用 OUTPUT_DIR 變數以確保 Kaggle 環境的路徑正確
+    if USE_V16_DATA and os.path.exists(str(OUTPUT_DIR / "dataset_v16_test.json")):
+        json_path = str(OUTPUT_DIR / "dataset_v16_test.json")
+        img_dir = str(OUTPUT_DIR)
+        print(f"✅ [Cell 5 Demo] Using V16 Test Set: {json_path}")
+    elif os.path.exists("./medgemma_training_data_v5/dataset_v5_full.json"):
         json_path = "./medgemma_training_data_v5/dataset_v5_full.json"
         img_dir = "./medgemma_training_data_v5"
         print(f"⚠️ [Cell 5 Demo] Fallback to V5 data")
+    else:
+        print(f"❌ [Cell 5 Demo] No dataset found!")
+        print(f"   Tried V16: {OUTPUT_DIR}/dataset_v16_test.json")
+        print(f"   Tried V5: ./medgemma_training_data_v5/dataset_v5_full.json")
+        return
     
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
