@@ -317,9 +317,8 @@ else:
     STRESS_TEST_DIR_ABSOLUTE = "./assets/stress_test"
     print(f"💻 [LOCAL MODE] Using relative paths")
 
-# 環境變數覆寫（如果 Bootstrap 有設定）
-USE_V16_DATA = os.getenv("MEDGEMMA_USE_V16_DATA", "0") == "1"
-V16_DATA_DIR = os.getenv("MEDGEMMA_V16_DIR", V16_DATA_DIR_ABSOLUTE)
+# 直接檢測文件存在，不依賴環境變量（因為 Bootstrap 無法正確設置它們）
+V16_DATA_DIR = V16_DATA_DIR_ABSOLUTE
 
 # 更精確的檢測：檢查 JSON 檔案是否存在
 v16_train_json = os.path.join(V16_DATA_DIR, "dataset_v16_train.json")
@@ -327,22 +326,26 @@ v16_test_json = os.path.join(V16_DATA_DIR, "dataset_v16_test.json")
 v16_train_exists = os.path.exists(v16_train_json)
 v16_test_exists = os.path.exists(v16_test_json)
 
-if USE_V16_DATA and v16_train_exists and v16_test_exists:
+print(f"🔍 Checking for V16 data:")
+print(f"   Train: {v16_train_json} -> {'✅ EXISTS' if v16_train_exists else '❌ NOT FOUND'}")
+print(f"   Test:  {v16_test_json} -> {'✅ EXISTS' if v16_test_exists else '❌ NOT FOUND'}")
+
+# 自動啟用 V16 模式（如果數據存在）
+if v16_train_exists and v16_test_exists:
+    USE_V16_DATA = True
     OUTPUT_DIR = Path(V16_DATA_DIR)
     print(f"✅ [V16 MODE] Using Hyper-Realistic Dataset from: {OUTPUT_DIR}")
     print(f"   📊 Train Set: {v16_train_json}")
     print(f"   📊 Test Set: {v16_test_json}")
     SKIP_DATA_GENERATION = True  # 跳過 Cell 2 生成
+    
+    # 設置環境變量供其他 Cell 使用
+    os.environ["MEDGEMMA_USE_V16_DATA"] = "1"
+    os.environ["MEDGEMMA_V16_DIR"] = V16_DATA_DIR
 else:
+    USE_V16_DATA = False
     OUTPUT_DIR = Path("medgemma_training_data_v5")
-    if USE_V16_DATA:
-        print(f"⚠️ [V16 MODE REQUESTED] But V16 data not found:")
-        print(f"   ENV MEDGEMMA_USE_V16_DATA={os.getenv('MEDGEMMA_USE_V16_DATA', 'NOT SET')}")
-        print(f"   ENV MEDGEMMA_V16_DIR={os.getenv('MEDGEMMA_V16_DIR', 'NOT SET')}")
-        print(f"   Checking path: {V16_DATA_DIR}")
-        print(f"   Train JSON ({v16_train_json}): {v16_train_exists}")
-        print(f"   Test JSON ({v16_test_json}): {v16_test_exists}")
-    print(f"⚠️ [V5 MODE] Using Internal Generator: {OUTPUT_DIR}")
+    print(f"⚠️ [V5 MODE] V16 data not found, using Internal Generator: {OUTPUT_DIR}")
     SKIP_DATA_GENERATION = False
 
 IMG_SIZE = 896
