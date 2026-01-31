@@ -17,6 +17,7 @@ import qrcode
 import math
 import requests
 import numpy as np
+import textwrap
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 # Output Config
@@ -347,8 +348,17 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     y_warn = 530  # 調整起始位置，增加與上方的距離
     draw.rectangle([40, y_warn, 856, y_warn+105], fill=(255, 245, 245), outline="red", width=2)  # 稍微加高
     draw.text((55, y_warn+15), "[!] 警語:", fill="red", font=f_warn)  # 簡化符號避免渲染問題，增加上邊距
-    warning_text = drug['warning'][:30] + "..." if len(drug['warning']) > 30 else drug['warning']
-    draw.text((55, y_warn+50), warning_text, fill="red", font=f_body)  # 增加與標題的距離
+    # V13 Fix: Use Text Wrap instead of dangerous truncation (Empathic Design)
+    wrapper = textwrap.TextWrapper(width=34) # Adjust width based on font size
+    wrapped_lines = wrapper.wrap(drug['warning'])
+    
+    # Draw strictly up to 2 lines to match box height, but try to fit more if possible
+    # Actually, 2 lines is safe for 105px height (50 + 30 + margin)
+    current_y = y_warn + 50
+    for line in wrapped_lines[:2]:
+        draw.text((55, current_y), line, fill="red", font=f_body)
+        current_y += 30
+        
     if "開車" in drug['warning']: draw_warning_icon(draw, 780, y_warn+55, 40, "car")
     if "酒" in drug['warning']: draw_warning_icon(draw, 830, y_warn+55, 40, "wine")
 
