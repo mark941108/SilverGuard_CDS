@@ -3224,10 +3224,13 @@ def evaluate_agentic_pipeline():
     
     # V5 Fix: Use Test Split (prevent data leakage)
     # [V16 FIX] 動態路徑：優先使用 V16 測試集
-    if os.path.exists("./assets/lasa_dataset_v17_compliance/dataset_v16_test.json"):
-        json_path = "./assets/lasa_dataset_v17_compliance/dataset_v16_test.json"
-        img_dir = "./assets/lasa_dataset_v17_compliance"
-        print(f"✅ [Cell 8 Eval] Evaluating on V16 Test Set")
+    # [V16 FIX] Robust Path Handling for Eval
+    target_v16_test = os.path.join(V16_DATA_DIR, "dataset_v16_test.json")
+    
+    if os.path.exists(target_v16_test):
+        json_path = target_v16_test
+        img_dir = V16_DATA_DIR
+        print(f"✅ [Cell 8 Eval] Evaluating on V16 Test Set: {json_path}")
     else:
         json_path = "./medgemma_training_data_v5/dataset_v5_test.json"
         img_dir = "./medgemma_training_data_v5"
