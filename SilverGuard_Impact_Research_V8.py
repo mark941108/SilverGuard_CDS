@@ -2541,7 +2541,23 @@ def create_gradio_demo():
         
         return status_text, json.dumps(report, ensure_ascii=False, indent=2)
     
-    # Create Gradio Interface
+    
+    # [V16 FIX] Pre-compute example paths based on available data
+    # This must be done BEFORE gr.Interface() call
+    if USE_V16_DATA and os.path.exists(V16_DATA_DIR):
+        try:
+            example_files = sorted([f for f in os.listdir(V16_DATA_DIR) if f.endswith('.png')])[:2]
+            example_images = [[os.path.join(V16_DATA_DIR, f)] for f in example_files]
+        except Exception:
+            # Fallback if directory read fails
+            example_images = []
+    else:
+        # Use V5 examples
+        example_images = [
+            ["./medgemma_training_data_v5/medgemma_v5_0000.png"],
+            ["./medgemma_training_data_v5/medgemma_v5_0300.png"],
+        ]
+    
     demo = gr.Interface(
         fn=gradio_inference,
         inputs=gr.Image(type="pil", label="📷 Upload Drug Bag Image"),
@@ -2560,12 +2576,9 @@ def create_gradio_demo():
         4. 🔍 Run grounding check (anti-hallucination)
         5. 📢 Output safety assessment
         
-        *For demo: Use images from `medgemma_training_data_v5/`*
+        *For demo: Use images from dataset*
         """,
-        examples=[
-            ["./medgemma_training_data_v5/medgemma_v5_0000.png"],
-            ["./medgemma_training_data_v5/medgemma_v5_0300.png"],
-        ],
+        examples=example_images,
         theme="soft"
     )
     
