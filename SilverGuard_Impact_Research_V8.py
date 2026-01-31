@@ -206,6 +206,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from datetime import datetime, timedelta
 import qrcode
 import numpy as np
+import cv2  # [FIX] Added missing import
+import albumentations as A  # [FIX] Added missing import
 
 # ============================================================================
 # V12.32 P0 FIX: TTS Symbol Cleaning Function
@@ -1813,7 +1815,7 @@ def agentic_inference(model, processor, img_path, verbose=True):
     }
     
     # ===== STAGE 1: Input Validation Gate (V7.4 Red Team Fix) =====
-    # Consolidated to use the new Laplacian-based check_image_quality (BLUR_THRESHOLD=100)
+    # Consolidated to use the new Laplacian-based check_image_quality (Smart Threshold: 20/50)
     if verbose:
         print(f"\n{'='*60}")
         print(f"🛡️ AGENTIC PIPELINE: {Path(img_path).name}")
@@ -2393,7 +2395,7 @@ def demo_agentic_high_risk():
         print(f"⚠️ [Cell 5 Demo] Fallback to V5 data")
     else:
         print(f"❌ [Cell 5 Demo] No dataset found!")
-        print(f"   Tried V16: {OUTPUT_DIR}/dataset_v16_test.json")
+        print(f"   Tried V16: {V16_DATA_DIR}/dataset_v16_test.json")
         print(f"   Tried V5: ./medgemma_training_data_v5/dataset_v5_full.json")
         return
     
