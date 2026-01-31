@@ -3055,8 +3055,15 @@ def demo_elder_friendly_output():
     print("   3. 💬 口語化說明 (無專業術語)")
     
     # 1. 先找一個 HIGH_RISK 案例並執行真正的推理
-    json_path = "./medgemma_training_data_v5/dataset_v5_full.json" # V5 Fix: Use FULL dataset
-    img_dir = "./medgemma_training_data_v5"
+    # [V16 FIX] 動態路徑：優先使用 V16 數據
+    if USE_V16_DATA and os.path.exists(os.path.join(V16_DATA_DIR, "dataset_v16_train.json")):
+        json_path = os.path.join(V16_DATA_DIR, "dataset_v16_train.json")
+        img_dir = V16_DATA_DIR
+        print(f"✅ [Cell 7] Using V16 Dataset for Elder-Friendly Demo")
+    else:
+        json_path = "./medgemma_training_data_v5/dataset_v5_full.json"
+        img_dir = "./medgemma_training_data_v5"
+        print(f"⚠️ [Cell 7] Using V5 Dataset for Elder-Friendly Demo")
     
     try:
         with open(json_path, "r", encoding="utf-8") as f:
