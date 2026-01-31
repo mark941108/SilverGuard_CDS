@@ -592,7 +592,7 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
     img.save(filename)
     
     # Save Sidecar
-    json_path = filename.replace(".jpg", ".json")
+    json_path = filename.replace(".png", ".json")
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, ensure_ascii=False, indent=2)
         
@@ -639,7 +639,7 @@ if __name__ == "__main__":
             
             for variant_idx in range(VARIANTS_PER_DRUG):
                 is_trap = random.random() < TRAP_PROBABILITY
-                filename = f"{OUTPUT_DIR}/{cat}_{drug_shortname}_V{variant_idx:03d}.jpg"
+                filename = f"{OUTPUT_DIR}/{cat}_{drug_shortname}_V{variant_idx:03d}.png"
                 
                 patient_age = random.choice(PATIENT_AGES)
                 patient_name = random.choice(PATIENT_NAMES)

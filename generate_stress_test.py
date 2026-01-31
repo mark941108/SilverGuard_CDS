@@ -496,17 +496,19 @@ if __name__ == "__main__":
     for i in range(1, 4):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
-        generate_v9_bag(f"{OUTPUT_DIR}/demo_clean_{i}.jpg", p, d, is_danger=False, optical_severity=0)
+        generate_v9_bag(f"{OUTPUT_DIR}/demo_clean_{i}.png", p, d, is_danger=False, optical_severity=0)
         
-    # 2. Generate 1 High Risk Image (Expect: HIGH_RISK logic trap)
-    p = PATIENTS[0]
-    d = DRUGS[0] # Metformin
-    generate_v9_bag(f"{OUTPUT_DIR}/demo_high_risk.jpg", p, d, is_danger=True, optical_severity=0)
-    
-    # 3. Generate 1 Bad Quality Image (Expect: REJECT / INPUT GATE TRIGGER)
-    p = random.choice(PATIENTS)
-    d = random.choice(DRUGS)
-    generate_v9_bag(f"{OUTPUT_DIR}/demo_blur_reject.jpg", p, d, is_danger=False, optical_severity=2)
+    # 2. Generate 3 Dirty Images (Expect: WARNING/PASS depending on legibility)
+    for i in range(1, 4):
+        p = random.choice(PATIENTS)
+        d = random.choice(DRUGS)
+        generate_v9_bag(f"{OUTPUT_DIR}/demo_dirty_{i}.png", p, d, is_danger=False, optical_severity=2)
+
+    # 3. Generate 10 Dangerous Images (Expect: HIGH_RISK)
+    for i in range(1, 11):
+        p = random.choice(PATIENTS)
+        d = random.choice(DRUGS)
+        generate_v9_bag(f"{OUTPUT_DIR}/IMG_{i:04d}.png", p, d, is_danger=True, optical_severity=1)
     
     # 4. 🎯 V12 新增：乾淨版（無浮水印）供 Sim2Physical 拍照測試
     print("📸 Generating CLEAN versions for Sim2Physical testing...")
