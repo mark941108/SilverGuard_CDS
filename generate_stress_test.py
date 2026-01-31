@@ -515,6 +515,6 @@ if __name__ == "__main__":
     for i in range(1, 4):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
-        generate_v9_bag(f"{OUTPUT_DIR}/clean_photo_test_{i}.jpg", p, d, is_danger=False, optical_severity=0, clean_version=True)
+        generate_v9_bag(f"{OUTPUT_DIR}/clean_photo_test_{i}.png", p, d, is_danger=False, optical_severity=0, clean_version=True)
     
-    print("✅ All Assets Ready! (5 Standard + 3 Clean for Photo Test)")
+    print("✅ All Assets Ready! (16 Standard: 3 Clean + 3 Dirty + 10 Dangerous | 3 Clean for Photo Test)")
