@@ -2378,10 +2378,14 @@ def demo_agentic_high_risk():
     print("   [5] 📢 Final Decision + Human Alert")
 
     # 1. 讀取標註檔找出 High Risk 的 ID
-    # [V16 FIX] 使用 OUTPUT_DIR 變數以確保 Kaggle 環境的路徑正確
-    if USE_V16_DATA and os.path.exists(str(OUTPUT_DIR / "dataset_v16_test.json")):
-        json_path = str(OUTPUT_DIR / "dataset_v16_test.json")
-        img_dir = str(OUTPUT_DIR)
+    # [V16 FIX] 使用 V16_DATA_DIR 而非 OUTPUT_DIR，避免變數污染問題
+    # 原因：OUTPUT_DIR 在 Cell 3 (Line 1135) 被覆寫為模型目錄，導致 Cell 5 找不到數據
+    # 解決：直接使用 Cell 2 定義的固定全域變數 V16_DATA_DIR
+    target_json = os.path.join(V16_DATA_DIR, "dataset_v16_test.json")
+    
+    if USE_V16_DATA and os.path.exists(target_json):
+        json_path = target_json
+        img_dir = V16_DATA_DIR
         print(f"✅ [Cell 5 Demo] Using V16 Test Set: {json_path}")
     elif os.path.exists("./medgemma_training_data_v5/dataset_v5_full.json"):
         json_path = "./medgemma_training_data_v5/dataset_v5_full.json"
