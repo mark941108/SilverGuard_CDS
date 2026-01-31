@@ -1091,11 +1091,12 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 MODEL_ID = "google/medgemma-1.5-4b-it"
 
-# [V16 INTEGRATION] 智能路徑切換
-if USE_V16_DATA and os.path.exists(V16_DATA_DIR):
+# [V16 INTEGRATION] 智能路徑切換 (與 Line 306 邏輯一致)
+v16_train_json = os.path.join(V16_DATA_DIR, "dataset_v16_train.json")
+if USE_V16_DATA and os.path.exists(v16_train_json):
     # V16 Mode: Use hyper-realistic dataset
     BASE_DIR = V16_DATA_DIR
-    DATA_PATH = f"{BASE_DIR}/dataset_v16_train.json"
+    DATA_PATH = v16_train_json
     IMAGE_DIR = BASE_DIR
     OUTPUT_DIR_TRAINING = "./medgemma_lora_output_v16"
     print(f"✅ [TRAINING] Using V16 Dataset: {DATA_PATH}")
@@ -2227,6 +2228,11 @@ def main_cell4():
     if os.path.exists("./assets/stress_test"):
         BASE_DIR = "./assets/stress_test"
         print(f"✅ [Cell 4] Using Stress Test Data from: {BASE_DIR}")
+        import glob
+        test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))[:5]
+    elif USE_V16_DATA and os.path.exists(V16_DATA_DIR):
+        BASE_DIR = V16_DATA_DIR
+        print(f"✅ [Cell 4] Using V16 Data from: {BASE_DIR}")
         import glob
         test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))[:5]
     else:
