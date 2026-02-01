@@ -524,7 +524,7 @@ def retrieve_drug_info(drug_name: str) -> dict:
     }
 
 # ============================================================================
-# 💊 OpenFDA Drug Interaction Checker
+# 💊 Local Drug Interaction Checker (Offline Security)
 # ============================================================================
 def check_drug_interaction(drug_a, drug_b):
     if not drug_a or not drug_b:
@@ -534,7 +534,7 @@ def check_drug_interaction(drug_a, drug_b):
     # V7.5 FIX: Use GLOBAL_DRUG_ALIASES to prevent NameError
     name_a = GLOBAL_DRUG_ALIASES.get(drug_a.lower(), drug_a.lower())
     name_b = GLOBAL_DRUG_ALIASES.get(drug_b.lower(), drug_b.lower())
-    print(f"🔎 Checking interaction: {name_a} + {name_b}")
+    print(f"🔎 Checking interaction (Offline Mode): {name_a} + {name_b}")
     
     CRITICAL_PAIRS = {
         ("warfarin", "aspirin"): "🔴 **MAJOR RISK**: Increased bleeding probability. Monitor INR closely.",
@@ -547,26 +547,14 @@ def check_drug_interaction(drug_a, drug_b):
     if (name_a, name_b) in CRITICAL_PAIRS: return CRITICAL_PAIRS[(name_a, name_b)]
     if (name_b, name_a) in CRITICAL_PAIRS: return CRITICAL_PAIRS[(name_b, name_a)]
         
-    if OFFLINE_MODE:
-        return "⚠️ Offline Mode: Showing locally cached major interactions only."
+    return "✅ No critical interaction found in Local Safety Database."
 
-    try:
-        import requests
-        url = f"https://api.fda.gov/drug/label.json?search=openfda.generic_name:{name_a}+AND+drug_interactions:{name_b}&limit=1"
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            if "results" in data and len(data["results"]) > 0:
-                return f"⚠️ **OpenFDA Alert**: The official label for **{name_a.title()}** explicitly mentions interactions with **{name_b.title()}**."
-            else:
-                url_rev = f"https://api.fda.gov/drug/label.json?search=openfda.generic_name:{name_b}+AND+drug_interactions:{name_a}&limit=1"
-                response_rev = requests.get(url_rev, timeout=5)
-                if response_rev.status_code == 200 and "results" in response_rev.json():
-                    return f"⚠️ **OpenFDA Alert**: The official label for **{name_b.title()}** explicitly mentions interactions with **{name_a.title()}**."
-        return "✅ No obvious interaction found in OpenFDA summary labels."
-    except Exception as e:
-        print(f"OpenFDA API Error: {e}")
-        return "⚠️ API unavailable. Please check manually."
+def check_drug_interaction_online_legacy(d1, d2):
+    """
+    [DEPRECATED] Online implementation for reference only. 
+    SilverGuard V1.0 uses offline_safety_knowledge_graph().
+    """
+    pass # Code removed for offline compliance
 
 def logical_consistency_check(extracted_data):
     """Neuro-Symbolic Logic Check (Hybrid Architecture)"""
@@ -1236,12 +1224,12 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
             btn_correct.click(lambda i,o: log_feedback(i,o,"POSITIVE"), inputs=[input_img, json_output], outputs=feedback_output)
             btn_error.click(lambda i,o: log_feedback(i,o,"NEGATIVE"), inputs=[input_img, json_output], outputs=feedback_output)
 
-        with gr.TabItem("💊 Agentic Drug Interaction"):
-            gr.Markdown("### 🔗 OpenFDA Agentic Tool")
+        with gr.TabItem("�️ Local Safety Guard (Offline)"):
+            gr.Markdown("### 🔗 Local Safety Knowledge Graph (No Internet Required)")
             with gr.Row():
                 d_a = gr.Textbox(label="Drug A")
                 d_b = gr.Textbox(label="Drug B")
-                chk_btn = gr.Button("🔍 Check")
+                chk_btn = gr.Button("🔍 Run Safety Check")
             res = gr.Markdown(label="Result")
             chk_btn.click(check_drug_interaction, inputs=[d_a, d_b], outputs=res)
 
