@@ -2378,9 +2378,9 @@ def main_cell4():
         print(f"✅ [Cell 4] Using Stress Test Data from: {BASE_DIR}")
         import glob
         test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))[:5]
-    elif USE_V16_DATA and os.path.exists(V16_DATA_DIR):
-        BASE_DIR = V16_DATA_DIR
-        print(f"✅ [Cell 4] Using V16 Data from: {BASE_DIR}")
+    elif USE_V17_DATA and os.path.exists(V17_DATA_DIR):
+        BASE_DIR = V17_DATA_DIR
+        print(f"✅ [Cell 4] Using V17 Data from: {BASE_DIR}")
         import glob
         test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))[:5]
     else:
@@ -2507,12 +2507,12 @@ def demo_agentic_high_risk():
     # [V16 FIX] 使用 V16_DATA_DIR 而非 OUTPUT_DIR，避免變數污染問題
     # 原因：OUTPUT_DIR 在 Cell 3 (Line 1135) 被覆寫為模型目錄，導致 Cell 5 找不到數據
     # 解決：直接使用 Cell 2 定義的固定全域變數 V16_DATA_DIR
-    target_json = os.path.join(V16_DATA_DIR, "dataset_v16_test.json")
+    target_json = os.path.join(V17_DATA_DIR, "dataset_v17_test.json")
     
-    if USE_V16_DATA and os.path.exists(target_json):
+    if USE_V17_DATA and os.path.exists(target_json):
         json_path = target_json
-        img_dir = V16_DATA_DIR
-        print(f"✅ [Cell 5 Demo] Using V16 Test Set: {json_path}")
+        img_dir = V17_DATA_DIR
+        print(f"✅ [Cell 5 Demo] Using V17 Test Set: {json_path}")
     elif os.path.exists("./medgemma_training_data_v5/dataset_v5_full.json"):
         json_path = "./medgemma_training_data_v5/dataset_v5_full.json"
         img_dir = "./medgemma_training_data_v5"
@@ -3494,10 +3494,10 @@ def demo_elder_friendly_output():
     
     # 1. 先找一個 HIGH_RISK 案例並執行真正的推理
     # [V16 FIX] 動態路徑：優先使用 V16 數據
-    if USE_V16_DATA and os.path.exists(os.path.join(V16_DATA_DIR, "dataset_v16_train.json")):
-        json_path = os.path.join(V16_DATA_DIR, "dataset_v16_train.json")
-        img_dir = V16_DATA_DIR
-        print(f"✅ [Cell 7] Using V16 Dataset for Elder-Friendly Demo")
+    if USE_V17_DATA and os.path.exists(os.path.join(V17_DATA_DIR, "dataset_v17_train.json")):
+        json_path = os.path.join(V17_DATA_DIR, "dataset_v17_train.json")
+        img_dir = V17_DATA_DIR
+        print(f"✅ [Cell 7] Using V17 Dataset for Elder-Friendly Demo")
     else:
         json_path = "./medgemma_training_data_v5/dataset_v5_full.json"
         img_dir = "./medgemma_training_data_v5"
