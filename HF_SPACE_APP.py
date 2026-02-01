@@ -1227,7 +1227,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
             btn_correct.click(lambda i,o: log_feedback(i,o,"POSITIVE"), inputs=[input_img, json_output], outputs=feedback_output)
             btn_error.click(lambda i,o: log_feedback(i,o,"NEGATIVE"), inputs=[input_img, json_output], outputs=feedback_output)
 
-        with gr.TabItem("�️ Local Safety Guard (Offline)"):
+        with gr.TabItem("🔒 Local Safety Guard (Offline)"):
             gr.Markdown("### 🔗 Local Safety Knowledge Graph (No Internet Required)")
             with gr.Row():
                 d_a = gr.Textbox(label="Drug A")

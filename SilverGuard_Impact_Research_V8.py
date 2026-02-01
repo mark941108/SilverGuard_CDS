@@ -201,7 +201,7 @@ import json
 import random
 import os
 import re  # V12.32: Added for TTS symbol cleaning
-import requests
+# import requests
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from datetime import datetime, timedelta
@@ -375,10 +375,13 @@ def download_font(font_name, url):
     if not os.path.exists(font_name):
         print(f"📥 下載字體: {font_name}...")
         try:
-            response = requests.get(url, timeout=30)
-            with open(font_name, 'wb') as f:
-                f.write(response.content)
-        except requests.exceptions.RequestException as e:
+            # response = requests.get(url, timeout=30)
+            # with open(font_name, 'wb') as f:
+            #    f.write(response.content)
+            # Offline Compliance Fix:
+            print("⚠️ [Offline Mode] Skipping font download. Please verify local fonts.")
+            pass
+        except Exception as e: # requests.exceptions.RequestException as e:
             print(f"⚠️ Font download failed for {font_name} (Offline Mode?): {e}")
             print("⚠️ Using default PIL font (Visuals will be degraded)")
             # This function is expected to return a path, not a font object.
