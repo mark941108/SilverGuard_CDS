@@ -149,7 +149,28 @@ print("   ✅ 所有依賴安裝完成！")
 print("\n[6/7] 系統啟動...")
 
 from huggingface_hub import login
-login(token=hf_token)
+
+# [Omni-Nexus Fix] Safe Login Strategy
+if not hf_token:
+    print("\n⚠️ WARNING: HUGGINGFACE_TOKEN is missing!")
+    print("   MedGemma requires a token usually. attempting manual input (or press Enter to skip).")
+    try:
+        # In Kaggle non-interactive mode this might fail, so we wrap it
+        manual_input = input("🔑 Please paste your HF Token here: ").strip()
+        if manual_input:
+            hf_token = manual_input
+    except:
+        print("   (Input skipped/failed)")
+
+if hf_token:
+    try:
+        login(token=hf_token)
+        print("   ✅ Hugging Face Login Success")
+    except Exception as e:
+        print(f"   ❌ Login Failed: {e}")
+        print("   ➡️ Continuing anyway... (Public weights might work)")
+else:
+    print("   ⚠️ Skipping Login (No Token). Verification may fail for Gated Models.")
 
 print("\n" + "=" * 80)
 print("🚀 啟動 SilverGuard: Impact Research Edition (V12.13 Gemma 3 Fix)")

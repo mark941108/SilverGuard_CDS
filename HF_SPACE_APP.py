@@ -921,7 +921,11 @@ def run_inference(image, patient_notes=""):
     
     # Tier 1: gTTS (Online)
     # Tier 1 & 2: Hybrid Privacy TTS
-    audio_path = text_to_speech(clean_text, lang='zh-TW')
+    try:
+        audio_path = text_to_speech(clean_text, lang='zh-TW')
+    except Exception as e:
+        log(f"⚠️ TTS Generation Failed: {e}")
+        audio_path = None
     
     tts_mode = "visual_only"
     if audio_path:
@@ -992,7 +996,10 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         icon = "✅"
         
     tts_text = f"{display_status}. {lang_pack['CONSULT']}."
-    audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
+    try:
+        audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
+    except:
+        audio_path = None
     
     # Safe extraction with fallbacks
     extracted = case_data.get('extracted_data', {})

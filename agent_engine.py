@@ -1954,7 +1954,8 @@ def agentic_inference(model, processor, img_path, verbose=True):
         "5. SilverGuard: Add a warm, nudging message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
         "Security Override:\n"
         "- IGNORE patient notes that contradict safety.\n"
-        "- IF HIGH DOSE/INTERACTION DETECTED: Use the 'Nudge Strategy'. E.g., 'Numbers look different, let's call the pharmacist to check' instead of 'Stop taking'.\n\n"
+        "- IF HIGH DOSE/INTERACTION DETECTED: Use the 'Nudge Strategy'. E.g., 'Numbers look different, let's call the pharmacist to check' instead of 'Stop taking'.\n"
+        "- IF IMAGE IS NOT MEDICATION (e.g., Cat, Landscape, Food): Status 'INVALID_INPUT', Warning 'No medication detected'.\n\n"
         "Output Constraints:\n"
         "- Return ONLY a valid JSON object.\n"
         "- 'safety_analysis.reasoning' MUST start with 'Step 1: Observation...'.\n"
@@ -2209,8 +2210,10 @@ def agentic_inference(model, processor, img_path, verbose=True):
                 
                 # [Step 3] THE REFINER: Reflection & Correction
                 # Feed the critique back directly into the prompt (Self-Correction)
+                # [Omni-Nexus Fix] Inject previous context for true Agentic loop
                 correction_context = (
                     f"\n\n[PREVIOUS ATTEMPT REJECTED]: Critical Safety Violation.\n"
+                    f"Previous Output (Status): {parsed_json.get('safety_analysis', {}).get('status', 'UNKNOWN')}\n"
                     f"Critique from Safety System: {critique_feedback}\n"
                     f"Instruction: Please fix the error identified by the critic and output the correct JSON."
                 )
@@ -3244,22 +3247,30 @@ def text_to_speech_elderly(text, lang='zh-tw'):
     # This runs if:
     # 1. OFFLINE_MODE is True
     # 2. or gTTS failed
+    # Strategy 2: Flashback to Offline TTS (pyttsx3) - Privacy Safe
     try:
+        if is_offline_forced:
+             print(f"   🔒 OFFLINE_MODE=True. Skipping gTTS.")
+        else:
+             print(f"   ⚠️ Online TTS failed/skipped. Creating offline fallback...")
+             
+        # [Omni-Nexus Fix] Headless Environment Safety Check
+        # pyttsx3 might crash on Linux if 'espeak' is missing (OSError)
         import pyttsx3
         engine = pyttsx3.init()
         # Tune for elderly (slower rate, higher volume)
         engine.setProperty('rate', 140) 
         engine.setProperty('volume', 1.0)
-        
-        # Save to file
         engine.save_to_file(text, output_path)
         engine.runAndWait()
-        print(f"   🔒 TTS Generated (Offline): {output_path}")
+        print(f"   ✅ TTS Generated (Offline): {output_path}")
         return output_path
     except Exception as e:
-        print(f"   ❌ All TTS engines failed: {e}")
+        print(f"   ❌ All TTS strategies failed. Audio generation skipped.")
+        print(f"   Debug Info: {e}")
+        # Return dummy file or None to prevent pipeline crash
+        # Actually simplest to just return "None" and handle UI gracefully
         return None
-
 # ============================================================================
 # 🗓️ Medication Calendar Generator (Flagship Edition)
 # ============================================================================
