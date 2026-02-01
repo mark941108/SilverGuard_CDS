@@ -1016,7 +1016,7 @@ print("🔧 Installing Dependencies...")
 # 5. Launch MedGemma Impact Pipeline
 print("🚀 Launching MedGemma Impact Pipeline...")
 # This runs Data Gen -> Training -> Agent Demo sequentially
-!python SilverGuard_Impact_Research_V8.py
+!python agent_engine.py
 ```
 
 ### Pipeline Stages (Automated)
