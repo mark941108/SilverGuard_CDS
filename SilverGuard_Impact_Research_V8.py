@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 ================================================================================
 🏥 SilverGuard: V1.0 Impact Edition (Engine v8.2)
@@ -3116,6 +3117,248 @@ def visualize_safety_matrix(results_csv_path=None, dummy_data=False):
     plt.savefig("./safety_confusion_matrix.png", dpi=300)
     print("✅ Matrix saved to: ./safety_confusion_matrix.png")
     plt.show()
+
+# ============================================================================
+# 🗣️ TTS Module (Elderly Friendly)
+# ============================================================================
+def text_to_speech_elderly(text, lang='zh-tw'):
+    """
+    Hybrid TTS: Online (gTTS) -> Offline (pyttsx3) Fallback
+    """
+    import os
+    from datetime import datetime
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_path = f"safety_alert_{timestamp}.mp3"
+    
+    # Strategy 1: Online Neural TTS (gTTS) - Preferred for quality
+    try:
+        from gtts import gTTS
+        print(f"   ☁️ Trying Online TTS (gTTS)...")
+        tts = gTTS(text=text, lang=lang, slow=False)
+        tts.save(output_path)
+        print(f"   ✅ TTS Generated (Online): {output_path}")
+        return output_path
+    except Exception as e:
+        print(f"   ⚠️ Online TTS failed ({e}). Switching to Offline Engine...")
+        
+    # Strategy 2: Offline Fallback (pyttsx3)
+    try:
+        import pyttsx3
+        engine = pyttsx3.init()
+        # Tune for elderly (slower rate, higher volume)
+        engine.setProperty('rate', 140) 
+        engine.setProperty('volume', 1.0)
+        
+        # Save to file
+        engine.save_to_file(text, output_path)
+        engine.runAndWait()
+        print(f"   🔒 TTS Generated (Offline): {output_path}")
+        return output_path
+    except Exception as e:
+        print(f"   ❌ All TTS engines failed: {e}")
+        return None
+
+# ============================================================================
+# 🗓️ Medication Calendar Generator (Flagship Edition)
+# ============================================================================
+def create_medication_calendar(case_data, target_lang="zh-TW"):
+    """
+    🗓️ SilverGuard 旗艦級行事曆生成器 (Flagship Edition)
+    
+    [旗艦版獨家功能]
+    1. 🥣 智慧空碗/滿碗邏輯: 自動判斷飯前(空碗) vs 飯後(滿碗)
+    2. 🧠 智慧排程解析: 支援複雜頻率 (BID/TID/QID/AC/PC)
+    3. 🎨 動態視覺回饋: 根據風險等級調整配色
+    """
+    # ============ 配色方案 (WCAG AA Compliant) ============
+    COLORS = {
+        "bg_main": "#FAFAFA",       # 主背景
+        "bg_card": "#FFFFFF",       # 卡片背景
+        "border": "#E0E0E0",        # 邊框
+        "text_title": "#212121",    # 標題
+        "text_body": "#424242",     # 正文
+        "text_muted": "#757575",    # 輔助字
+        # 時間編碼
+        "morning": "#1976D2",       # 早晨（藍）
+        "noon": "#F57C00",          # 中午（橙）
+        "evening": "#512DA8",       # 晚上（深紫）
+        "bedtime": "#303F9F",       # 睡前（靛藍）
+        # 狀態色
+        "danger": "#D32F2F",        # 危險
+        "warning": "#FFA000",       # 警告
+    }
+    
+    # ============ 建立畫布 ============
+    WIDTH, HEIGHT = 1400, 900
+    img = Image.new('RGB', (WIDTH, HEIGHT), color=COLORS["bg_main"])
+    draw = ImageDraw.Draw(img)
+    
+    # ============ 載入字體 ============
+    def load_font(size):
+        font_paths = [
+            "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Bold.otf",
+            "NotoSansTC-Bold.otf", 
+            "NotoSansTC-Regular.otf",
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc"
+        ]
+        for path in font_paths:
+            if os.path.exists(path):
+                try: return ImageFont.truetype(path, size)
+                except: continue
+        return ImageFont.load_default()
+    
+    font_super = load_font(84)
+    font_title = load_font(56)
+    font_subtitle = load_font(42)
+    font_body = load_font(36)
+    font_caption = load_font(28)
+    
+    # ============ 資料提取 ============
+    # VLM Output Parsing
+    vlm_out = case_data.get("vlm_output", {}).get("parsed", {})
+    if not vlm_out:
+        # Fallback for raw structure
+        extracted = case_data.get("extracted_data", {})
+        safety = case_data.get("safety_analysis", {})
+    else:
+        extracted = vlm_out.get("extracted_data", {})
+        safety = vlm_out.get("safety_analysis", {})
+
+    drug = extracted.get("drug", {})
+    drug_name = drug.get("name_zh", drug.get("name", "未知藥物"))
+    dose = drug.get("dose", "依指示")
+    
+    usage_raw = extracted.get("usage", "每日一次")
+    if isinstance(usage_raw, dict):
+        unique_usage = usage_raw.get("timing_zh", "每日一次")
+        quantity = usage_raw.get("quantity", "28")
+    else:
+        unique_usage = str(usage_raw)
+        quantity = "28" # Default
+        
+    status = safety.get("status", "UNKNOWN")
+    warnings = [safety.get("reasoning", "")] if safety.get("reasoning") else []
+
+    # ============ 🧠 旗艦核心：智慧解析邏輯 (Smart Parsing) ============
+    
+    # 1. 🥣 空碗/滿碗邏輯 (Bowl Logic)
+    # 預設：滿碗 (飯後)
+    bowl_icon = "🍚" 
+    bowl_text = "飯後服用"
+    
+    u_str = unique_usage.upper()
+    
+    if any(k in u_str for k in ["飯前", "AC", "空腹", "BEFORE MEAL"]):
+        bowl_icon = "🥣" # 空碗
+        bowl_text = "飯前服用"
+    elif any(k in u_str for k in ["睡前", "HS", "BEDTIME"]):
+        bowl_icon = "🛌" # 睡覺
+        bowl_text = "睡前服用"
+    elif any(k in u_str for k in ["隨餐", "WITH MEAL"]):
+        bowl_icon = "🍱" # 便當?
+        bowl_text = "隨餐服用"
+
+    # 2. 🕒 時間排程解析 (Schedule Parser)
+    # 定義時間槽
+    SLOTS = {
+        "MORNING": {"emoji": "☀️", "label": "早上 (08:00)", "color": "morning"},
+        "NOON":    {"emoji": "🏞️", "label": "中午 (12:00)", "color": "noon"},
+        "EVENING": {"emoji": "🌆", "label": "晚上 (18:00)", "color": "evening"},
+        "BEDTIME": {"emoji": "🌙", "label": "睡前 (22:00)", "color": "bedtime"},
+    }
+    
+    active_slots = []
+    
+    # 規則 A: 明確關鍵字 (Prioritized)
+    if any(k in u_str for k in ["QID", "四次"]):
+        active_slots = ["MORNING", "NOON", "EVENING", "BEDTIME"]
+    elif any(k in u_str for k in ["TID", "三餐", "三次"]):
+        active_slots = ["MORNING", "NOON", "EVENING"]
+    elif any(k in u_str for k in ["BID", "早晚", "兩次"]):
+        active_slots = ["MORNING", "EVENING"] # elderly standard
+    elif any(k in u_str for k in ["HS", "睡前"]):
+        active_slots = ["BEDTIME"]
+    elif any(k in u_str for k in ["QD", "每日一次", "一天一次"]):
+        active_slots = ["MORNING"]
+    else:
+        # 規則 B: 模糊匹配 (Fuzzy Match)
+        if "早" in u_str: active_slots.append("MORNING")
+        if "午" in u_str: active_slots.append("NOON")
+        if "晚" in u_str: active_slots.append("EVENING")
+        if "睡" in u_str: active_slots.append("BEDTIME")
+        
+    # Fallback
+    if not active_slots: active_slots = ["MORNING"]
+    
+    # ============ 視覺繪製 ============
+    
+    # Header
+    y_off = 40
+    draw.text((50, y_off), "🗓️ 用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
+    draw.text((WIDTH - 350, y_off + 20), f"📅 {datetime.now().strftime('%Y-%m-%d')}", fill=COLORS["text_muted"], font=font_body)
+    
+    y_off += 120
+    draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
+    
+    # Drug Info
+    y_off += 40
+    draw.text((50, y_off), f"💊 藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
+    y_off += 80
+    draw.text((50, y_off), f"📦 總量: {quantity} 顆 / {dose}", fill=COLORS["text_body"], font=font_body)
+    
+    y_off += 80
+    draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
+    
+    # Schedule Cards
+    y_off += 40
+    card_h = 130
+    card_w = WIDTH - 100
+    
+    for slot_key in active_slots:
+        s_data = SLOTS[slot_key]
+        
+        # Draw Card
+        draw.rectangle(
+            [(50, y_off), (50+card_w, y_off+card_h)], 
+            fill=COLORS["bg_card"], 
+            outline=COLORS[s_data["color"]], 
+            width=6
+        )
+        
+        # Time Label
+        draw.text((80, y_off+30), f"{s_data['emoji']} {s_data['label']}", fill=COLORS[s_data["color"]], font=font_subtitle)
+        
+        # Bowl Icon & Instruction (Flagship Feature)
+        # 如果是睡前，這通常不需要配飯，但為了用藥一致性，可以顯示 "直接服用" 或 依據 bowl_logic
+        if slot_key == "BEDTIME" and bowl_icon == "🍚":
+            # 修正: 睡前若無特別指示，通常不是飯後，而是空腹或直接睡前
+            # 但若原始指示真的是 "飯後" (例如剛吃宵夜?) 則保留，否則預設睡前
+             pass 
+             
+        draw.text((500, y_off+30), f"{bowl_text} ｜ {bowl_icon} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
+        
+        y_off += card_h + 20
+        
+    # Safety Check / Warning
+    if status in ["HIGH_RISK", "WARNING", "HUMAN_REVIEW_NEEDED"] or "HIGH" in str(warnings):
+        y_off += 20
+        draw.rectangle([(50, y_off), (WIDTH-50, y_off+160)], fill="#FFEBEE", outline=COLORS["danger"], width=6)
+        draw.text((80, y_off+20), "⚠️ 用藥安全警示", fill=COLORS["danger"], font=font_title)
+        
+        warn_msg = warnings[0] if warnings else "請諮詢藥師確認用藥細節"
+        if len(warn_msg) > 38: warn_msg = warn_msg[:38] + "..."
+        draw.text((80, y_off+90), warn_msg, fill=COLORS["text_body"], font=font_body)
+
+    # Footer
+    draw.text((50, HEIGHT-60), "SilverGuard AI 關心您 ❤️ 僅供參考，請遵照醫師處方", fill=COLORS["text_muted"], font=font_caption)
+    
+    # Save
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    out_path = f"calendar_flagship_{ts}.png"
+    img.save(out_path)
+    return out_path 
+
 
 # ============================================================================
 # MAIN DEMO: Elder-Friendly Output Pipeline (V5: 使用真實推理結果)

@@ -275,40 +275,34 @@ def check_is_prescription(response_text):
 # ============================================================================
 # 🗓️ Medication Calendar Generator (Elderly-Friendly Design)
 # ============================================================================
+# ============================================================================
+# 🗓️ Medication Calendar Generator (Flagship Edition)
+# ============================================================================
 def create_medication_calendar(case_data, target_lang="zh-TW"):
     """
-    🗓️ SilverGuard 老年友善行事曆
+    🗓️ SilverGuard 旗艦級行事曆生成器 (Flagship Edition)
     
-    設計標準:
-    - WCAG 2.1 AA (對比度 4.5:1+)
-    - 字體: 最小 36pt，標題 84pt
-    - 配色: 時間色碼 + 風險標記
-    - 無障礙: 圖示 + 文字雙重提示
-    
-    Args:
-        case_data: 完整的推論結果（包含 extracted_data, safety_analysis）
-        target_lang: 目標語言（zh-TW, id, vi）
-    
-    Returns:
-        str: 儲存的圖片路徑
+    [旗艦版獨家功能]
+    1. 🥣 智慧空碗/滿碗邏輯: 自動判斷飯前(空碗) vs 飯後(滿碗)
+    2. 🧠 智慧排程解析: 支援複雜頻率 (BID/TID/QID/AC/PC)
+    3. 🎨 動態視覺回饋: 根據風險等級調整配色
     """
     # ============ 配色方案 (WCAG AA Compliant) ============
     COLORS = {
-        "bg_main": "#FAFAFA",       # 主背景（淺米白）
-        "bg_card": "#FFFFFF",       # 卡片背景（純白）
-        "border": "#E0E0E0",        # 淺灰邊框
-        "text_title": "#212121",    # 標題（極深灰，對比度 16.1:1）
-        "text_body": "#424242",     # 正文（深灰，對比度 9.7:1）
-        "text_muted": "#757575",    # 輔助文字（灰，對比度 4.6:1）
+        "bg_main": "#FAFAFA",       # 主背景
+        "bg_card": "#FFFFFF",       # 卡片背景
+        "border": "#E0E0E0",        # 邊框
+        "text_title": "#212121",    # 標題
+        "text_body": "#424242",     # 正文
+        "text_muted": "#757575",    # 輔助字
         # 時間編碼
         "morning": "#1976D2",       # 早晨（藍）
         "noon": "#F57C00",          # 中午（橙）
         "evening": "#512DA8",       # 晚上（深紫）
         "bedtime": "#303F9F",       # 睡前（靛藍）
-        # 警告狀態
-        "safe": "#388E3C",          # 安全（綠）
-        "warning": "#F57C00",       # 警告（橙）
-        "danger": "#D32F2F",        # 危險（紅）
+        # 狀態色
+        "danger": "#D32F2F",        # 危險
+        "warning": "#FFA000",       # 警告
     }
     
     # ============ 建立畫布 ============
@@ -316,9 +310,8 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     img = Image.new('RGB', (WIDTH, HEIGHT), color=COLORS["bg_main"])
     draw = ImageDraw.Draw(img)
     
-    # ============ 載入字體 (Fallback 機制) ============
+    # ============ 載入字體 ============
     def load_font(size):
-        """Fallback 機制載入字體"""
         font_paths = [
             "NotoSansTC-Bold.otf",
             "NotoSansTC-Regular.otf",
@@ -326,12 +319,8 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
         ]
         for path in font_paths:
             if os.path.exists(path):
-                try:
-                    return ImageFont.truetype(path, size)
-                except:
-                    continue
-        # Fallback to default
-        print(f"⚠️ Font not found, using default (size {size})")
+                try: return ImageFont.truetype(path, size)
+                except: continue
         return ImageFont.load_default()
     
     font_super = load_font(84)
@@ -340,155 +329,115 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     font_body = load_font(36)
     font_caption = load_font(28)
     
-    # ============ 解析資料 ============
+    # ============ 資料提取 ============
     extracted = case_data.get("extracted_data", {})
-    drug = extracted.get("drug", {})
-    usage = extracted.get("usage_instructions", {})
     safety = case_data.get("safety_analysis", {})
     
-    drug_name = drug.get("name", "未知藥物")
-    dose = drug.get("dose", "未知")
-    quantity = usage.get("quantity", "未指定")
-    timing = usage.get("timing", "早晨")
-    route = usage.get("route", "口服")
+    # Robust fallback for nested structures
+    if not extracted and "vlm_output" in case_data:
+         extracted = case_data["vlm_output"].get("parsed", {}).get("extracted_data", {})
+         safety = case_data["vlm_output"].get("parsed", {}).get("safety_analysis", {})
+
+    drug = extracted.get("drug", {})
+    drug_name = drug.get("name_zh", drug.get("name", "未知藥物"))
+    dose = drug.get("dose", "依指示")
     
+    usage_raw = extracted.get("usage", "每日一次")
+    if isinstance(usage_raw, dict):
+        unique_usage = usage_raw.get("timing_zh", "每日一次")
+        quantity = usage_raw.get("quantity", "28")
+    else:
+        unique_usage = str(usage_raw)
+        quantity = "28"
+        
     status = safety.get("status", "UNKNOWN")
-    warnings = safety.get("detected_issues", [])
+    warnings = [safety.get("reasoning", "")] if safety.get("reasoning") else []
+    if "detected_issues" in safety: warnings.extend(safety["detected_issues"])
+
+    # ============ 🧠 旗艦核心：智慧解析邏輯 (Smart Parsing) ============
     
-    # ============ 時間標記對應 ============
-    TIME_MAPPING = {
-        "早晨": {"emoji": "☀️", "time": "08:00", "color": "morning"},
-        "早上": {"emoji": "☀️", "time": "08:00", "color": "morning"},
-        "中午": {"emoji": "🏞️", "time": "12:00", "color": "noon"},
-        "下午": {"emoji": "🌤️", "time": "14:00", "color": "noon"},
-        "傍晚": {"emoji": "🌆", "time": "18:00", "color": "evening"},
-        "晚上": {"emoji": "🌙", "time": "20:00", "color": "evening"},
-        "睡前": {"emoji": "🌙", "time": "22:00", "color": "bedtime"},
+    # 1. 🥣 空碗/滿碗邏輯 (Bowl Logic)
+    bowl_icon = "🍚"
+    bowl_text = "飯後服用"
+    
+    u_str = str(unique_usage).upper()
+    
+    if any(k in u_str for k in ["飯前", "AC", "空腹", "BEFORE MEAL"]):
+        bowl_icon = "🥣" 
+        bowl_text = "飯前服用"
+    elif any(k in u_str for k in ["睡前", "HS", "BEDTIME"]):
+        bowl_icon = "🛌" 
+        bowl_text = "睡前服用"
+    elif any(k in u_str for k in ["隨餐", "WITH MEAL"]):
+        bowl_icon = "🍱" 
+        bowl_text = "隨餐服用"
+
+    # 2. 🕒 時間排程解析 (Schedule Parser)
+    SLOTS = {
+        "MORNING": {"emoji": "☀️", "label": "早上 (08:00)", "color": "morning"},
+        "NOON":    {"emoji": "🏞️", "label": "中午 (12:00)", "color": "noon"},
+        "EVENING": {"emoji": "🌆", "label": "晚上 (18:00)", "color": "evening"},
+        "BEDTIME": {"emoji": "🌙", "label": "睡前 (22:00)", "color": "bedtime"},
     }
     
-    # ============ 解析複合時間 (支援 BID/TID) ============
-    time_slots = []
+    active_slots = []
     
-    # 檢測常見複合時間模式
-    if any(keyword in timing for keyword in ["早晚", "BID", "bid", "每日兩次", "每天兩次"]):
-        # 早晚各一次 → 早晨 + 睡前
-        time_slots = [
-            {"emoji": "☀️", "time": "08:00", "color": "morning", "label": "早晨"},
-            {"emoji": "🌙", "time": "22:00", "color": "bedtime", "label": "睡前"}
-        ]
-    elif any(keyword in timing for keyword in ["三餐", "TID", "tid", "每日三次", "每天三次"]):
-        # 三餐飯後 → 早/午/晚
-        time_slots = [
-            {"emoji": "☀️", "time": "08:00", "color": "morning", "label": "早餐後"},
-            {"emoji": "🏞️", "time": "12:00", "color": "noon", "label": "午餐後"},
-            {"emoji": "🌆", "time": "18:00", "color": "evening", "label": "晚餐後"}
-        ]
-    elif any(keyword in timing for keyword in ["四次", "QID", "qid"]):
-        # 每日四次 → 早/午/晚/睡前
-        time_slots = [
-            {"emoji": "☀️", "time": "08:00", "color": "morning", "label": "早"},
-            {"emoji": "🏞️", "time": "12:00", "color": "noon", "label": "午"},
-            {"emoji": "🌆", "time": "18:00", "color": "evening", "label": "晚"},
-            {"emoji": "🌙", "time": "22:00", "color": "bedtime", "label": "睡前"}
-        ]
+    if any(k in u_str for k in ["QID", "四次"]):
+        active_slots = ["MORNING", "NOON", "EVENING", "BEDTIME"]
+    elif any(k in u_str for k in ["TID", "三餐", "三次"]):
+        active_slots = ["MORNING", "NOON", "EVENING"]
+    elif any(k in u_str for k in ["BID", "早晚", "兩次"]):
+        active_slots = ["MORNING", "EVENING"]
+    elif any(k in u_str for k in ["HS", "睡前"]):
+        active_slots = ["BEDTIME"]
+    elif any(k in u_str for k in ["QD", "每日一次", "一天一次"]):
+        active_slots = ["MORNING"]
     else:
-        # 單一時間點（原邏輯）
-        matched_time = TIME_MAPPING.get(timing, {
-            "emoji": "⏰", "time": "08:00", "color": "morning"
-        })
-        time_slots = [{**matched_time, "label": timing}]
-    
-    # ============ 標題區 ============
-    y_offset = 40
-    draw.text((50, y_offset), "🗓️ 用藥時間表", 
-              fill=COLORS["text_title"], font=font_super)
-    
-    today = datetime.now().strftime("%Y-%m-%d")
-    draw.text((WIDTH - 320, y_offset + 10), f"📅 {today}", 
-              fill=COLORS["text_muted"], font=font_body)
-    
-    # 分隔線
-    y_offset += 110
-    draw.line([(50, y_offset), (WIDTH - 50, y_offset)], 
-              fill=COLORS["border"], width=3)
-    
-    # ============ 藥物資訊區 ============
-    y_offset += 30
-    draw.text((50, y_offset), f"💊 藥物: {drug_name}", 
-              fill=COLORS["text_title"], font=font_title)
-    
-    y_offset += 80
-    draw.text((50, y_offset), f"📦 劑量: {dose} × {quantity}", 
-              fill=COLORS["text_body"], font=font_body)
-    
-    y_offset += 60
-    draw.text((50, y_offset), f"📍 途徑: {route}", 
-              fill=COLORS["text_body"], font=font_body)
-    
-    # 分隔線
-    y_offset += 60
-    draw.line([(50, y_offset), (WIDTH - 50, y_offset)], 
-              fill=COLORS["border"], width=3)
-    
-    # ============ 時間卡片（支援多時間點）============
-    y_offset += 30
-    card_x, card_width = 70, WIDTH - 140
-    card_height = 100
-    card_spacing = 20
-    
-    for idx, slot in enumerate(time_slots):
-        # 卡片背景
-        draw.rectangle(
-            [(card_x, y_offset), (card_x + card_width, y_offset + card_height)],
-            fill=COLORS["bg_card"],
-            outline=COLORS[slot["color"]],
-            width=5
-        )
+        if "早" in u_str: active_slots.append("MORNING")
+        if "午" in u_str: active_slots.append("NOON")
+        if "晚" in u_str: active_slots.append("EVENING")
+        if "睡" in u_str: active_slots.append("BEDTIME")
         
-        # 時間標記（大）
-        draw.text((card_x + 30, y_offset + 20), 
-                  f"{slot['emoji']} {slot['label']} {slot['time']}", 
-                  fill=COLORS[slot["color"]], font=font_subtitle)
-        
-        # 用法說明
-        draw.text((card_x + 30, y_offset + 65), 
-                  f"用法: 飯後 1 次｜配水 200ml", 
-                  fill=COLORS["text_body"], font=font_body)
-        
-        # 移動到下一個卡片位置
-        y_offset += card_height + card_spacing
+    if not active_slots: active_slots = ["MORNING"]
     
-    # ============ 警告區（條件顯示）============
-    if status in ["HIGH_RISK", "ATTENTION_NEEDED"] or warnings:
-        y_offset += 20  # y_offset 已在卡片迴圈中更新，只需少量間距
-        
-        # 警告框
-        warning_height = 150
-        draw.rectangle(
-            [(50, y_offset), (WIDTH - 50, y_offset + warning_height)],
-            fill="#FFEBEE",  # 淺紅背景
-            outline=COLORS["danger"],
-            width=6
-        )
-        
-        draw.text((70, y_offset + 20), "⚠️ 重要提醒", 
-                  fill=COLORS["danger"], font=font_title)
-        
-        warning_text = warnings[0] if warnings else "此藥需特別注意，請諮詢藥師"
-        # 截斷過長文字
-        if len(warning_text) > 40:
-            warning_text = warning_text[:40] + "..."
-        draw.text((70, y_offset + 85), warning_text,
-                  fill=COLORS["text_body"], font=font_body)
+    # ============ 視覺繪製 ============
+    y_off = 40
+    draw.text((50, y_off), "🗓️ 用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
+    draw.text((WIDTH - 350, y_off + 20), f"📅 {datetime.now().strftime('%Y-%m-%d')}", fill=COLORS["text_muted"], font=font_body)
     
-    # ============ 底部免責聲明 ============
-    footer_y = HEIGHT - 60
-    draw.text((50, footer_y), 
-              "SilverGuard CDS - 僅供參考，非醫療建議｜如有疑問請諮詢專業藥師", 
-              fill=COLORS["text_muted"], font=font_caption)
+    y_off += 120
+    draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
     
-    # ============ 儲存圖片 ============
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    y_off += 40
+    draw.text((50, y_off), f"💊 藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
+    y_off += 80
+    draw.text((50, y_off), f"📦 總量: {quantity} 顆 / {dose}", fill=COLORS["text_body"], font=font_body)
+    
+    y_off += 80
+    draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
+    
+    y_off += 40
+    card_h = 130
+    card_w = WIDTH - 100
+    
+    for slot_key in active_slots:
+        s_data = SLOTS[slot_key]
+        draw.rectangle([(50, y_off), (50+card_w, y_off+card_h)], fill=COLORS["bg_card"], outline=COLORS[s_data["color"]], width=6)
+        draw.text((80, y_off+30), f"{s_data['emoji']} {s_data['label']}", fill=COLORS[s_data["color"]], font=font_subtitle)
+        draw.text((500, y_off+30), f"{bowl_text} ｜ {bowl_icon} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
+        y_off += card_h + 20
+        
+    if status in ["HIGH_RISK", "WARNING", "HUMAN_REVIEW_NEEDED"] or "HIGH" in str(warnings):
+        y_off += 20
+        draw.rectangle([(50, y_off), (WIDTH-50, y_off+160)], fill="#FFEBEE", outline=COLORS["danger"], width=6)
+        draw.text((80, y_off+20), "⚠️ 用藥安全警示", fill=COLORS["danger"], font=font_title)
+        warn_msg = warnings[0] if warnings else "請諮詢藥師確認用藥細節"
+        if len(warn_msg) > 38: warn_msg = warn_msg[:38] + "..."
+        draw.text((80, y_off+90), warn_msg, fill=COLORS["text_body"], font=font_body)
+
+    draw.text((50, HEIGHT-60), "SilverGuard AI 關心您 ❤️ 僅供參考，請遵照醫師處方", fill=COLORS["text_muted"], font=font_caption)
+    
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
     output_path = f"/tmp/medication_calendar_{timestamp}.png"
     img.save(output_path, quality=95)
     
@@ -699,6 +648,116 @@ def json_to_elderly_speech(result_json):
             return f"阿嬤，這是{drug_name}。AI檢查沒問題。使用方法是：{usage}。請安心使用。"
     except:
         return "系統忙碌中，請稍後再試。"
+
+@spaces.GPU(duration=60)
+def run_inference(image, patient_notes=""):
+    # ... (see below)
+    pass
+
+# ============================================================================
+# 🛠️ HELPER FUNCTIONS (Restored & Hardened)
+# ============================================================================
+
+def text_to_speech(text, lang='zh-tw'):
+    """Hybrid TTS: Online (gTTS) -> Offline (pyttsx3) Fallback"""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_path = f"/tmp/safety_alert_{timestamp}.mp3"
+    
+    # Strategy 1: Online Neural TTS (gTTS)
+    if not OFFLINE_MODE:
+        try:
+            from gtts import gTTS
+            tts = gTTS(text=text, lang=lang, slow=False)
+            tts.save(output_path)
+            return output_path
+        except:
+            pass # Fallback to offline
+    
+    # Strategy 2: Offline Fallback (pyttsx3)
+    try:
+        import pyttsx3
+        engine = pyttsx3.init()
+        engine.setProperty('rate', 140) 
+        engine.save_to_file(text, output_path)
+        engine.runAndWait()
+        return output_path
+    except Exception as e:
+        print(f"❌ TTS Failed: {e}")
+        return None
+
+def check_image_quality(image):
+    """
+    Input Guard: Blur Detection (Laplacian Variance)
+    Returns: (is_clear: bool, message: str)
+    """
+    try:
+        import cv2
+        import numpy as np
+        img_np = np.array(image)
+        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+        variance = cv2.Laplacian(gray, cv2.CV_64F).var()
+        if variance < 50: # Threshold for text docs
+            return False, f"Blurry Image detected (Score: {variance:.1f} < 50). Please retry."
+        return True, "Quality OK"
+    except ImportError:
+        return True, "CV2 not installed, skipping blur check."
+    except Exception as e:
+        return True, f"Blur check skipped: {e}"
+
+def check_is_prescription(text):
+    """OOD Detection: Verify content relevance"""
+    keywords = ["patient", "drug", "dose", "mg", "tablet", "usage", "藥", "服用", "劑量"]
+    count = sum(1 for k in keywords if k.lower() in text.lower())
+    if count < 2:
+        return False, "Content does not look like a prescription."
+    return True, "Valid"
+
+def logical_consistency_check(extracted_data):
+    """
+    Safety Logic & Schema Validation
+    Returns: (passed: bool, message: str, logs: list)
+    """
+    logs = []
+    issues = []
+    
+    # 1. Schema Check
+    if not isinstance(extracted_data, dict):
+        return False, "Invalid JSON structure", logs
+        
+    # 2. Age Check
+    age = extracted_data.get("patient", {}).get("age")
+    if age and isinstance(age, (int, str)):
+        try:
+            if int(age) > 120: issues.append(f"Invalid Age: {age}")
+            if int(age) < 18: issues.append(f"Pediatric case ({age}) requires manual review")
+        except: pass
+        
+    if issues:
+        return False, "; ".join(issues), logs
+        
+    return True, "Logic OK", logs
+
+def json_to_elderly_speech(result_json):
+    """
+    Generates warm, persona-based spoken message from analysis results.
+    """
+    extracted = result_json.get("extracted_data", {})
+    safety = result_json.get("safety_analysis", {})
+    
+    drug_name = extracted.get("drug", {}).get("name_zh", extracted.get("drug", {}).get("name", "這個藥"))
+    usage = extracted.get("usage", "按醫生指示服用")
+    status = safety.get("status", "UNKNOWN")
+    reasoning = safety.get("reasoning", "")
+    
+    # Persona: Caring Grandchild
+    msg = f"阿公阿嬤好，我是您的用藥小幫手。這是您的藥「{drug_name}」。"
+    
+    if status in ["HIGH_RISK", "HUMAN_REVIEW_NEEDED", "WARNING"]:
+        msg += f" ⚠️ 特別注意喔！系統發現：{reasoning}。請一定要拿給藥師或醫生確認一下比較安全喔！"
+    else:
+        msg += f" 醫生交代要「{usage}」吃。您要把身體照顧好喔！❤️"
+        
+    return msg
 
 @spaces.GPU(duration=60)
 def run_inference(image, patient_notes=""):
