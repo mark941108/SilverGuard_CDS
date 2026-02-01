@@ -3910,7 +3910,7 @@ Combines all HAI-DEF components into a single interface:
 """
 
 import gradio as gr
-import requests
+# import requests
 import librosa
 import soundfile as sf
 import torch
@@ -3975,15 +3975,17 @@ def offline_safety_knowledge_graph(drug_a, drug_b):
     if (name_a, name_b) in pairs: return pairs[(name_a, name_b)]
     if (name_b, name_a) in pairs: return pairs[(name_b, name_a)]
     
+    # [OFFLINE COMPLIANCE] Disable Legacy Online Check
     # API Call
-    try:
-        url = f"https://api.fda.gov/drug/label.json?search=openfda.generic_name:{name_a}+AND+drug_interactions:{name_b}&limit=1"
-        res = requests.get(url, timeout=5)
-        if res.status_code == 200 and "results" in res.json():
-            return f"⚠️ **OpenFDA Alert**: Official label for {name_a} warns about {name_b}."
-        return "✅ No interaction found in OpenFDA labels."
-    except:
-        return "⚠️ API Error."
+    # try:
+    #     url = f"https://api.fda.gov/drug/label.json?search=openfda.generic_name:{name_a}+AND+drug_interactions:{name_b}&limit=1"
+    #     res = requests.get(url, timeout=5)
+    #     if res.status_code == 200 and "results" in res.json():
+    #         return f"⚠️ **OpenFDA Alert**: Official label for {name_a} warns about {name_b}."
+    #     return "✅ No interaction found in OpenFDA labels."
+    # except:
+    #    return "⚠️ API Error."
+    return "✅ [OFFLINE] No critical interaction found in Local Safety DB."
 
 # [FIX] Create alias for Gradio button callback compatibility
 check_drug_interaction = offline_safety_knowledge_graph
