@@ -366,9 +366,37 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
         "睡前": {"emoji": "🌙", "time": "22:00", "color": "bedtime"},
     }
     
-    time_info = TIME_MAPPING.get(timing, {
-        "emoji": "⏰", "time": "08:00", "color": "morning"
-    })
+    # ============ 解析複合時間 (支援 BID/TID) ============
+    time_slots = []
+    
+    # 檢測常見複合時間模式
+    if any(keyword in timing for keyword in ["早晚", "BID", "bid", "每日兩次", "每天兩次"]):
+        # 早晚各一次 → 早晨 + 睡前
+        time_slots = [
+            {"emoji": "☀️", "time": "08:00", "color": "morning", "label": "早晨"},
+            {"emoji": "🌙", "time": "22:00", "color": "bedtime", "label": "睡前"}
+        ]
+    elif any(keyword in timing for keyword in ["三餐", "TID", "tid", "每日三次", "每天三次"]):
+        # 三餐飯後 → 早/午/晚
+        time_slots = [
+            {"emoji": "☀️", "time": "08:00", "color": "morning", "label": "早餐後"},
+            {"emoji": "🏞️", "time": "12:00", "color": "noon", "label": "午餐後"},
+            {"emoji": "🌆", "time": "18:00", "color": "evening", "label": "晚餐後"}
+        ]
+    elif any(keyword in timing for keyword in ["四次", "QID", "qid"]):
+        # 每日四次 → 早/午/晚/睡前
+        time_slots = [
+            {"emoji": "☀️", "time": "08:00", "color": "morning", "label": "早"},
+            {"emoji": "🏞️", "time": "12:00", "color": "noon", "label": "午"},
+            {"emoji": "🌆", "time": "18:00", "color": "evening", "label": "晚"},
+            {"emoji": "🌙", "time": "22:00", "color": "bedtime", "label": "睡前"}
+        ]
+    else:
+        # 單一時間點（原邏輯）
+        matched_time = TIME_MAPPING.get(timing, {
+            "emoji": "⏰", "time": "08:00", "color": "morning"
+        })
+        time_slots = [{**matched_time, "label": timing}]
     
     # ============ 標題區 ============
     y_offset = 40
@@ -402,32 +430,37 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     draw.line([(50, y_offset), (WIDTH - 50, y_offset)], 
               fill=COLORS["border"], width=3)
     
-    # ============ 時間卡片 ============
+    # ============ 時間卡片（支援多時間點）============
     y_offset += 30
     card_x, card_width = 70, WIDTH - 140
-    card_height = 120
+    card_height = 100
+    card_spacing = 20
     
-    # 卡片背景
-    draw.rectangle(
-        [(card_x, y_offset), (card_x + card_width, y_offset + card_height)],
-        fill=COLORS["bg_card"],
-        outline=COLORS[time_info["color"]],
-        width=5
-    )
-    
-    # 時間標記（大）
-    draw.text((card_x + 30, y_offset + 20), 
-              f"{time_info['emoji']} {timing} {time_info['time']}", 
-              fill=COLORS[time_info["color"]], font=font_subtitle)
-    
-    # 用法說明
-    draw.text((card_x + 30, y_offset + 75), 
-              f"用法: 飯後 1 次｜配水 200ml", 
-              fill=COLORS["text_body"], font=font_body)
+    for idx, slot in enumerate(time_slots):
+        # 卡片背景
+        draw.rectangle(
+            [(card_x, y_offset), (card_x + card_width, y_offset + card_height)],
+            fill=COLORS["bg_card"],
+            outline=COLORS[slot["color"]],
+            width=5
+        )
+        
+        # 時間標記（大）
+        draw.text((card_x + 30, y_offset + 20), 
+                  f"{slot['emoji']} {slot['label']} {slot['time']}", 
+                  fill=COLORS[slot["color"]], font=font_subtitle)
+        
+        # 用法說明
+        draw.text((card_x + 30, y_offset + 65), 
+                  f"用法: 飯後 1 次｜配水 200ml", 
+                  fill=COLORS["text_body"], font=font_body)
+        
+        # 移動到下一個卡片位置
+        y_offset += card_height + card_spacing
     
     # ============ 警告區（條件顯示）============
     if status in ["HIGH_RISK", "ATTENTION_NEEDED"] or warnings:
-        y_offset += card_height + 40
+        y_offset += 20  # y_offset 已在卡片迴圈中更新，只需少量間距
         
         # 警告框
         warning_height = 150
