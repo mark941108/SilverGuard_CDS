@@ -446,6 +446,7 @@ except ImportError:
             {"code": "BC23456790", "name_en": "Concor", "name_zh": "康肯", "generic": "Bisoprolol", "dose": "5mg", "appearance": "黃色心形", "indication": "降血壓", "warning": "心跳過慢者慎用", "default_usage": "QD_breakfast_after"},
             {"code": "BC23456799", "name_en": "Dilatrend", "name_zh": "達利全錠", "generic": "Carvedilol", "dose": "25mg", "appearance": "白色圓形 (刻痕)", "indication": "高血壓/心衰竭", "warning": "不可擅自停藥", "default_usage": "BID_meals_after"},
             {"code": "BC23456788", "name_en": "Lasix", "name_zh": "來適泄錠", "generic": "Furosemide", "dose": "40mg", "appearance": "白色圓形", "indication": "高血壓/水腫", "warning": "服用後排尿頻繁，避免睡前服用", "default_usage": "BID_morning_noon"},
+            {"code": "BC23456795", "name_en": "Diovan", "name_zh": "得安穩", "generic": "Valsartan", "dose": "160mg", "appearance": "橘色橢圓形", "indication": "高血壓/心衰竭", "warning": "注意姿勢性低血壓、懷孕禁用", "default_usage": "QD_breakfast_after"},
         ],
         # --- Confusion Cluster 2: Diabetes ---
         "Diabetes": [
@@ -486,7 +487,18 @@ except ImportError:
     DRUG_ALIASES = {
         "glucophage": "metformin",
         "norvasc": "amlodipine",
-        "stilnox": "zolpidem"
+        "stilnox": "zolpidem",
+        # [NEW] Verified Taiwan Aliases (Prevent False Positives)
+        "bokey": "aspirin", 
+        "concor": "bisoprolol",
+        "dilatrend": "carvedilol",
+        "lasix": "furosemide", 
+        "crestor": "rosuvastatin",
+        "lipitor": "atorvastatin",
+        "plavix": "clopidogrel",
+        "diovan": "valsartan",
+        "lose": "omeprazole", # Common OCR error
+        "losec": "omeprazole"
     }
 
 # ===== 病患檔案 =====
