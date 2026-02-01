@@ -919,6 +919,21 @@ As an **Energy Engineering student**, I calculated the carbon cost of AI inferen
 
 ---
 
+## 🛡️ Responsible AI & Safety
+We follow the **HAI-DEF** (Health AI Developer Foundations) safety guidelines.
+- **Privacy By Design:** No data egress; all processing is local.
+- **Human-in-the-loop:** The system is a *decision support tool*, never an autonomous prescriber.
+- **Bias Mitigation:** Tested on diverse demographic inputs (simulated) to ensure fairness.
+
+---
+
+### License & Attribution
+This project utilizes Google's **MedGemma 1.5-4B** model. We strictly adhere to the [Gemma Terms of Use](https://ai.google.dev/gemma/terms) and Responsible AI Guidelines.
+* **Code**: MIT License
+* **Model Weights**: Gemma Terms of Use
+* **Pharmacist Data**: Open Data (Taiwan FDA) / Synthetic Generation
+
+**SilverGuard © 2026** - *Protecting our elders, one prescription at a time.*
 ## ⚠️ Transparency Report & Technical Limitations (Academic Integrity)
 
 To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disclose the following implementation details:
