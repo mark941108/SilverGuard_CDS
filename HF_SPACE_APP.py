@@ -10,6 +10,9 @@ import re
 import spaces  # ZeroGPU support
 import pyttsx3 # V7.5 FIX: Missing Import
 from datetime import datetime  # For calendar timestamp
+import sys
+sys.path.append('.') # Ensure local modules are found
+import medgemma_data # Local Drug Database (Offline Source of Truth)
 
 # ============================================================================
 # 🏥 SilverGuard: Intelligent Medication Safety System - Hugging Face Space Demo
