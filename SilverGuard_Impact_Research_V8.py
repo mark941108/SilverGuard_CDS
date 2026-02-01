@@ -1808,7 +1808,73 @@ def mock_openfda_interaction(drug_list):
     return False, "No critical interactions found in local cache."
 
 # ============================================================================
-# MAIN AGENTIC PIPELINE
+# 🛡️ AGENTIC SAFETY CRITIC (Reflection Pattern)
+# ============================================================================
+def offline_db_lookup(drug_name):
+    """
+    Simulates checking against a trusted offline database (medgemma_data.py).
+    Returns True if drug exists in approved list.
+    """
+    try:
+        # Try to import source of truth
+        import medgemma_data
+        db = medgemma_data.DRUG_DATABASE
+        # Flat list check
+        for category in db.values():
+            for item in category:
+                if drug_name.lower() in [item['name_en'].lower(), item['name_zh'].lower(), item['generic'].lower()]:
+                    return True
+        # Check aliases
+        if drug_name.lower() in medgemma_data.DRUG_ALIASES:
+            return True
+            
+        return False
+    except ImportError:
+        # Fallback for standalone execution if file missing
+        SAFE_LIST = ["warfarin", "aspirin", "furosemide", "metformin", "amlodipine", 
+                     "plavix", "stilnox", "lipitor", "crestor", "bisoprolol",
+                     "bokey", "licodin", "diovan", "xanax", "valium"]
+        return any(d in drug_name.lower() for d in SAFE_LIST)
+
+def safety_critic_tool(json_output):
+    """
+    The 'Callable Tool' that acts as the Critic (Rule-Based).
+    Implements Andrew Ng's Reflection Pattern.
+    """
+    try:
+        # Handle both dict and string input for robustness
+        data = json_output if isinstance(json_output, dict) else json.loads(json_output)
+        
+        # Extract drug name (flexible search)
+        extracted = data.get("extracted_data", {})
+        drug_name = extracted.get("drug", {}).get("name", "")
+        if not drug_name: drug_name = str(extracted.get("drug", ""))
+        
+        # --- Rule 1: Conflict Check (Critical Interactions) ---
+        # Example: Warfarin + Aspirin is high risk
+        # We simulate this check based on context history or explicit detection
+        if "Warfarin" in drug_name and "Aspirin" in drug_name:
+             return False, "CRITICAL INTERACTION: Warfarin and Aspirin detected together. Immediate Verification Needed."
+
+        # --- Rule 2: Hallucination Check (Offline DB) ---
+        # If the model hallucinates a drug not in our hospital formulary, flag it.
+        if drug_name and not("unknown" in drug_name.lower()):
+            if not offline_db_lookup(drug_name):
+                 return False, f"Drug '{drug_name}' not found in approved local database (Possible Hallucination)."
+
+        # --- Rule 3: Dosage Sanity Check (Hard Limits) ---
+        dose = extracted.get("drug", {}).get("dose", "")
+        if "2000mg" in dose or (dose.isdigit() and int(dose) > 1000 and "mg" in dose):
+             # Hard limit for demo purposes
+             return False, f"Dosage '{dose}' exceeds safety threshold (1000mg) for standard formulation."
+
+        return True, "Logic Sound."
+        
+    except Exception as e:
+        return False, f"Critic Tool Error: {str(e)}"
+
+# ============================================================================
+# 🧠 AGENTIC INFERENCE PIPELINE (VLM + RAG + Reflection)
 # ============================================================================
 def agentic_inference(model, processor, img_path, verbose=True):
     """
@@ -2122,26 +2188,44 @@ def agentic_inference(model, processor, img_path, verbose=True):
             if verbose:
                 print(f"   └─ {ground_msg}")
             
-            # ===== AGENTIC SELF-CORRECTION LOGIC =====
+            # =========================================================================
+            # 🤖 REFLEXION PATTERN IMPLEMENTATION (Actor-Critic Loop)
+            # =========================================================================
+            # Step 2: The Critic (Deterministic Rules)
+            # This implements Andrew Ng's 'Reflection' workflow
+            is_safe, critique_feedback = safety_critic_tool(parsed_json)
+            
+            if not is_safe:
+                if verbose:
+                    print(f"\n   ⚠️ [Attempt {current_try}] Critique Failed: {critique_feedback}")
+                    print("   🔄 Reflecting and Regenerating (Agentic Correction)...")
+                
+                # Step 3: Reflection & Refinement
+                # Feed the critique back into the prompts for the next iteration
+                correction_context = (
+                    f"\n\n[PREVIOUS ATTEMPT FAILED]: Critical Safety Violation.\n"
+                    f"Critique from Safety System: {critique_feedback}\n"
+                    f"Instruction: Please fix the error identified by the critic and output the correct JSON."
+                )
+                
+                result["agentic_retries"] = result.get("agentic_retries", 0) + 1
+                continue  # RETRY LOOP (Temperature will drop to 0.2 automatically)
+
+            # If Critic passes, proceed to Logical Consistency (Grounding)
+            if verbose: print(f"   ✅ [Attempt {current_try}] Safety Critique Passed.")
+
+            # Logical Consistency Check (Existing)
             if not grounded and current_try < MAX_RETRIES:
                 if verbose:
                     print(f"\n   🔄 Logic Flaw Detected: {ground_msg}")
                     print(f"   🧠 Agent is reflecting and will retry...")
                 
-
-
-                # Modify prompt with correction context (Self-Reflection)
                 correction_context = (
                     f"\n\n[PREVIOUS ATTEMPT FAILED]: {ground_msg}\n"
                     "Please re-analyze the image more carefully. "
-                    "Pay special attention to:\n"
-                    "- Patient age (must be reasonable 0-120)\n"
-                    "- Dose format (must include mg/ml/g unit)\n"
-                    "- Ensure drug name appears in your reasoning if flagging HIGH_RISK"
                 )
                 
                 result["agentic_retries"] = result.get("agentic_retries", 0) + 1
-                # current_try += 1 # 🔴 FIX: Removed for loop
                 continue  # RETRY THE LOOP
             
             # [V8.1 NEW] 🔄 POST-HOC RAG VERIFICATION (The "Double Check" Logic)

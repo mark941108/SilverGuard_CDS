@@ -24,11 +24,52 @@ DRUG_DATABASE = {
         {"code": "BC23456787", "name_en": "Losec", "name_zh": "樂酸克膠囊", "generic": "Omeprazole", "dose": "20mg", "appearance": "粉紅/紅棕色膠囊", "indication": "胃潰瘍/逆流性食道炎", "warning": "飯前服用效果最佳，不可嚼碎", "default_usage": "QD_meals_before"},
     ],
     # --- Confusion Cluster 4: Anticoagulant ---
+    # 1. Anticoagulants (High Risk)
     "Anticoagulant": [
-         {"code": "BC23456786", "name_en": "Xarelto", "name_zh": "拜瑞妥膜衣錠", "generic": "Rivaroxaban", "dose": "15mg", "appearance": "紅色圓形", "indication": "預防中風/血栓", "warning": "隨餐服用。請注意出血徵兆", "default_usage": "QD_meals_with"},
-         {"code": "BC77778888", "name_en": "Warfarin", "name_zh": "可化凝", "generic": "Warfarin", "dose": "5mg", "appearance": "粉紅色圓形", "indication": "抗凝血", "warning": "需定期監測INR，避免深綠色蔬菜", "default_usage": "QD_bedtime"},
-         {"code": "BC55556666", "name_en": "Aspirin", "name_zh": "阿斯匹靈", "generic": "ASA", "dose": "100mg", "appearance": "白色圓形", "indication": "預防血栓", "warning": "胃潰瘍患者慎用", "default_usage": "QD_breakfast_after"},
-         {"code": "BC55556667", "name_en": "Plavix", "name_zh": "保栓通", "generic": "Clopidogrel", "dose": "75mg", "appearance": "粉紅色圓形", "indication": "預防血栓", "warning": "手術前需停藥", "default_usage": "QD_breakfast_after"},
+    {
+        "code": "BC25438100",
+        "name_en": "Warfarin",
+        "name_zh": "華法林",
+        "generic": "Warfarin Sodium",
+        "dose": "5mg",
+        "appearance": "peach_circle_scored",
+        "indication": "預防血栓形成",
+        "warning": "需定期監測INR，避免深綠色蔬菜",
+        "default_usage": "QD_evening"
+    },
+    {
+        "code": "BC24681357",
+        "name_en": "Xarelto",
+        "name_zh": "拜瑞妥",
+        "generic": "Rivaroxaban",
+        "dose": "20mg",
+        "appearance": "red_brown_circle",
+        "indication": "預防中風及栓塞",
+        "warning": "隨餐服用。請注意出血徵兆",
+        "default_usage": "QD_evening_with_meal"
+    },
+    {
+        "code": "BC23951468",
+        "name_en": "Bokey", 
+        "name_zh": "伯基/阿斯匹靈",
+        "generic": "Aspirin",
+        "dose": "100mg",
+        "appearance": "orange_circle_small",
+        "indication": "預防心肌梗塞",
+        "warning": "胃潰瘍患者慎用。長期服用需監測出血風險",
+        "default_usage": "QD_breakfast_after"
+    },
+    {
+        "code": "BC24135792",
+        "name_en": "Plavix",
+        "name_zh": "保栓通",
+        "generic": "Clopidogrel", 
+        "dose": "75mg",
+        "appearance": "pink_circle",
+        "indication": "預防血栓",
+        "warning": "手術前5-7天需停藥。勿與其他抗凝血藥併用",
+        "default_usage": "QD_breakfast_after"
+    },
     ],
     # --- Confusion Cluster 5: CNS ---
     "Sedative": [
