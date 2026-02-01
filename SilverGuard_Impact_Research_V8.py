@@ -2360,9 +2360,19 @@ Cell 5: Agentic HIGH_RISK Demo
 🏆 Shows: Input Gate → VLM Reasoning → Confidence Check → Grounding → Final Decision
 """
 
+import os
+import sys
 import json
 import random
-from PIL import Image
+import time
+import re
+import csv
+import glob
+import shutil
+import warnings
+import asyncio  # Adding asyncio for async/await
+from datetime import datetime  # For calendar timestamp
+from PIL import Image, ImageDraw, ImageFont  # For medication calendar generation
 from pathlib import Path
 import torch
 import numpy as np # Fixed: Added missing import
@@ -3197,12 +3207,20 @@ def demo_elder_friendly_output():
     print("-"*60)
     
     if "parsed" in real_result.get("vlm_output", {}):
-        extracted = real_result["vlm_output"]["parsed"]["extracted_data"]
-        render_elderly_calendar(
-            extracted.get("drug", {}).get("name", "藥物"),
-            extracted.get("usage", "每日一次"),
-            extracted.get("drug", {}).get("dose", "")
-        )
+    # 5. Generate calendar
+    print("\n" + "-"*60)
+    print("📅 [Step 3] 大字體行事曆")
+    print("-" * 60)
+    
+    try:
+        # [V8.3 Synchronization] Use the robust function ported from HF Space
+        # Now supports BID/TID/QID colors and loop rendering
+        calendar_path = create_medication_calendar(real_result, target_lang="zh-TW")
+        print(f"✅ Calendar generated: {calendar_path}")
+    except Exception as e:
+        print(f"⚠️ Calendar generation failed: {e}")
+        import traceback
+        traceback.print_exc()
     else:
         print("⚠️ 無法解析推理結果，跳過行事曆生成")
     
