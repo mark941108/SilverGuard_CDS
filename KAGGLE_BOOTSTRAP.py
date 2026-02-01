@@ -43,10 +43,13 @@ except:
 print("\n[2/6] 部署 SilverGuard (優先權: 本地上傳 > GitHub Clone)...")
 
 # 1. 定義關鍵檔案 (用於偵測是否為手動上傳模式)
+# ✅ [Omni-Nexus Fix] 檢查所有必要檔案 (防止漏傳 medgemma_data.py 導致崩潰)
 target_file = "SilverGuard_Impact_Research_V8.py"
+required_files = ["SilverGuard_Impact_Research_V8.py", "medgemma_data.py"]
+missing_files = [f for f in required_files if not os.path.exists(f)]
 
-# 檢查 Kaggle 根目錄是否有你剛剛上傳/修改的檔案
-if os.path.exists(target_file):
+# 檢查 Kaggle 根目錄是否有完整檔案
+if not missing_files:
     # 【場景 A】你手動上傳了修復檔 -> 使用本地檔，不准 Git 覆蓋
     print(f"   ✅ 偵測到本地檔案：{target_file}")
     print("   🚀 啟動 [Local Override Mode]：略過 GitHub Clone，使用當前版本。")
@@ -78,8 +81,15 @@ else:
     print("   ✅ Repository 下載完成")
 
 # 進入目錄
-%cd SilverGuard
-print(f"   📂 當前工作目錄: {os.getcwd()}")
+# ✅ [Omni-Nexus Fix] 防止重複進入子目錄導致的路徑混亂
+if os.path.basename(os.getcwd()) != "SilverGuard":
+    if os.path.exists("SilverGuard"):
+        %cd SilverGuard
+        print(f"   📂 已進入目錄: {os.getcwd()}")
+    else:
+        print("❌ 錯誤：找不到 SilverGuard 目錄")
+else:
+    print("   ℹ️ 已經在 SilverGuard 目錄內，略過切換。")
 
 # %%
 # ============================================================================
@@ -118,6 +128,8 @@ print("   ⬇️ 安裝 PyTorch 2.6.0 Ecosystem (CUDA 11.8)...")
 # 4. Hugging Face Stack (升級支援 Gemma 3)
 # 原因: Gemma 3 架構需要最新版 Transformers (>=4.51.0)
 # 修正: 不再鎖定 4.47.1，改為安裝最新穩定版
+# ⚠️ [Omni-Nexus Warning] Version Roulette: transformers 5.0+ may introduce breaking changes.
+# Update with caution! Currently unpinned to support checking for latest versions.
 print("   ⬇️ 安裝 Hugging Face Stack (Gemma 3 Support)...")
 !pip install -U "huggingface-hub>=0.29.0" "transformers>=4.51.0" accelerate bitsandbytes peft datasets
 
