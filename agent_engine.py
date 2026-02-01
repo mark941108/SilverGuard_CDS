@@ -1121,15 +1121,15 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 MODEL_ID = "google/medgemma-1.5-4b-it"
 
-# [V16 INTEGRATION] 智能路徑切換 (與 Line 306 邏輯一致)
-v16_train_json = os.path.join(V16_DATA_DIR, "dataset_v16_train.json")
-if USE_V16_DATA and os.path.exists(v16_train_json):
-    # V16 Mode: Use hyper-realistic dataset
-    BASE_DIR = V16_DATA_DIR
-    DATA_PATH = v16_train_json
+# [V17 INTEGRATION] 智能路徑切換 (與 Line 306 邏輯一致)
+v17_train_json = os.path.join(V17_DATA_DIR, "dataset_v17_train.json")
+if USE_V17_DATA and os.path.exists(v17_train_json):
+    # V17 Mode: Use hyper-realistic dataset
+    BASE_DIR = V17_DATA_DIR
+    DATA_PATH = v17_train_json
     IMAGE_DIR = BASE_DIR
-    OUTPUT_DIR_TRAINING = "./medgemma_lora_output_v16"
-    print(f"✅ [TRAINING] Using V16 Dataset: {DATA_PATH}")
+    OUTPUT_DIR_TRAINING = "./medgemma_lora_output_v17"
+    print(f"✅ [TRAINING] Using V17 Dataset: {DATA_PATH}")
 else:
     # V5 Mode: Use internal generator
     BASE_DIR = "./medgemma_training_data_v5"
