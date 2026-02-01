@@ -2189,30 +2189,32 @@ def agentic_inference(model, processor, img_path, verbose=True):
                 print(f"   └─ {ground_msg}")
             
             # =========================================================================
-            # 🤖 REFLEXION PATTERN IMPLEMENTATION (Actor-Critic Loop)
+            # 🤖 REFLEXION PATTERN: ACTOR-CRITIC LOOP (Andrew Ng Style)
             # =========================================================================
-            # Step 2: The Critic (Deterministic Rules)
-            # This implements Andrew Ng's 'Reflection' workflow
+            
+            # [Step 2] THE CRITIC: Deterministic Rule Check
+            # We call the 'safety_critic_tool' to validate the output against hard rules.
             is_safe, critique_feedback = safety_critic_tool(parsed_json)
             
             if not is_safe:
                 if verbose:
-                    print(f"\n   ⚠️ [Attempt {current_try}] Critique Failed: {critique_feedback}")
-                    print("   🔄 Reflecting and Regenerating (Agentic Correction)...")
+                    print(f"\n   🛑 [Attempt {current_try}] CRITIQUE FAILED: {critique_feedback}")
+                    print("   🔄 Agent State: Reflecting and Regenerating...")
                 
-                # Step 3: Reflection & Refinement
-                # Feed the critique back into the prompts for the next iteration
+                # [Step 3] THE REFINER: Reflection & Correction
+                # Feed the critique back directly into the prompt (Self-Correction)
                 correction_context = (
-                    f"\n\n[PREVIOUS ATTEMPT FAILED]: Critical Safety Violation.\n"
+                    f"\n\n[PREVIOUS ATTEMPT REJECTED]: Critical Safety Violation.\n"
                     f"Critique from Safety System: {critique_feedback}\n"
                     f"Instruction: Please fix the error identified by the critic and output the correct JSON."
                 )
                 
+                # Force retry (Temperature will drop to 0.2 in next iteration)
                 result["agentic_retries"] = result.get("agentic_retries", 0) + 1
-                continue  # RETRY LOOP (Temperature will drop to 0.2 automatically)
+                continue 
 
-            # If Critic passes, proceed to Logical Consistency (Grounding)
-            if verbose: print(f"   ✅ [Attempt {current_try}] Safety Critique Passed.")
+            # If Critic passes, proceed
+            if verbose: print(f"   ✅ [Attempt {current_try}] Critique Passed: Logic Sound.")
 
             # Logical Consistency Check (Existing)
             if not grounded and current_try < MAX_RETRIES:
