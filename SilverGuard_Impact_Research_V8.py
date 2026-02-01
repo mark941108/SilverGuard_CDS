@@ -3450,20 +3450,20 @@ def demo_elder_friendly_output():
     print("-"*60)
     
     if "parsed" in real_result.get("vlm_output", {}):
-    # 5. Generate calendar
-    print("\n" + "-"*60)
-    print("📅 [Step 3] 大字體行事曆")
-    print("-" * 60)
-    
-    try:
-        # [V8.3 Synchronization] Use the robust function ported from HF Space
-        # Now supports BID/TID/QID colors and loop rendering
-        calendar_path = create_medication_calendar(real_result, target_lang="zh-TW")
-        print(f"✅ Calendar generated: {calendar_path}")
-    except Exception as e:
-        print(f"⚠️ Calendar generation failed: {e}")
-        import traceback
-        traceback.print_exc()
+        # 5. Generate calendar
+        print("\n" + "-"*60)
+        print("📅 [Step 3] 大字體行事曆")
+        print("-" * 60)
+        
+        try:
+            # [V8.3 Synchronization] Use the robust function ported from HF Space
+            # Now supports BID/TID/QID colors and loop rendering
+            calendar_path = create_medication_calendar(real_result, target_lang="zh-TW")
+            print(f"✅ Calendar generated: {calendar_path}")
+        except Exception as e:
+            print(f"⚠️ Calendar generation failed: {e}")
+            import traceback
+            traceback.print_exc()
     else:
         print("⚠️ 無法解析推理結果，跳過行事曆生成")
     
