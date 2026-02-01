@@ -759,7 +759,7 @@ def inject_medical_risk(case_data):
         
         # V7.1 NEW: Aspirin 分辨測試 (50% PASS, 50% HIGH_RISK)
         elif trap_type == "aspirin_check":
-            drug = next(d for d in _SYNTHETIC_DATA_GEN_SOURCE["Anticoagulant"] if d["name_en"] == "Aspirin").copy()
+            drug = next(d for d in _SYNTHETIC_DATA_GEN_SOURCE["Anticoagulant"] if d["generic"] == "Aspirin").copy()
             
             # V7 Fix: Add usage instruction (missing caused KeyError)
             u = USAGE_MAPPING["QD_breakfast_after"]

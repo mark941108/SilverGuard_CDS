@@ -185,18 +185,20 @@ print("=" * 80)
 
 # Check if V16 data already exists (skip if running multiple times)
 import os
-v16_train_json = "./assets/lasa_dataset_v17_compliance/dataset_v16_train.json"
+# [Omni-Nexus Fix] 更新路徑至 V17
+v17_train_json = "./assets/lasa_dataset_v17_compliance/dataset_v17_train.json"
 
-if os.path.exists(v16_train_json):
-    print(f"⏩ V16 Dataset already exists at {v16_train_json}")
+if os.path.exists(v17_train_json):
+    print(f"⏩ V17 Dataset already exists at {v17_train_json}")
     print("   Skipping generation to save time...")
 else:
-    print("🏭 Generating V16 Dataset (3D Pills + QR Codes + Human Touch)...")
+    print("🏭 Generating V17 Dataset (3D Pills + QR Codes + Human Touch)...")
     try:
-        %run generate_v16_fusion.py
-        print("✅ V16 Dataset Generation Complete!")
+        # [Omni-Nexus Fix] 執行正確的 V17 生成器
+        %run generate_v17_fusion.py
+        print("✅ V17 Dataset Generation Complete!")
     except Exception as e:
-        print(f"⚠️ V16 Generation Failed: {e}")
+        print(f"⚠️ V17 Generation Failed: {e}")
         print("   Falling back to V8 internal generator...")
 
 # ============================================================================
