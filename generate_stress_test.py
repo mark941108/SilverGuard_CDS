@@ -228,6 +228,26 @@ def apply_texture(img):
     textured = np.clip(img_array.astype(np.int16) + noise, 0, 255).astype(np.uint8)
     return Image.fromarray(textured)
 
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
+
+# ==========================================
+# New Feature: Thermal Paper Fading Simulation
+# ==========================================
+def simulate_thermal_fading(img, severity=0.5):
+    """
+    Simulates thermal paper fading over time using ImageEnhance.
+    severity: 0.0 (new) to 1.0 (completely faded)
+    Effect: Lower contrast (fading ink) + Higher brightness (paper whitening/exposure)
+    """
+    # 降低對比度 (Fading ink)
+    enhancer = ImageEnhance.Contrast(img)
+    img = enhancer.enhance(1.0 - (severity * 0.5))
+    
+    # 增加亮度 (Paper whitening/yellowing)
+    enhancer = ImageEnhance.Brightness(img)
+    img = enhancer.enhance(1.0 + (severity * 0.2))
+    return img
+
 # ==========================================
 # New V11 Feature: Optical Corruption Module
 # ==========================================
@@ -238,6 +258,11 @@ def apply_optical_stress(img, severity=0):
     """
     if severity == 0: return img
     
+    # 0. Thermal Fading (New Writeup Feature)
+    if random.random() < 0.4: # 40% chance of fading
+        fading_severity = 0.3 if severity == 1 else 0.7
+        img = simulate_thermal_fading(img, severity=fading_severity)
+
     # 1. 模糊 (老人手抖 / 對焦失敗)
     if random.random() < 0.7: # High chance of blur in stress mode
         radius = 2 if severity == 1 else 4 # 4px blur is hard for OCR
