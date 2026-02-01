@@ -709,7 +709,7 @@ if __name__ == "__main__":
         }, ensure_ascii=False)
         
         dataset.append({
-            "id": f"V16_{idx:05d}",
+            "id": f"V17_{idx:05d}",
             "image": item['filename'],
             "difficulty": "hard" if is_trap else "easy",
             "risk_status": status,
@@ -724,11 +724,11 @@ if __name__ == "__main__":
     train_data = dataset[:split_idx]
     test_data = dataset[split_idx:]
     
-    with open(f"{OUTPUT_DIR}/dataset_v16_train.json", "w", encoding="utf-8") as f:
+    with open(f"{OUTPUT_DIR}/dataset_v17_train.json", "w", encoding="utf-8") as f:
         json.dump(train_data, f, ensure_ascii=False, indent=2)
-    with open(f"{OUTPUT_DIR}/dataset_v16_test.json", "w", encoding="utf-8") as f:
+    with open(f"{OUTPUT_DIR}/dataset_v17_test.json", "w", encoding="utf-8") as f:
         json.dump(test_data, f, ensure_ascii=False, indent=2)
-    with open(f"{OUTPUT_DIR}/dataset_v16_full.json", "w", encoding="utf-8") as f:
+    with open(f"{OUTPUT_DIR}/dataset_v17_full.json", "w", encoding="utf-8") as f:
         json.dump(dataset, f, ensure_ascii=False, indent=2)
     
     print(f"✅ Train: {len(train_data)} | Test: {len(test_data)} | Total: {len(dataset)}")

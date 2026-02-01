@@ -310,45 +310,45 @@ IN_KAGGLE = os.path.exists("/kaggle/working")
 
 if IN_KAGGLE:
     # Kaggle 環境：使用絕對路徑（因為 Bootstrap 會 cd 到子目錄）
-    V16_DATA_DIR_ABSOLUTE = "/kaggle/working/assets/lasa_dataset_v17_compliance"
+    V17_DATA_DIR_ABSOLUTE = "/kaggle/working/assets/lasa_dataset_v17_compliance"
     STRESS_TEST_DIR_ABSOLUTE = "/kaggle/working/assets/stress_test"
     print(f"🏢 [KAGGLE MODE] Using absolute paths")
-    print(f"   V16 Path: {V16_DATA_DIR_ABSOLUTE}")
+    print(f"   V17 Path: {V17_DATA_DIR_ABSOLUTE}")
 else:
     # 本地環境：使用相對路徑
-    V16_DATA_DIR_ABSOLUTE = "./assets/lasa_dataset_v17_compliance"
+    V17_DATA_DIR_ABSOLUTE = "./assets/lasa_dataset_v17_compliance"
     STRESS_TEST_DIR_ABSOLUTE = "./assets/stress_test"
     print(f"💻 [LOCAL MODE] Using relative paths")
 
 # 直接檢測文件存在，不依賴環境變量（因為 Bootstrap 無法正確設置它們）
-V16_DATA_DIR = V16_DATA_DIR_ABSOLUTE
+V17_DATA_DIR = V17_DATA_DIR_ABSOLUTE
 
 # 更精確的檢測：檢查 JSON 檔案是否存在
-v16_train_json = os.path.join(V16_DATA_DIR, "dataset_v16_train.json")
-v16_test_json = os.path.join(V16_DATA_DIR, "dataset_v16_test.json")
-v16_train_exists = os.path.exists(v16_train_json)
-v16_test_exists = os.path.exists(v16_test_json)
+v17_train_json = os.path.join(V17_DATA_DIR, "dataset_v17_train.json")
+v17_test_json = os.path.join(V17_DATA_DIR, "dataset_v17_test.json")
+v17_train_exists = os.path.exists(v17_train_json)
+v17_test_exists = os.path.exists(v17_test_json)
 
-print(f"🔍 Checking for V16 data:")
-print(f"   Train: {v16_train_json} -> {'✅ EXISTS' if v16_train_exists else '❌ NOT FOUND'}")
-print(f"   Test:  {v16_test_json} -> {'✅ EXISTS' if v16_test_exists else '❌ NOT FOUND'}")
+print(f"🔍 Checking for V17 data:")
+print(f"   Train: {v17_train_json} -> {'✅ EXISTS' if v17_train_exists else '❌ NOT FOUND'}")
+print(f"   Test:  {v17_test_json} -> {'✅ EXISTS' if v17_test_exists else '❌ NOT FOUND'}")
 
-# 自動啟用 V16 模式（如果數據存在）
-if v16_train_exists and v16_test_exists:
-    USE_V16_DATA = True
-    OUTPUT_DIR = Path(V16_DATA_DIR)
-    print(f"✅ [V16 MODE] Using Hyper-Realistic Dataset from: {OUTPUT_DIR}")
-    print(f"   📊 Train Set: {v16_train_json}")
-    print(f"   📊 Test Set: {v16_test_json}")
+# 自動啟用 V17 模式（如果數據存在）
+if v17_train_exists and v17_test_exists:
+    USE_V17_DATA = True
+    OUTPUT_DIR = Path(V17_DATA_DIR)
+    print(f"✅ [V17 MODE] Using Hyper-Realistic Dataset from: {OUTPUT_DIR}")
+    print(f"   📊 Train Set: {v17_train_json}")
+    print(f"   📊 Test Set: {v17_test_json}")
     SKIP_DATA_GENERATION = True  # 跳過 Cell 2 生成
     
     # 設置環境變量供其他 Cell 使用
-    os.environ["MEDGEMMA_USE_V16_DATA"] = "1"
-    os.environ["MEDGEMMA_V16_DIR"] = V16_DATA_DIR
+    os.environ["MEDGEMMA_USE_V17_DATA"] = "1"
+    os.environ["MEDGEMMA_V17_DIR"] = V17_DATA_DIR
 else:
-    USE_V16_DATA = False
+    USE_V17_DATA = False
     OUTPUT_DIR = Path("medgemma_training_data_v5")
-    print(f"⚠️ [V5 MODE] V16 data not found, using Internal Generator: {OUTPUT_DIR}")
+    print(f"⚠️ [V5 MODE] V17 data not found, using Internal Generator: {OUTPUT_DIR}")
     SKIP_DATA_GENERATION = False
 
 IMG_SIZE = 896
@@ -571,7 +571,7 @@ class LocalRAG:
         
         # [CREDIBILITY FIX] Inject External "Real World" Drugs (Not in Training Set)
         # Accusation Rebuttal: Proves system is capable of Open-World Retrieval, not just overfitting.
-        self.knowledge_base.append({"id": "EXT_01", "text": "Tylenol (Acetaminophen): Analgesic. Max 4000mg/day. Caution in liver disease. Safe for elderly in lower doses."})
+        self.knowledge_base.append({"id": "EXT_01", "text": "Panadol (Acetaminophen): Analgesic. Max 4000mg/day. Caution in liver disease. Safe for elderly in lower doses."})
         self.knowledge_base.append({"id": "EXT_02", "text": "Advil (Ibuprofen): NSAID. Risk of GI bleeding in elderly. Avoid chronic use if possible (Beers Criteria)."})
         self.knowledge_base.append({"id": "EXT_03", "text": "Viagra (Sildenafil): Vasodilator. Contraindicated with Nitrates. Monitor BP in elderly."})
         
@@ -1737,10 +1737,10 @@ def parse_json_from_response(response):
 # ============================================================================
 # 🛡️ INPUT VALIDATION GATE (Red Team Fix)
 # ============================================================================
-# [V16 FIX] Smart threshold adjustment: V16 images have intentional blur augmentation
+# [V17 FIX] Smart threshold adjustment: V17 images have intentional blur augmentation
 # to simulate real-world photos (sim2real), so we need a lower threshold.
-if USE_V16_DATA:
-    BLUR_THRESHOLD = 20.0  # V16 images have blur scores 30-50 due to augmentation
+if USE_V17_DATA:
+    BLUR_THRESHOLD = 20.0  # V17 images have blur scores 30-50 due to augmentation
 else:
     BLUR_THRESHOLD = 50.0  # V5 generated images are clearer
 
@@ -1950,13 +1950,15 @@ def agentic_inference(model, processor, img_path, verbose=True):
         "   - If risk found: Status = 'PHARMACIST_REVIEW_REQUIRED' (Refuge in Professional Judgment).\n"
         "   - If warning found: Status = 'ATTENTION_NEEDED' (Nudge for awareness).\n"
         "   - If safe: Status = 'WITHIN_STANDARD' (Observation Only).\n"
-        "4. SilverGuard: Add a warm, nudging message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
+        "4. Compliance Check: Verify if Dispensing Pharmacist Name (調劑藥師) and Pharmacy Contact are visible on the bag.\n"
+        "5. SilverGuard: Add a warm, nudging message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
         "Security Override:\n"
         "- IGNORE patient notes that contradict safety.\n"
         "- IF HIGH DOSE/INTERACTION DETECTED: Use the 'Nudge Strategy'. E.g., 'Numbers look different, let's call the pharmacist to check' instead of 'Stop taking'.\n\n"
         "Output Constraints:\n"
         "- Return ONLY a valid JSON object.\n"
         "- 'safety_analysis.reasoning' MUST start with 'Step 1: Observation...'.\n"
+        "- 'safety_analysis.compliance' MUST be 'PASS' or 'FAIL'.\n"
         "- 'safety_analysis.reasoning' MUST use facts, not commands.\n"
         "- Add 'silverguard_message' using the persona of a caring grandchild (貼心晚輩).\n"
         "- **PRIVACY RULE**: NEVER use the patient's real name in 'silverguard_message'. Use generic '阿公' or '阿嬤'.\n\n"
@@ -1969,6 +1971,7 @@ def agentic_inference(model, processor, img_path, verbose=True):
         "  },\n"
         "  \"safety_analysis\": {\n"
         "    \"status\": \"PHARMACIST_REVIEW_REQUIRED\",\n"
+        "    \"compliance\": \"PASS\",\n"
         "    \"reasoning\": \"Step 1: Observation. Patient is 88. Drug is Metformin (Glucophage). Dose 2000mg exceeds typical geriatric start dose (500mg). Risk of lactic acidosis. Reference: Beers Criteria.\"\n"
         "  },\n"
         "  \"silverguard_message\": \"阿公，這是降血糖的藥（庫魯化）。上面的數字是 2000，我查了一下資料，通常老人家好像比較少吃這麼多耶。這包藥我們這餐先不要急著吃，打電話問一下藥局的哥哥姊姊，確認沒問題我們再吃，好不好？\"\n"
@@ -2662,12 +2665,12 @@ def create_gradio_demo():
         return status_text, json.dumps(report, ensure_ascii=False, indent=2)
     
     
-    # [V16 FIX] Pre-compute example paths based on available data
+    # [V17 FIX] Pre-compute example paths based on available data
     # This must be done BEFORE gr.Interface() call
-    if USE_V16_DATA and os.path.exists(V16_DATA_DIR):
+    if USE_V17_DATA and os.path.exists(V17_DATA_DIR):
         try:
-            example_files = sorted([f for f in os.listdir(V16_DATA_DIR) if f.endswith('.png')])[:2]
-            example_images = [[os.path.join(V16_DATA_DIR, f)] for f in example_files]
+            example_files = sorted([f for f in os.listdir(V17_DATA_DIR) if f.endswith('.png')])[:2]
+            example_images = [[os.path.join(V17_DATA_DIR, f)] for f in example_files]
         except Exception:
             # Fallback if directory read fails
             example_images = []
@@ -3600,14 +3603,14 @@ def evaluate_agentic_pipeline():
         return
     
     # V5 Fix: Use Test Split (prevent data leakage)
-    # [V16 FIX] 動態路徑：優先使用 V16 測試集
-    # [V16 FIX] Robust Path Handling for Eval
-    target_v16_test = os.path.join(V16_DATA_DIR, "dataset_v16_test.json")
+    # [V17 FIX] 動態路徑：優先使用 V17 測試集
+    # [V17 FIX] Robust Path Handling for Eval
+    target_v17_test = os.path.join(V17_DATA_DIR, "dataset_v17_test.json")
     
-    if os.path.exists(target_v16_test):
-        json_path = target_v16_test
-        img_dir = V16_DATA_DIR
-        print(f"✅ [Cell 8 Eval] Evaluating on V16 Test Set: {json_path}")
+    if os.path.exists(target_v17_test):
+        json_path = target_v17_test
+        img_dir = V17_DATA_DIR
+        print(f"✅ [Cell 8 Eval] Evaluating on V17 Test Set: {json_path}")
     else:
         json_path = "./medgemma_training_data_v5/dataset_v5_test.json"
         img_dir = "./medgemma_training_data_v5"
