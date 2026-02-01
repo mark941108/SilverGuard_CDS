@@ -1,7 +1,12 @@
 <!-- 🖼️ HERO IMAGE -->
 ![SilverGuard CDS](assets/hero_image.jpg)
 
-# 🏥 SilverGuard: Intelligent Medication Safety System (formerly AI Pharmacist Guardian)
+⚠️ **CRITICAL LEGAL DISCLAIMER**
+> **NOT A MEDICAL DEVICE**: SilverGuard is a RESEARCH PROTOTYPE for the Google MedGemma Challenge. It is NOT approved by FDA, TFDA, or any regulatory authority.
+> **NOT FOR CLINICAL USE**: Do NOT use this software to make medical decisions. Always consult a licensed healthcare professional.
+> **SYNTHETIC DATA**: All training data is computer-generated. Real-world performance may differ.
+
+# 🏥 SilverGuard: Intelligent Medication Safety System (Hybrid Privacy Architecture)
 
 > [!IMPORTANT]
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
@@ -253,22 +258,28 @@ Refined Output:
   "severity": "MEDIUM",
   "confidence": "87%"
 }
-```
+# 🏥 SilverGuard: Geriatric Medication Safety Agent (MedGemma-4B)
 
-**Why This Matters:**  
-- ❌ **OCR**: Would only extract "500mg Q6H" (no reasoning)
-- ❌ **GPT-4V**: Might catch it, but can't run offline, $0.03/query
-- ✅ **MedGemma**: Caught the age-dosage mismatch **offline**, **free**, with **medical knowledge**
+> **"Because a pharmacist can't be there 24/7, but SilverGuard can."**
 
-**Evidence in Our System:**  
-This exact reasoning pattern appears in our **Agentic Reflection Logs** during the second iteration (Critique → Refine). The model's medical pre-training allows it to recall clinical guidelines (Beers Criteria for elderly dosing) without explicit rule programming.
+⚠️ **CRITICAL LEGAL DISCLAIMER**
+> **NOT A MEDICAL DEVICE**: SilverGuard is a RESEARCH PROTOTYPE for the Google MedGemma Challenge. It is NOT approved by FDA, TFDA, or any regulatory authority.
+> **NOT FOR CLINICAL USE**: Do NOT use this software to make medical decisions. Always consult a licensed healthcare professional.
+> **SYNTHETIC DATA**: All training data is computer-generated. Real-world performance may differ.
 
-### 🎯 The Unique Value Proposition
+---
+## 🌟 Project Overview
+**SilverGuard** is an **Agentic Clinical Decision Support System (CDSS)** designing for the "Aging Society" (Super-Aged Society).
+It transforms the **Gemma 2 (MedGemma-4B)** LLM into an intelligent "Safety Guardian" that can **SEE** prescriptions, **HEAR** caregiver voice notes, and **SPEAK** advice in local dialects (Taiwanese Hokkien).
 
-**MedGemma is the only model that combines:**
-1. ✅ Medical domain knowledge (pre-trained on PubMed)
-2. ✅ Efficient architecture (runs on single T4 GPU)
-3. ✅ Privacy-first deployment (100% offline capable)
+### 🏆 Key Innovation: "Hybrid Privacy Architecture"
+Unlike pure cloud solutions, SilverGuard is designed for **Privacy-First Healthcare**:
+-   **Core VLM Inference**: Runs **100% Locally** on T4 GPU (PHI stays on device).
+-   **Configurable Privacy**:
+    -   🔒 **Maximum Privacy**: Uses offline TTS (`pyttsx3`) for fully air-gapped deployment.
+    -   🔊 **Maximum Quality**: Uses hybrid cloud TTS (`gTTS`) for demo purposes (anonymized data only).
+
+3. ✅ Privacy-first deployment (Hybrid Privacy: Core Inference Offline + Optional Cloud TTS)
 4. ✅ Multilingual clinical text (handles EN/ZH code-switching)
 
 **Alternative Approaches & Their Failures:**
