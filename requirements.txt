@@ -14,7 +14,7 @@ sentence-transformers
 faiss-cpu
 
 # Vision
-pillow
+pillow>=10.4.0  # Ensure font support for calendar generation
 albumentations
 opencv-python-headless
 
@@ -22,13 +22,13 @@ opencv-python-headless
 qrcode[pil]
 
 # Demo & UI
-gradio==4.44.0
+gradio>=5.0.0  # Latest stable for modern features
 matplotlib
 seaborn
 scikit-learn
 
 # Utilities (Explicitly listed for robustness)
-torch==2.1.2
+torch>=2.6.0  # Gemma 3 architecture support
 padding-oracle
 numpy
 requests

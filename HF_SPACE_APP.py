@@ -4,11 +4,12 @@ import torch
 import os  # V7.3 FIX: Missing import
 from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
 from peft import PeftModel
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import json
 import re
 import spaces  # ZeroGPU support
 import pyttsx3 # V7.5 FIX: Missing Import
+from datetime import datetime  # For calendar timestamp
 
 # ============================================================================
 # 🏥 SilverGuard: Intelligent Medication Safety System - Hugging Face Space Demo
@@ -271,6 +272,195 @@ def check_is_prescription(response_text):
         return True
     return False
 
+# ============================================================================
+# 🗓️ Medication Calendar Generator (Elderly-Friendly Design)
+# ============================================================================
+def create_medication_calendar(case_data, target_lang="zh-TW"):
+    """
+    🗓️ SilverGuard 老年友善行事曆
+    
+    設計標準:
+    - WCAG 2.1 AA (對比度 4.5:1+)
+    - 字體: 最小 36pt，標題 84pt
+    - 配色: 時間色碼 + 風險標記
+    - 無障礙: 圖示 + 文字雙重提示
+    
+    Args:
+        case_data: 完整的推論結果（包含 extracted_data, safety_analysis）
+        target_lang: 目標語言（zh-TW, id, vi）
+    
+    Returns:
+        str: 儲存的圖片路徑
+    """
+    # ============ 配色方案 (WCAG AA Compliant) ============
+    COLORS = {
+        "bg_main": "#FAFAFA",       # 主背景（淺米白）
+        "bg_card": "#FFFFFF",       # 卡片背景（純白）
+        "border": "#E0E0E0",        # 淺灰邊框
+        "text_title": "#212121",    # 標題（極深灰，對比度 16.1:1）
+        "text_body": "#424242",     # 正文（深灰，對比度 9.7:1）
+        "text_muted": "#757575",    # 輔助文字（灰，對比度 4.6:1）
+        # 時間編碼
+        "morning": "#1976D2",       # 早晨（藍）
+        "noon": "#F57C00",          # 中午（橙）
+        "evening": "#512DA8",       # 晚上（深紫）
+        "bedtime": "#303F9F",       # 睡前（靛藍）
+        # 警告狀態
+        "safe": "#388E3C",          # 安全（綠）
+        "warning": "#F57C00",       # 警告（橙）
+        "danger": "#D32F2F",        # 危險（紅）
+    }
+    
+    # ============ 建立畫布 ============
+    WIDTH, HEIGHT = 1400, 900
+    img = Image.new('RGB', (WIDTH, HEIGHT), color=COLORS["bg_main"])
+    draw = ImageDraw.Draw(img)
+    
+    # ============ 載入字體 (Fallback 機制) ============
+    def load_font(size):
+        """Fallback 機制載入字體"""
+        font_paths = [
+            "NotoSansTC-Bold.otf",
+            "NotoSansTC-Regular.otf",
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+        ]
+        for path in font_paths:
+            if os.path.exists(path):
+                try:
+                    return ImageFont.truetype(path, size)
+                except:
+                    continue
+        # Fallback to default
+        print(f"⚠️ Font not found, using default (size {size})")
+        return ImageFont.load_default()
+    
+    font_super = load_font(84)
+    font_title = load_font(56)
+    font_subtitle = load_font(42)
+    font_body = load_font(36)
+    font_caption = load_font(28)
+    
+    # ============ 解析資料 ============
+    extracted = case_data.get("extracted_data", {})
+    drug = extracted.get("drug", {})
+    usage = extracted.get("usage_instructions", {})
+    safety = case_data.get("safety_analysis", {})
+    
+    drug_name = drug.get("name", "未知藥物")
+    dose = drug.get("dose", "未知")
+    quantity = usage.get("quantity", "未指定")
+    timing = usage.get("timing", "早晨")
+    route = usage.get("route", "口服")
+    
+    status = safety.get("status", "UNKNOWN")
+    warnings = safety.get("detected_issues", [])
+    
+    # ============ 時間標記對應 ============
+    TIME_MAPPING = {
+        "早晨": {"emoji": "☀️", "time": "08:00", "color": "morning"},
+        "早上": {"emoji": "☀️", "time": "08:00", "color": "morning"},
+        "中午": {"emoji": "🏞️", "time": "12:00", "color": "noon"},
+        "下午": {"emoji": "🌤️", "time": "14:00", "color": "noon"},
+        "傍晚": {"emoji": "🌆", "time": "18:00", "color": "evening"},
+        "晚上": {"emoji": "🌙", "time": "20:00", "color": "evening"},
+        "睡前": {"emoji": "🌙", "time": "22:00", "color": "bedtime"},
+    }
+    
+    time_info = TIME_MAPPING.get(timing, {
+        "emoji": "⏰", "time": "08:00", "color": "morning"
+    })
+    
+    # ============ 標題區 ============
+    y_offset = 40
+    draw.text((50, y_offset), "🗓️ 用藥時間表", 
+              fill=COLORS["text_title"], font=font_super)
+    
+    today = datetime.now().strftime("%Y-%m-%d")
+    draw.text((WIDTH - 320, y_offset + 10), f"📅 {today}", 
+              fill=COLORS["text_muted"], font=font_body)
+    
+    # 分隔線
+    y_offset += 110
+    draw.line([(50, y_offset), (WIDTH - 50, y_offset)], 
+              fill=COLORS["border"], width=3)
+    
+    # ============ 藥物資訊區 ============
+    y_offset += 30
+    draw.text((50, y_offset), f"💊 藥物: {drug_name}", 
+              fill=COLORS["text_title"], font=font_title)
+    
+    y_offset += 80
+    draw.text((50, y_offset), f"📦 劑量: {dose} × {quantity}", 
+              fill=COLORS["text_body"], font=font_body)
+    
+    y_offset += 60
+    draw.text((50, y_offset), f"📍 途徑: {route}", 
+              fill=COLORS["text_body"], font=font_body)
+    
+    # 分隔線
+    y_offset += 60
+    draw.line([(50, y_offset), (WIDTH - 50, y_offset)], 
+              fill=COLORS["border"], width=3)
+    
+    # ============ 時間卡片 ============
+    y_offset += 30
+    card_x, card_width = 70, WIDTH - 140
+    card_height = 120
+    
+    # 卡片背景
+    draw.rectangle(
+        [(card_x, y_offset), (card_x + card_width, y_offset + card_height)],
+        fill=COLORS["bg_card"],
+        outline=COLORS[time_info["color"]],
+        width=5
+    )
+    
+    # 時間標記（大）
+    draw.text((card_x + 30, y_offset + 20), 
+              f"{time_info['emoji']} {timing} {time_info['time']}", 
+              fill=COLORS[time_info["color"]], font=font_subtitle)
+    
+    # 用法說明
+    draw.text((card_x + 30, y_offset + 75), 
+              f"用法: 飯後 1 次｜配水 200ml", 
+              fill=COLORS["text_body"], font=font_body)
+    
+    # ============ 警告區（條件顯示）============
+    if status in ["HIGH_RISK", "ATTENTION_NEEDED"] or warnings:
+        y_offset += card_height + 40
+        
+        # 警告框
+        warning_height = 150
+        draw.rectangle(
+            [(50, y_offset), (WIDTH - 50, y_offset + warning_height)],
+            fill="#FFEBEE",  # 淺紅背景
+            outline=COLORS["danger"],
+            width=6
+        )
+        
+        draw.text((70, y_offset + 20), "⚠️ 重要提醒", 
+                  fill=COLORS["danger"], font=font_title)
+        
+        warning_text = warnings[0] if warnings else "此藥需特別注意，請諮詢藥師"
+        # 截斷過長文字
+        if len(warning_text) > 40:
+            warning_text = warning_text[:40] + "..."
+        draw.text((70, y_offset + 85), warning_text,
+                  fill=COLORS["text_body"], font=font_body)
+    
+    # ============ 底部免責聲明 ============
+    footer_y = HEIGHT - 60
+    draw.text((50, footer_y), 
+              "SilverGuard CDS - 僅供參考，非醫療建議｜如有疑問請諮詢專業藥師", 
+              fill=COLORS["text_muted"], font=font_caption)
+    
+    # ============ 儲存圖片 ============
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_path = f"/tmp/medication_calendar_{timestamp}.png"
+    img.save(output_path, quality=95)
+    
+    print(f"✅ Calendar generated: {output_path}")
+    return output_path
 
 # ============================================================================
 # 🧠 Mock RAG Knowledge Base (Dictionary) - V7.5 Expanded
@@ -652,15 +842,23 @@ def run_inference(image, patient_notes=""):
     
     tts_mode = "visual_only"
     if audio_path:
-        tts_mode = "offline" if "wav" in audio_path else "online" # Basic heuristic based on ext
+        tts_mode = "offline" if "wav" in audio_path else "online"
     
     result_json["_tts_mode"] = tts_mode
     
-    result_json["_tts_mode"] = tts_mode
+    # --- 📅 Calendar Generation (Elderly-Friendly UI) ---
+    calendar_img = None
+    try:
+        calendar_path = create_medication_calendar(result_json, target_lang="zh-TW")
+        calendar_img = Image.open(calendar_path)
+        log(f"✅ Medication calendar generated: {calendar_path}")
+    except Exception as e:
+        log(f"⚠️ Calendar generation failed: {e}")
+        # Non-blocking failure: continue without calendar
     
     # Return Trace (Final Yield)
     final_trace = "\n".join(trace_logs)
-    yield final_status, result_json, speech_text, audio_path, final_trace
+    yield final_status, result_json, speech_text, audio_path, final_trace, calendar_img
 
 # --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
 SAFE_TRANSLATIONS = {
@@ -839,6 +1037,11 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                     # 👵 SilverGuard UI Priority (Per Blind Spot Scan)
                     silver_html = gr.HTML(label="👵 SilverGuard UI") 
                     audio_output = gr.Audio(label="🔊 Voice Alert")
+                    
+                    # 📅 Medication Calendar (Elderly-Friendly Visual)
+                    with gr.Group():
+                        gr.Markdown("### 📅 用藥時間表 (老年友善視覺化)")
+                        calendar_output = gr.Image(label="大字體用藥行事曆", type="pil")
 
                     # 👨‍⚕️ Clinical Cockpit (Dual-Track Output)
                     with gr.Accordion("👨‍⚕️ Clinical Cockpit (Pharmacist SBAR)", open=False):
@@ -894,7 +1097,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                     
                     # If intermediate step
                     if status == "PROCESSING":
-                        yield transcription, status_box + f"\n\n{privacy_mode}", {}, "", None, full_trace, ""
+                        yield transcription, status_box + f"\n\n{privacy_mode}", {}, "", None, None, full_trace, ""
                     else:
                         # Final Result
                         # Final Result
@@ -916,12 +1119,12 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                         if not final_audio: final_audio = audio_path_old
                         
                         progress(1.0, desc="✅ Complete!")
-                        yield transcription, status_box + f"\n\n{privacy_mode}", res_json, html_view, final_audio, full_trace, sbar
+                        yield transcription, status_box + f"\n\n{privacy_mode}", res_json, html_view, final_audio, calendar_img, full_trace, sbar
             
             btn.click(
                 fn=run_full_flow_with_tts, 
                 inputs=[input_img, voice_input, transcription_display, proxy_text_input, lang_dropdown], 
-                outputs=[transcription_display, status_output, json_output, silver_html, audio_output, trace_output, sbar_output]
+                outputs=[transcription_display, status_output, json_output, silver_html, audio_output, calendar_output, trace_output, sbar_output]
             )
             voice_ex1.click(lambda: "Patient is allergic to Aspirin.", outputs=transcription_display)
             voice_ex2.click(lambda: "Patient has history of kidney failure (eGFR < 30).", outputs=transcription_display)

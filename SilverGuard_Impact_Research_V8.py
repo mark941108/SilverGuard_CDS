@@ -3989,3 +3989,93 @@ def launch_agentic_app():
 # Launch
 # launch_agentic_app()
 
+# ============================================================================
+# 🚀 Kaggle Execution Block (Main Entry Point)
+# ============================================================================
+if __name__ == "__main__":
+    """
+    Kaggle 主執行區塊
+    -------------------
+    當在 Kaggle Notebook 中執行時，自動生成：
+    - 📅 行事曆圖片 (medication_calendar_*.png)
+    - 🔊 TTS 音訊 (safety_alert_*.mp3)
+    - 🎨 SilverGuard UI HTML
+    """
+    import sys
+    
+    print("\n" + "="*80)
+    print("🏥 SilverGuard Impact Research - Kaggle Demo Execution")
+    print("="*80)
+    
+    print("\n[INFO] Execution Environment: Kaggle Notebook")
+    print(f"[INFO] Python Version: {sys.version}")
+    print(f"[INFO] Working Directory: {os.getcwd()}")
+    
+    # ============ Step 1: 執行 Agentic Demo ============
+    print("\n" + "-"*80)
+    print("📊 [Step 1/2] Running Agentic HIGH_RISK Demo...")
+    print("-"*80)
+    
+    try:
+        demo_agentic_high_risk()
+        print("✅ Agentic demo completed successfully!")
+    except Exception as e:
+        print(f"⚠️ Agentic demo failed: {e}")
+        import traceback
+        traceback.print_exc()
+        print("   (Non-blocking - continuing to next step)")
+    
+    # ============ Step 2: 執行 Elder-Friendly UI Demo ============
+    print("\n" + "-"*80)
+    print("👵 [Step 2/2] Running Elder-Friendly UI Demo...")
+    print("-"*80)
+    
+    try:
+        demo_elder_friendly_output()
+        print("✅ UI demo completed successfully!")
+    except Exception as e:
+        print(f"⚠️ UI demo failed: {e}")
+        import traceback
+        traceback.print_exc()
+        print("   (Non-blocking)")
+    
+    # ============ Step 3: 顯示生成檔案 ============
+    print("\n" + "="*80)
+    print("📂 Generated Files Summary")
+    print("="*80)
+    
+    # 檢查常見輸出檔案
+    import glob
+    output_patterns = [
+        "medication_calendar_*.png",
+        "*.mp3",
+        "elder_instruction.*",
+        "silver_guard_speech.*",
+        "safety_alert_*.*"
+    ]
+    
+    found_files = []
+    for pattern in output_patterns:
+        files = glob.glob(pattern)
+        found_files.extend(files)
+    
+    if found_files:
+        print(f"\n✅ Found {len(found_files)} output file(s):")
+        for f in found_files:
+            size_kb = os.path.getsize(f) / 1024
+            print(f"   - {f} ({size_kb:.1f} KB)")
+    else:
+        print("\n⚠️ No output files found in current directory.")
+        print("   Possible locations:")
+        print("   - /kaggle/working/")
+        print("   - /tmp/")
+        print("   - SilverGuard/ subfolder")
+    
+    print("\n" + "="*80)
+    print("🎉 Kaggle Demo Execution Complete!")
+    print("="*80)
+    print("\n💡 Next Steps:")
+    print("   1. Check Kaggle Output panel for generated files")
+    print("   2. Download medication calendar (PNG)")
+    print("   3. Test TTS audio files (MP3)")
+    print("\n")
