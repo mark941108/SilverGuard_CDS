@@ -44,8 +44,8 @@ print("\n[2/6] 部署 SilverGuard (優先權: 本地上傳 > GitHub Clone)...")
 
 # 1. 定義關鍵檔案 (用於偵測是否為手動上傳模式)
 # ✅ [Omni-Nexus Fix] 檢查所有必要檔案 (防止漏傳 medgemma_data.py 導致崩潰)
-target_file = "SilverGuard_Impact_Research_V8.py"
-required_files = ["SilverGuard_Impact_Research_V8.py", "medgemma_data.py"]
+target_file = "agent_engine.py"
+required_files = ["agent_engine.py", "medgemma_data.py"]
 missing_files = [f for f in required_files if not os.path.exists(f)]
 
 # 檢查 Kaggle 根目錄是否有完整檔案
@@ -213,5 +213,5 @@ else:
     print("⚠️ V8 will use internal V5 generator (fallback)")
 
 # 執行主程式
-%run SilverGuard_Impact_Research_V8.py
+%run agent_engine.py
 

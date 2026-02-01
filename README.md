@@ -101,7 +101,7 @@ A **privacy-first, edge-deployed AI assistant** that:
 > Please add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN` before running.
 
 1.  **Run All Cells**: Execute the notebook from top to bottom.
-2.  **Cell 5 (Core Agent Workflow)**: This cell runs the core MedGemma agent (`SilverGuard_Impact_Research_V8.py`). It will output a JSON safety analysis.
+2.  **Cell 5 (Core Agent Workflow)**: This cell runs the core MedGemma agent (`agent_engine.py`). It will output a JSON safety analysis.
 3.  **Cell 7 (SilverGuard UI)**: This cell generates the elder-friendly calendar UI and TTS audio.
 
 4.  **Screenshot**: Capture a screenshot of the terminal output (Cell 5) and the SilverGuard UI (Cell 7) for the demo.
@@ -1034,7 +1034,7 @@ Stage 5: High Risk Demo & SilverGuard UI
 ## 📁 Project Structure
 ```
 The MedGemma Impact Challenge/
-├── SilverGuard_Impact_Research_V8.py   # Main Agentic Pipeline (V8.2 Research Ed)
+├── agent_engine.py   # Main Agentic Pipeline (V8.2 Research Ed)
 ├── README.md                           # This file
 ├── requirements.txt                    # Dependencies
 ├── Dockerfile                          # Cloud Deployment Config

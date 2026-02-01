@@ -3220,18 +3220,27 @@ def text_to_speech_elderly(text, lang='zh-tw'):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     output_path = f"safety_alert_{timestamp}.mp3"
     
+    # Check Offline Mode Switch
+    # [Red Team Fix] Force offline if env var set
+    is_offline_forced = os.environ.get("OFFLINE_MODE", "False").lower() == "true"
+    
     # Strategy 1: Online Neural TTS (gTTS) - Preferred for quality
-    try:
-        from gtts import gTTS
-        print(f"   ☁️ Trying Online TTS (gTTS)...")
-        tts = gTTS(text=text, lang=lang, slow=False)
-        tts.save(output_path)
-        print(f"   ✅ TTS Generated (Online): {output_path}")
-        return output_path
-    except Exception as e:
-        print(f"   ⚠️ Online TTS failed ({e}). Switching to Offline Engine...")
-        
+    # Only run if NOT in strict offline mode
+    if not is_offline_forced:
+        try:
+            from gtts import gTTS
+            print(f"   ☁️ Trying Online TTS (gTTS)...")
+            tts = gTTS(text=text, lang=lang, slow=False)
+            tts.save(output_path)
+            print(f"   ✅ TTS Generated (Online): {output_path}")
+            return output_path
+        except Exception as e:
+            print(f"   ⚠️ Online TTS failed ({e}). Switching to Offline Engine...")
+            
     # Strategy 2: Offline Fallback (pyttsx3)
+    # This runs if:
+    # 1. OFFLINE_MODE is True
+    # 2. or gTTS failed
     try:
         import pyttsx3
         engine = pyttsx3.init()
