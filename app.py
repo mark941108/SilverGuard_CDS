@@ -34,7 +34,9 @@ print("✅ Dependency Check: medgemma_data.py found.")
 # 1. Configuration
 HF_TOKEN = os.environ.get("HUGGINGFACE_TOKEN")
 BASE_MODEL = "google/medgemma-1.5-4b-it"
-ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "mark941108/MedGemma-SilverGuard-V5")
+# [Fix] Local Path for HF Space
+adapter_model_id = os.environ.get("ADAPTER_MODEL_ID", "./adapter")
+ADAPTER_MODEL = adapter_model_id
 
 if "Please_Replace" in ADAPTER_MODEL or not ADAPTER_MODEL:
     print("❌ CRITICAL: ADAPTER_MODEL_ID not configured!")
@@ -750,6 +752,77 @@ def json_to_elderly_speech(result_json):
         
     return msg
 
+# ============================================================================
+# 🛡️ AGENTIC SAFETY CRITIC (Battlefield V17 Sync)
+# ============================================================================
+def offline_db_lookup(drug_name):
+    """
+    Simulates checking against a trusted offline database (medgemma_data.py).
+    Returns True if drug exists in approved list.
+    """
+    try:
+        # Try to import source of truth
+        import medgemma_data
+        db = medgemma_data.DRUG_DATABASE
+        # Flat list check
+        for category in db.values():
+            for item in category:
+                if drug_name.lower() in [item['name_en'].lower(), item['generic'].lower()]:
+                    return True
+        # Check aliases
+        if drug_name.lower() in medgemma_data.DRUG_ALIASES:
+            return True
+            
+        return False
+    except ImportError:
+        # Fallback for standalone execution if file missing
+        SAFE_LIST = ["warfarin", "aspirin", "furosemide", "metformin", "amlodipine", 
+                     "plavix", "stilnox", "lipitor", "crestor", "bisoprolol",
+                     "bokey", "licodin", "diovan", "xanax", "valium"]
+        return any(d in drug_name.lower() for d in SAFE_LIST)
+
+def safety_critic_tool(json_output):
+    """
+    [Fixed] Critic Tool with Regex Cleaning (Synced with Kaggle V17)
+    """
+    import re
+    try:
+        # Handle both dict and string input
+        data = json_output if isinstance(json_output, dict) else json.loads(json_output)
+        
+        # Extract drug name
+        extracted = data.get("extracted_data", {})
+        raw_name = extracted.get("drug", {}).get("name", "")
+        if not raw_name: raw_name = str(extracted.get("drug", ""))
+        
+        # [OMNI-NEXUS FIX] Clean the name (Remove dose and parens) 
+        # e.g., "Bokey 100mg (Aspirin)" -> "Bokey"
+        clean_name = re.sub(r'\s*\d+\.?\d*\s*(mg|g|mcg|ug|ml)\b', '', raw_name, flags=re.IGNORECASE)
+        clean_name = re.sub(r'\s*\([^)]*\)', '', clean_name).strip()
+        
+        # --- Rule 1: Conflict Check ---
+        if "Warfarin" in clean_name and "Aspirin" in clean_name: 
+             return False, "CRITICAL INTERACTION: Warfarin and Aspirin detected together."
+
+        # --- Rule 2: Hallucination Check (Offline DB) ---
+        if clean_name and not("unknown" in clean_name.lower()):
+            # Use the CLEANED name for lookup
+            if not offline_db_lookup(clean_name):
+                 # Fallback: Try partial match if exact failed
+                 if not offline_db_lookup(raw_name):
+                    return False, f"Drug '{raw_name}' (Cleaned: '{clean_name}') not found in database."
+
+        # --- Rule 3: Dosage Sanity Check ---
+        dose = extracted.get("drug", {}).get("dose", "")
+        # Normalize dose check (simple safeguard)
+        if dose and "5000mg" in dose: # Relaxed check
+             return False, f"Dosage '{dose}' seems impossible."
+
+        return True, "Logic Sound."
+        
+    except Exception as e:
+        return False, f"Critic Tool Error: {str(e)}"
+
 @spaces.GPU(duration=60)
 def run_inference(image, patient_notes=""):
     """
@@ -851,11 +924,47 @@ def run_inference(image, patient_notes=""):
         return {"raw_output": response_text[:200], "error": "Parsing failed"}
 
     # Tracing already initialized above
+    
+    # [V17 Fix] Mock RAG Wrapper for HF (since VectorDB is heavy)
+    class LocalRAG:
+        def query(self, q):
+            info = retrieve_drug_info(q) # Uses existing app.py helper
+            if info.get("found"):
+                k = f"Name: {info['name_en']}\nGeneric: {info['generic']}\nIndication: {info.get('indication','')}\nWarning: {info.get('warning','')}\nUsage: {info.get('default_usage','')}"
+                return k, 0.1 # High confidence simulation
+            return None, 1.0
+    
     while current_try <= MAX_RETRIES:
         try:
             log(f"🔄 [Step {current_try+1}] Agent Inference Attempt...")
             yield "PROCESSING", {}, "", None, "\n".join(trace_logs) # Yield partial log
-            final_prompt = base_prompt + correction_context
+            
+            # --- [OMNI-NEXUS PATCH] RAG Injection Logic ---
+            rag_context = "" 
+            current_rag = LocalRAG() # Uses local helper
+
+            if current_try > 0:
+                try:
+                    # Generic extraction from previous attempt or just assume context
+                    # Since result_json is updated at end of loop, we check if we have data
+                    candidate_drug = ""
+                    if result_json and "extracted_data" in result_json:
+                        candidate_drug = result_json["extracted_data"].get("drug", {}).get("name", "")
+
+                    if candidate_drug:
+                        log(f"   🔍 [Agent] Retrying... Consulting RAG for: {candidate_drug}")
+                        knowledge, distance = current_rag.query(candidate_drug)
+
+                        if knowledge:
+                            rag_context = (
+                                f"\n\n[📚 RAG KNOWLEDGE BASE]:\n{knowledge}\n"
+                                f"(⚠️ SYSTEM OVERRIDE: Re-evaluate based on this official guideline.)"
+                            )
+                except Exception as e:
+                    print(f"   ⚠️ RAG Lookup skipped: {e}")
+            # ---------------------------------------------
+            
+            final_prompt = base_prompt + rag_context + correction_context
             inputs = processor(text=final_prompt, images=image, return_tensors="pt").to(model.device)
             input_len = inputs.input_ids.shape[1]
             current_temp = TEMP_CREATIVE if current_try == 0 else TEMP_STRICT
@@ -882,12 +991,22 @@ def run_inference(image, patient_notes=""):
             issues_list = []
             
             if "extracted_data" in result_json:
+                # 1. Logical Consistency Check (Neuro-Symbolic)
                 logic_passed, logic_msg, logic_logs = logical_consistency_check(result_json["extracted_data"])
-                for l in logic_logs: log(l) # Capture RAG logs
-                yield "PROCESSING", {}, "", None, "\n".join(trace_logs) # Yield RAG logs
+                for l in logic_logs: log(l) 
+                
+                # 2. [V17 FIX] Safety Critic Check (Battlefield Logic)
+                if logic_passed: # Only act if basic logic passes
+                    critic_passed, critic_msg = safety_critic_tool(result_json)
+                    if not critic_passed:
+                        logic_passed = False
+                        logic_msg = f"Critic Rejection: {critic_msg}"
+                        log(f"   🛡️ Safety Critic Intercepted: {critic_msg}")
+
+                yield "PROCESSING", {}, "", None, "\n".join(trace_logs)
                 if not logic_passed:
                     issues_list.append(logic_msg)
-                    log(f"   ⚠️ Logic Check Failed: {logic_msg}")
+                    log(f"   ⚠️ Validation Failed: {logic_msg}")
             
             if not check_is_prescription(response):
                 issues_list.append("Input not a prescription script")
