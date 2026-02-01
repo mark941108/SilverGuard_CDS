@@ -227,12 +227,13 @@ print("🧠 PHASE 3: Launching SilverGuard V8 Training Pipeline")
 print("=" * 80)
 
 # 設定環境變數，讓 V8 使用 V16 數據
-if os.path.exists(v16_train_json):
-    os.environ["MEDGEMMA_USE_V16_DATA"] = "1"
-    os.environ["MEDGEMMA_V16_DIR"] = "./assets/lasa_dataset_v17_compliance"
-    print("✅ V8 will use V16 Hyper-Realistic Dataset")
+# 設定環境變數，讓 V8 使用 V17 數據
+if os.path.exists(v17_train_json):
+    os.environ["MEDGEMMA_USE_V17_DATA"] = "1"
+    os.environ["MEDGEMMA_V17_DIR"] = "./assets/lasa_dataset_v17_compliance"
+    print("✅ V8 will use V17 Hyper-Realistic Dataset")
 else:
-    os.environ["MEDGEMMA_USE_V16_DATA"] = "0"
+    os.environ["MEDGEMMA_USE_V17_DATA"] = "0"
     print("⚠️ V8 will use internal V5 generator (fallback)")
 
 # 執行主程式
