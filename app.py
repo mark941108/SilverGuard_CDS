@@ -1357,7 +1357,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 
                 with gr.Column(scale=1):
                     # --- NEW: Language Selector for Migrant Caregivers ---
-                    lang_dropdown = gr.Dropdown(
+                    caregiver_lang_dropdown = gr.Dropdown(
                         choices=["zh-TW", "id", "vi"], 
                         value="zh-TW", 
                         label="🌏 Caregiver Language (看護語言)", 
@@ -1460,7 +1460,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
             
             btn.click(
                 fn=run_full_flow_with_tts, 
-                inputs=[input_img, voice_input, transcription_display, proxy_text_input, lang_dropdown], 
+                inputs=[input_img, voice_input, transcription_display, proxy_text_input, caregiver_lang_dropdown], 
                 outputs=[transcription_display, status_output, json_output, silver_html, audio_output, calendar_output, trace_output, sbar_output]
             )
             voice_ex1.click(lambda: "Patient is allergic to Aspirin.", outputs=transcription_display)
