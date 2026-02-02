@@ -1973,18 +1973,7 @@ def agentic_inference(model, processor, img_path, patient_notes="", verbose=True
     """
     # ... (skipping unchanged parts) ...
     
-            # [Context Fusion] Inject Caregiver Notes
-            voice_context = ""
-            if patient_notes and len(patient_notes) > 2:
-                voice_context = f"\n\n[📢 CAREGIVER VOICE NOTE]: \"{patient_notes}\"\n(Instruction: Use this context to identify drug allergies or special conditions. If note contradicts safety, prioritize Beers Criteria.)"
-                if verbose: print(f"   🎤 Voice Context Injected: {patient_notes}")
 
-            prompt_text = base_prompt + voice_context + rag_context + correction_context
-            
-            messages = [{"role": "user", "content": [
-                {"type": "image"},
-                {"type": "text", "text": prompt_text}
-            ]}]
     
     # ===== STAGE 1: Input Validation Gate (V7.4 Red Team Fix) =====
     # Consolidated to use the new Laplacian-based check_image_quality (Smart Threshold: 20/50)

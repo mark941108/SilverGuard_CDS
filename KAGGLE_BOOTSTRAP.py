@@ -62,12 +62,20 @@ if not missing_files:
     # but in Jupyter !cp works. Since this is a .py file intended for Jupyter, we keep ! syntax if compatible
     # or use shutil for pure python safety. Let's use shutil for robustness in python script.
     # Actually, the user provided code uses !cp, so we stick to it for Jupyter compatibility.
-    !cp *.py SilverGuard/ 2>/dev/null
+    # [Fix] Use os.system for compatibility
+    import subprocess
+    try:
+        subprocess.run("cp *.py SilverGuard/", shell=True, check=True, stderr=subprocess.DEVNULL)
+    except:
+        pass
     
 else:
     # 【場景 B】乾淨環境 -> 從 GitHub 拉取
     print("   ☁️ 未偵測到本地檔案，啟動 [GitHub Clone Mode]...")
-    !rm -rf SilverGuard
+    print("   ☁️ 未偵測到本地檔案，啟動 [GitHub Clone Mode]...")
+    import shutil
+    if os.path.exists("SilverGuard"):
+        shutil.rmtree("SilverGuard")
     
     # [FIX] 防止 Git Auth 卡死 (The Silent Hang Fix)
     # 只有在真的有 token 時才加入 @，否則 Git 會跳出隱形密碼輸入框導致卡死
@@ -77,14 +85,15 @@ else:
         print("   ⚠️ 無 GitHub Token，嘗試 Public Clone (無密碼模式)...")
         repo_url = "https://github.com/mark941108/SilverGuard.git"
         
-    !git clone --depth 1 {repo_url}
+    import subprocess
+    subprocess.run(f"git clone --depth 1 {repo_url}", shell=True, check=True)
     print("   ✅ Repository 下載完成")
 
 # 進入目錄
 # ✅ [Omni-Nexus Fix] 防止重複進入子目錄導致的路徑混亂
 if os.path.basename(os.getcwd()) != "SilverGuard":
     if os.path.exists("SilverGuard"):
-        %cd SilverGuard
+        os.chdir("SilverGuard")
         print(f"   📂 已進入目錄: {os.getcwd()}")
     else:
         print("❌ 錯誤：找不到 SilverGuard 目錄")
@@ -105,7 +114,11 @@ print("\n[3/6] Skipping Surgery (Using Clean Code V8)...")
 # ============================================================================
 print("\n[4/6] 清理衝突套件 (Aggressive Torch Removal)...")
 # V12.7: 強制移除 torch 相關套件，避免 pip 認為 "Requirement satisfied" 而跳過升級
-!pip uninstall -y torch torchvision torchaudio transformers huggingface_hub sentence-transformers accelerate peft bitsandbytes gradio
+import subprocess
+try:
+    subprocess.run("pip uninstall -y torch torchvision torchaudio transformers huggingface_hub sentence-transformers accelerate peft bitsandbytes gradio", shell=True, check=True)
+except:
+    pass
 
 # %%
 # ============================================================================
@@ -114,16 +127,19 @@ print("\n[4/6] 清理衝突套件 (Aggressive Torch Removal)...")
 print("\n[5/6] 安裝白金版本組合 (PyTorch 2.6.0 + cu118)...")
 
 # 1. 系統依賴 (TTS & Audio 必備)
-!apt-get update -y && apt-get install -y libespeak1 libsndfile1 ffmpeg
+subprocess.run("apt-get update -y && apt-get install -y libespeak1 libsndfile1 ffmpeg", shell=True, check=True)
 
 # 2. 暴力移除舊版 (防止 Version Conflict)
 print("   ☢️ 清理衝突套件...")
-!pip uninstall -y torch torchvision torchaudio transformers huggingface_hub opencv-python
+try:
+    subprocess.run("pip uninstall -y torch torchvision torchaudio transformers huggingface_hub opencv-python", shell=True, check=True)
+except:
+    pass
 
 # 3. PyTorch 2.6.0 (Stable for T4 in 2026)
 # 指定 cu118 版本以獲得最佳穩定性，避免 cu121/cu124 相容性問題
 print("   ⬇️ 安裝 PyTorch 2.6.0 Ecosystem (CUDA 11.8)...")
-!pip install --no-cache-dir torch==2.6.0+cu118 torchvision==0.21.0+cu118 torchaudio==2.6.0+cu118 --index-url https://download.pytorch.org/whl/cu118
+subprocess.run("pip install --no-cache-dir torch==2.6.0+cu118 torchvision==0.21.0+cu118 torchaudio==2.6.0+cu118 --index-url https://download.pytorch.org/whl/cu118", shell=True, check=True)
 
 # 4. Hugging Face Stack (升級支援 Gemma 3)
 # 原因: Gemma 3 架構需要最新版 Transformers (>=4.51.0)
@@ -131,14 +147,14 @@ print("   ⬇️ 安裝 PyTorch 2.6.0 Ecosystem (CUDA 11.8)...")
 # ⚠️ [Omni-Nexus Warning] Version Roulette: transformers 5.0+ may introduce breaking changes.
 # Update with caution! Currently unpinned to support checking for latest versions.
 print("   ⬇️ 安裝 Hugging Face Stack (Gemma 3 Support)...")
-!pip install -U "huggingface-hub>=0.29.0" "transformers>=4.51.0" accelerate bitsandbytes peft datasets
+subprocess.run('pip install -U "huggingface-hub>=0.29.0" "transformers>=4.51.0" accelerate bitsandbytes peft datasets', shell=True, check=True)
 
 # 5. 應用層依賴 (RAG, Vision, Audio)
 print("   ⬇️ 安裝應用層依賴...")
-!pip install -U sentence-transformers faiss-cpu pydub
-!pip install -U pillow==10.4.0 librosa soundfile
-!pip install -U qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3
-!pip install -U gradio>=5.0.0
+subprocess.run("pip install -U sentence-transformers faiss-cpu pydub", shell=True, check=True)
+subprocess.run("pip install -U pillow==10.4.0 librosa soundfile", shell=True, check=True)
+subprocess.run("pip install -U qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3", shell=True, check=True)
+subprocess.run("pip install -U gradio>=5.0.0", shell=True, check=True)
 
 print("   ✅ 所有依賴安裝完成！")
 
@@ -195,7 +211,7 @@ else:
     print("🏭 Generating V17 Dataset (3D Pills + QR Codes + Human Touch)...")
     try:
         # [Omni-Nexus Fix] 執行正確的 V17 生成器
-        %run generate_v17_fusion.py
+        subprocess.run(["python", "generate_v17_fusion.py"], check=True)
         print("✅ V17 Dataset Generation Complete!")
     except Exception as e:
         print(f"⚠️ V17 Generation Failed: {e}")
@@ -214,7 +230,7 @@ if os.path.exists(stress_test_dir) and len(os.listdir(stress_test_dir)) > 0:
 else:
     print("🔥 Generating Stress Test Cases (Edge Case Validation)...")
     try:
-        %run generate_stress_test.py
+        subprocess.run(["python", "generate_stress_test.py"], check=True)
         print("✅ Stress Test Generation Complete!")
     except Exception as e:
         print(f"⚠️ Stress Test Generation Failed: {e}")
@@ -237,5 +253,5 @@ else:
     print("⚠️ V8 will use internal V5 generator (fallback)")
 
 # 執行主程式
-%run agent_engine.py
+subprocess.run(["python", "agent_engine.py"], check=True)
 

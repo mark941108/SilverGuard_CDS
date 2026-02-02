@@ -604,11 +604,6 @@ def check_drug_interaction_online_legacy(d1, d2):
     """
     pass # Code removed for offline compliance
 
-
-        
-        return False, f"邏輯檢查異常: {', '.join(issues)}", logs
-    return True, "邏輯一致性檢查通過", logs
-
 def json_to_elderly_speech(result_json):
     """Generates the TTS script for SilverGuard"""
     try:
