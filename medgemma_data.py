@@ -165,7 +165,7 @@ def get_renderable_data():
                 "color": color,
                 "warning": f"警語: {d['warning']}",
                 "usage_code": usage_code,
-                "license": "衛署藥製字第000000號", # Placeholder if missing
+                "license": f"衛署藥製字第{d['code'][-6:]}號", # Dynamic Realism from Drug Code
                 "dosage_instruction": parse_dosage_usage(d["default_usage"]) # V26 Feature
             }
             

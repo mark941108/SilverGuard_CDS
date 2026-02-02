@@ -11,9 +11,9 @@
 > 7. **INTERNATIONAL USE**: References Taiwan regulations only. Users must comply with local laws.
 > 8. **ERROR RATE DISCLOSURE**: This system has a known error rate and may miss dangerous conditions or flag safe medications. Do NOT rely on it as sole decision-making tool.
 > 9. **NOT FOR EMERGENCIES**: In case of adverse reaction, call emergency services immediately. Do NOT wait for AI analysis.
-> 10. **LIMITED SCOPE**: This prototype covers only 19 medications and cannot detect all drug-drug or drug-food interactions.
+> 10. **LIMITED SCOPE**: This prototype covers only 18 medications and cannot detect all drug-drug or drug-food interactions.
 
-# 🏥 SilverGuard: Intelligent Medication Safety System (Hybrid Privacy Architecture)
+# 🏥 SilverGuard: Intelligent Medication Safety System (V1.0 Impact Edition)
 
 > [!IMPORTANT]
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
@@ -91,8 +91,8 @@ A **privacy-first, offline, multilingual, medically-intelligent** medication ver
 ### Our Solution: SilverGuard
 
 A **privacy-first, edge-deployed AI assistant** that:
-1. ✅ **Core inference** runs 100% offline on a single $300 GPU (T4) - no PHI leaves device
-2. ✅ **Optional features**: TTS voice uses cloud API for demo quality (can be disabled for full air-gap)  
+1. ✅ **Core inference** runs **100% Offline** on device (T4 GPU) - no PHI leaves container
+2. ✅ **Hybrid Privacy**: Optional TTS uses secure cloud API (Default: Disabled/Offline)
 3. ✅ Performs **medical reasoning** (catches dosage errors, drug interactions)
 4. ✅ Generates **elderly-friendly output** (large-font calendar + local accent TTS)
 5. ✅ Supports **migrant caregivers** (Indonesian/Vietnamese translations)
@@ -282,9 +282,12 @@ It transforms the **Gemma 2 (MedGemma-4B)** LLM into an intelligent "Safety Guar
 ### 🏆 Key Innovation: "Hybrid Privacy Architecture"
 Unlike pure cloud solutions, SilverGuard is designed for **Privacy-First Healthcare**:
 -   **Core VLM Inference**: Runs **100% Locally** on T4 GPU (PHI stays on device).
+-   **MedASR Integration**: Local transcript processing (Simulated Dialect Routing for Demo).
 -   **Configurable Privacy**:
     -   🔒 **Maximum Privacy**: Uses offline TTS (`pyttsx3`) for fully air-gapped deployment.
     -   🔊 **Maximum Quality**: Uses hybrid cloud TTS (`gTTS`) for demo purposes (anonymized data only).
+
+> **Note on Configuration:** SilverGuard defaults to **Offline Mode (Privacy)** for Web Deployments (HuggingFace Spaces), but enables **Online Mode (Quality)** for Kaggle Research Demos to showcase full audio capabilities.
 
 3. ✅ Privacy-first deployment (Hybrid Privacy: Core Inference Offline + Optional Cloud TTS)
 4. ✅ Multilingual clinical text (handles EN/ZH code-switching)
@@ -1259,7 +1262,7 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 *   **Thresholding:** We use a conservative logic where `WARNING` is only triggered if specific contraindications (e.g., Age > 80 + High Dose) are met, rather than generic warnings.
 *   **Visual Hierarchy:** SilverGuard's UI uses distinct color coding (Red for lethal, Yellow for caution) so pharmacists can prioritize their attention. Our internal testing shows a specificity of ~92%, ensuring alerts are meaningful.
 
-#### Q2: The `DRUG_DATABASE` currently has only 17 distinct medications. Is this scalable?
+#### Q2: The `DRUG_DATABASE` currently has only 18 distinct medications. Is this scalable?
 **A: Yes, we use a "Lightweight Proto-Strategy" for edge demo efficiency.**
 *   **Architecture Note:** For this **Edge-AI Prototype**, we implemented a zero-latency dictionary lookup.
 *   **Production Vision:** The `retrieve_drug_info` interface is designed to be **hot-swapped** with a scalable Vector Database (e.g., ChromaDB) or RxNorm API in Phase 2, without changing the core reasoning logic.
@@ -1296,7 +1299,7 @@ SilverGuard is an **Offline-First**, LLM-powered visual QA system designed to be
 
 ### ⚖️ Non-Affiliation & Disclaimer
 ⚠️ **Disclaimer**: This project is a **"Sim2Real Prototype"** for the Kaggle MedGemma Challenge. It demonstrates a **Human-in-the-Loop Triage Tool**, NOT a diagnostic medical device.
-⚠️ **POC Limitation**: The current knowledge base is a subset of 17 distinct medications for architectural demonstration. Production deployment requires integration with full-scale drug databases (e.g., RxNorm, Micromedex).
+⚠️ **POC Limitation**: The current knowledge base is a subset of 18 distinct medications for architectural demonstration. Production deployment requires integration with full-scale drug databases (e.g., RxNorm, Micromedex).
 ⚠️ **Transparency Report**:
 *   **Privacy**: Core VLM inference runs 100% offline.
 *   **TTS**: For this demo, Google Translate API (`gTTS`) is used for high-quality audio. Production systems must use offline engines (e.g., MMS-TTS) for full air-gapped compliance.

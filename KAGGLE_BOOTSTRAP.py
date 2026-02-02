@@ -138,7 +138,7 @@ print("   ⬇️ 安裝應用層依賴...")
 !pip install -U sentence-transformers faiss-cpu pydub
 !pip install -U pillow==10.4.0 librosa soundfile
 !pip install -U qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3
-!pip install -U gradio>=4.0.0
+!pip install -U gradio>=5.0.0
 
 print("   ✅ 所有依賴安裝完成！")
 

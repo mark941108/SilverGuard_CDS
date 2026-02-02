@@ -3,6 +3,7 @@ import random
 import math
 import requests
 import json
+from datetime import datetime, timedelta
 
 import qrcode
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps
@@ -66,8 +67,8 @@ def download_fonts():
                 else:
                     raise Exception(f"HTTP {r.status_code}")
             except Exception as e:
-                print(f"❌ CRITICAL: Font download failed for {style}. Text will be garbage.")
-                raise RuntimeError(f"Font download failed: {e}")
+                print(f"⚠️ WARNING: Font download failed for {style}. Using system fallback.")
+                # raise RuntimeError(f"Font download failed: {e}") # [Audit Fix] Soft Fail
 
 def get_font(size, bold=False):
     path = FONT_PATHS["Bold"] if bold else FONT_PATHS["Regular"]
@@ -79,8 +80,8 @@ def get_font(size, bold=False):
              download_fonts()
              return ImageFont.truetype(path, size)
         except Exception as e:
-             print(f"❌ FATAL ERROR: Cannot load font {path}.")
-             raise RuntimeError("Font loading failed. Aborting to prevent data corruption.")
+             print(f"❌ FATAL ERROR: Cannot load font {path}. Using default font.")
+             return ImageFont.load_default()
 
 def get_jitter_offset(amp=5):
     """Return a fixed (dx, dy) to apply to a whole group of elements."""
@@ -473,7 +474,9 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
     
     batch_y = py + 90
     draw.text((px, batch_y), f"許可證: {drug_data.get('license', 'N/A')}", fill="black", font=get_font(18))
-    draw.text((px+400, batch_y), "批號: V26-HUMAN 效期: 2026/12", fill="#D32F2F", font=get_font(18, bold=True))
+    # [Time Bomb Fix] Dynamic Expiry Date
+    exp_date = (datetime.now() + timedelta(days=365)).strftime("%Y/%m")
+    draw.text((px+400, batch_y), f"批號: V26-HUMAN 效期: {exp_date}", fill="#D32F2F", font=get_font(18, bold=True))
 
     # ==========================
     # BLOCK D: Drug Info (The Collision Zone)

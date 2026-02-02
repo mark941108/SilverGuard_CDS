@@ -103,29 +103,26 @@ graph LR
 
 ### Agentic Algorithm: Formal Definition
 
-$$
-\mathcal{T}_{attempt} = \begin{cases} 
-0.6 & \text{if } attempt = 0 \text{ (Exploration)} \\
-0.2 & \text{if } attempt \geq 1 \text{ (Exploitation)}
-\end{cases}
-$$
+```math
+Temperature(attempt) = 
+  0.6  if attempt = 0  (Exploration)
+  0.2  if attempt >= 1 (Exploitation)
+```
 
 **Confidence Threshold Function:**
 
-$$
-\mathcal{C}(output) = -\frac{1}{N}\sum_{i=1}^{N} p_i \log p_i \quad (\text{Entropy-based})
-$$
+```math
+Confidence(output) = -1/N * Sum(p_i * log(p_i))   (Entropy-based)
+```
 
 Where $\mathcal{C} < 0.5$ triggers `HUMAN_REVIEW_NEEDED` (Safety Net).
 
 **Retry Decision Logic:**
 
-$$
-Retry = \begin{cases} 
-\text{True} & \text{if } \neg LogicCheck(output) \land attempt < MAX\_RETRIES \\
-\text{False} & \text{otherwise}
-\end{cases}
-$$
+```math
+Retry = True   if (LogicCheck(output) == False) AND (attempt < MAX_RETRIES)
+        False  otherwise
+```
 
 This implements the **TOTE Loop** (Test-Operate-Test-Exit) from cognitive psychology—the Agent **thinks before acting**.
 

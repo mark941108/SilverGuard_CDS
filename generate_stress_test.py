@@ -15,6 +15,7 @@ import os
 import random
 import qrcode
 import math
+from datetime import datetime # [Audit Fix] Dynamic Date Support
 import requests
 import numpy as np
 import textwrap
@@ -446,7 +447,10 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     y_p = 150  # 調整起始位置，增加與上方線條的距離
     draw.text((40, y_p), f"姓名: {patient['name']}", fill="black", font=f_h1)
     draw.text((350, y_p+5), f"{patient['gender']}", fill="black", font=f_h2)
-    draw.text((40, y_p+50), f"調劑日: 115/01/22", fill="black", font=f_body)
+    # [Audit Fix] Dynamic ROC Date (Year - 1911)
+    roc_year = datetime.now().year - 1911
+    today_str = datetime.now().strftime(f"{roc_year}/%m/%d")
+    draw.text((40, y_p+50), f"調劑日: {today_str}", fill="black", font=f_body)
     draw.text((40, y_p+78), f"調劑藥師: 王專業", fill="black", font=f_body)  # P0: 法規補全，增加間距
     
     draw.line([(30, y_p+110), (IMG_WIDTH-30, y_p+110)], fill="gray", width=2)  # 增加與藥師文字的距離
