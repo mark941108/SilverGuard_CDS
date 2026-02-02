@@ -82,6 +82,10 @@ DRUG_DATABASE = {
         {"code": "BC88889999", "name_en": "Lipitor", "name_zh": "立普妥", "generic": "Atorvastatin", "dose": "20mg", "appearance": "白色橢圓形", "indication": "降血脂", "warning": "肌肉痠痛時需回診", "default_usage": "QD_bedtime"},
         {"code": "BC88889998", "name_en": "Crestor", "name_zh": "冠脂妥", "generic": "Rosuvastatin", "dose": "10mg", "appearance": "粉紅色圓形", "indication": "降血脂", "warning": "避免與葡萄柚汁併服", "default_usage": "QD_bedtime"},
     ],
+    # --- Confusion Cluster 7: Analgesic (Added for Rule 4 Safety) ---
+    "Analgesic": [
+        {"code": "BC55667788", "name_en": "Panadol", "name_zh": "普拿疼", "generic": "Acetaminophen", "dose": "500mg", "appearance": "白色圓形", "indication": "止痛/退燒", "warning": "每日不可超過4000mg (8顆)", "default_usage": "Q4H_prn"},
+    ],
 }
 
 # ===== Drug Aliases Mapping (Legacy Support) =====
