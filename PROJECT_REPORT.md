@@ -146,11 +146,14 @@ We embrace **"Intellectual Honesty"** by proactively disclosing limitations and 
 > *"We chose deterministic validation (Regex for dose units) over probabilistic AI—not due to lack of sophistication, but because life-critical systems demand **certainty over creativity**."*
 
 #### 2. **Limited Drug Database (Phase 1: Proto-Strategy)**
-**Limitation:** A static dictionary cannot cover 20,000+ FDA drugs.
+**Limitation:** The current system tracks **18 medications** (corrected from 17) and uses a **Hybrid Lookup** (Dictionary Fallback) in the Demo environment for stability, rather than a full ChromaDB connection.
 
 **Mitigation (Scalable Architecture):**
 - ✅ **Strategy Pattern Implementation:** For this **Edge-AI Prototype**, we utilized a lightweight lookup to demonstrate the *logic flow* with zero latency.
 - **Production Vision:** The `retrieve_drug_info` module is designed to be **hot-swapped** with a scalable Vector Database (e.g., ChromaDB) or RxNorm API in Phase 2, without changing the core reasoning logic.
+
+#### 3. **Threshold Transparency (Audit Update)**
+**Disclosure:** While design documents target an 80% confidence threshold, the current deployment utilizes a dynamic **70-75% threshold** based on field-calibration tests to balance sensitivity (recall) and specificity. The system defaults to "Online TTS" for the demo but supports full offline mode via configuration.
 
 #### 3. **Cross-Domain Credibility (Energy Engineer Perspective)**
 **Strength Reframed:**  

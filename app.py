@@ -697,7 +697,7 @@ def check_image_quality(image):
         img_np = np.array(image)
         gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
         variance = cv2.Laplacian(gray, cv2.CV_64F).var()
-        if variance < 50: # Threshold for text docs
+        if variance < 50: # Standardized Threshold (Matches Documentation)
             return False, f"Blurry Image detected (Score: {variance:.1f} < 50). Please retry."
         return True, "Quality OK"
     except ImportError:
