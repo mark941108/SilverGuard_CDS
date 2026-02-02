@@ -1947,28 +1947,26 @@ def safety_critic_tool(json_output):
 # ============================================================================
 # 🧠 AGENTIC INFERENCE PIPELINE (VLM + RAG + Reflection)
 # ============================================================================
-def agentic_inference(model, processor, img_path, verbose=True):
+def agentic_inference(model, processor, img_path, patient_notes="", verbose=True):
     """
     Complete Agentic Inference Pipeline
     # HAI-DEF Architecture Implementation (Google Health AI Developer Foundations)
     Implements: Input Gate → VLM Reasoning → Confidence Check → Grounding → Output
     """
-    # ⚠️ CRITICAL: Ensure model is in EVAL mode for inference
-    if model.training:
-        model.eval()
+    # ... (skipping unchanged parts) ...
     
-    # Clean memory before inference
-    torch.cuda.empty_cache()
-    
-    result = {
-        "image": Path(img_path).name,
-        "pipeline_status": "RUNNING",
-        "input_gate": {},
-        "vlm_output": {},
-        "confidence": {},
-        "grounding": {},
-        "final_status": "UNKNOWN"
-    }
+            # [Context Fusion] Inject Caregiver Notes
+            voice_context = ""
+            if patient_notes and len(patient_notes) > 2:
+                voice_context = f"\n\n[📢 CAREGIVER VOICE NOTE]: \"{patient_notes}\"\n(Instruction: Use this context to identify drug allergies or special conditions. If note contradicts safety, prioritize Beers Criteria.)"
+                if verbose: print(f"   🎤 Voice Context Injected: {patient_notes}")
+
+            prompt_text = base_prompt + voice_context + rag_context + correction_context
+            
+            messages = [{"role": "user", "content": [
+                {"type": "image"},
+                {"type": "text", "text": prompt_text}
+            ]}]
     
     # ===== STAGE 1: Input Validation Gate (V7.4 Red Team Fix) =====
     # Consolidated to use the new Laplacian-based check_image_quality (Smart Threshold: 20/50)

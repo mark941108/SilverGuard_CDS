@@ -999,7 +999,13 @@ def run_inference(image, patient_notes=""):
                     print(f"   ⚠️ RAG Lookup skipped: {e}")
             # ---------------------------------------------
             
-            final_prompt = base_prompt + rag_context + correction_context
+            # [V18 Fix] Real Voice Context Injection
+            voice_context_str = ""
+            if patient_notes and len(patient_notes) > 2:
+                 voice_context_str = f"\n\n[📢 CAREGIVER VOICE NOTE]: \"{patient_notes}\"\n(Instruction: pay attention to this clinical context.)"
+                 if current_try == 0: log(f"   🎤 Voice Context Active: {patient_notes}")
+
+            final_prompt = base_prompt + voice_context_str + rag_context + correction_context
             inputs = processor(text=final_prompt, images=image, return_tensors="pt").to(model.device)
             input_len = inputs.input_ids.shape[1]
             current_temp = TEMP_CREATIVE if current_try == 0 else TEMP_STRICT
