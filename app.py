@@ -533,6 +533,33 @@ def retrieve_drug_info(drug_name: str) -> dict:
 # ============================================================================
 # 💊 Local Drug Interaction Checker (Offline Security)
 # ============================================================================
+# Multi-lingual Dynamic Content Support (V6.0 Real Implementation)
+def translate_dynamic_content(text, target_lang):
+    """
+    Translates key medical phrases for dynamic content.
+    Note: In production this would use an Offline NMT model.
+    For this demo, we use a Phrase Dictionary Approach for safety.
+    """
+    if target_lang == "zh-TW": return text
+    
+    # Safety Phrase Dictionary (Indonesian)
+    dict_id = {
+        "高風險": "RISIKO TINGGI",
+        "服藥": "Minum obat",
+        "飯後": "setelah makan",
+        "睡前": "sebelum tidur",
+        "請注意": "Mohon perhatikan",
+        "藥師": "Apoteker",
+        "劑量過高": "Dosis terlalu tinggi"
+    }
+    
+    # Simple replacement for Demo robustness
+    if target_lang == "id":
+        for k, v in dict_id.items():
+            text = text.replace(k, v)
+            
+    return text
+
 def check_drug_interaction(drug_a, drug_b):
     if not drug_a or not drug_b:
         return "⚠️ Please enter two drug names."

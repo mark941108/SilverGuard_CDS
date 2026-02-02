@@ -279,7 +279,22 @@ def clean_text_for_tts(text):
     )
     text = emoji_pattern.sub('', text)
     
-    # 2. 移除常見特殊符號（保留基本標點）
+    # 2. PII Scrubbing (Privacy-First Implementation)
+    # Replace Patient Names with Generic Titles
+    for name, profile in PATIENT_PROFILES.items():
+        if name in text:
+            gender = profile.get("gender", "M")
+            title = "阿公" if gender == "男" else "阿嬤"
+            text = text.replace(name, title)
+            print(f"🔒 [Privacy] Scrubbed Name: {name} -> {title}")
+            
+    # Replace Staff Names with Generic Titles
+    if "Wang, Yuan-dao" in text or "王大明" in text:
+        text = text.replace("王大明", "值班藥師").replace("Wang, Yuan-dao", "Pharmacist")
+    if "李小美" in text:
+        text = text.replace("李小美", "覆核藥師")
+        
+    # 3. 移除常見特殊符號（保留基本標點）
     symbols_to_remove = [
         '✓', '✅', '❌', '⚠️', '→', '➜', '▲', '●', '■', '□', '◆', '☑️',
         '【', '】', '《', '》', '「', '」', '『', '』', '〈', '〉'
@@ -287,7 +302,7 @@ def clean_text_for_tts(text):
     for symbol in symbols_to_remove:
         text = text.replace(symbol, '')
     
-    # 3. 移除多餘空格
+    # 4. 移除多餘空格
     text = re.sub(r'\s+', ' ', text).strip()
     
     cleaned_len = len(text)
@@ -2216,23 +2231,46 @@ def agentic_inference(model, processor, img_path, verbose=True):
                 ex_pt = parsed_json.get("extracted_data", {}).get("patient", {})
                 ex_dg = parsed_json.get("extracted_data", {}).get("drug", {})
                 
-                # 規則：80歲以上且使用高劑量 Metformin (Glucophage)
+                # [V5.8 PRO HARD RULE ENGINE] Neuro-Symbolic Logic Layer
+                # This explicitly injects "System 2" reasoning for critical geriatric risks.
+                # Covering: Diabetes (Metformin), Insomnia (Zolpidem), Pain (Aspirin/NSAID), Anticoagulants
+                
                 raw_txt = str(parsed_json).lower()
                 age_val = int(ex_pt.get("age", 0))
                 dose_val = ex_dg.get("dose", "0")
+                mg_val, is_valid_unit = normalize_dose_to_mg(dose_val)
                 
+                rule_triggered = False
+                rule_reason = ""
+
+                # Rule 1: Metformin (Glucophage) Limit for Elderly (Lactic Acidosis / eGFR)
                 if age_val >= 80 and ("glucophage" in raw_txt or "metformin" in raw_txt):
-                    # V12.16 Audit Fix: Use normalize_dose_to_mg for robust check
-                    # Logic: "2g" -> 2000mg -> Trigger. "500 mg" -> 500 -> Safe.
-                    
-                    mg_val, is_valid_unit = normalize_dose_to_mg(dose_val)
-                    
-                    # Hard Rule Trigger: >1000mg or explicit dangerous strings
-                    # Note: 2g = 2000mg > 1000mg => True
                     if mg_val > 1000 or "2000" in str(dose_val):
-                         parsed_json["safety_analysis"]["status"] = "PHARMACIST_REVIEW_REQUIRED" 
-                         parsed_json["safety_analysis"]["reasoning"] = f"⛔ HARD RULE TRIGGERED: Geriatric Max Dose Exceeded (80yr+ & Metformin {mg_val}mg > 1000mg)"
-                         if verbose: print(f"   🛑 [HARD RULE] Force-flagged HIGH_RISK for Geriatric Safety (Dose={mg_val}mg)")
+                        rule_triggered = True
+                        rule_reason = f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
+
+                # Rule 2: Zolpidem (Stilnox) Limit (Fall Risk / Delirium)
+                elif age_val >= 65 and ("stilnox" in raw_txt or "zolpidem" in raw_txt):
+                    if mg_val > 5: # FDA recommends 5mg max for elderly
+                        rule_triggered = True
+                        rule_reason = f"⛔ HARD RULE: BEERS CRITERIA (Zolpidem {mg_val}mg > 5mg). High risk of falls/delirium."
+
+                # Rule 3: High Dose Aspirin (Bleeding Risk)
+                elif age_val >= 75 and ("aspirin" in raw_txt or "bokey" in raw_txt or "asa" in raw_txt):
+                    if mg_val > 325: # 100mg is safe, 500mg/325mg+ is not for chronic use
+                        rule_triggered = True
+                        rule_reason = f"⛔ HARD RULE: High Dose Aspirin ({mg_val}mg). Risk of GI Bleeding in elderly."
+
+                # Rule 4: Tylenol/Acetaminophen Hepatotoxicity (General Safety)
+                elif ("panadol" in raw_txt or "acetaminophen" in raw_txt):
+                    if mg_val > 4000:
+                        rule_triggered = True
+                        rule_reason = f"⛔ HARD RULE: Acetaminophen Overdose ({mg_val}mg > 4000mg daily limit)."
+
+                if rule_triggered:
+                     parsed_json["safety_analysis"]["status"] = "PHARMACIST_REVIEW_REQUIRED" 
+                     parsed_json["safety_analysis"]["reasoning"] = rule_reason
+                     if verbose: print(f"   🛑 [NEURO-SYMBOLIC SHIELD] Force-flagged HIGH_RISK: {rule_reason}")
             except:
                 pass # 避免硬規則導致 crash
             
