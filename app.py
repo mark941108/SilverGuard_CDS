@@ -740,10 +740,31 @@ def check_is_prescription(text):
         return False, "Content does not look like a prescription."
     return True, "Valid"
 
+def normalize_dose_to_mg(dose_str):
+    """
+    🧪 Helper: Normalize raw dosage string to milligrams (mg)
+    Handles: "500 mg", "0.5 g", "1000 mcg"
+    """
+    import re
+    if not dose_str: return 0.0, False
+    try:
+        s = str(dose_str).lower().replace(" ", "")
+        match = re.search(r'([\d\.]+)(mg|g|mcg|ug)', s)
+        if not match: return 0.0, False
+
+        value = float(match.group(1))
+        unit = match.group(2)
+        
+        if unit == 'g': return value * 1000.0, True
+        elif unit in ['mcg', 'ug']: return value / 1000.0, True
+        else: return value, True
+    except:
+        return 0.0, False
+
 def logical_consistency_check(extracted_data):
     """
-    Safety Logic & Schema Validation
-    Returns: (passed: bool, message: str, logs: list)
+    Safety Logic & Schema Validation (Neuro-Symbolic Hybrid)
+    [V8.8 Sync] Matches agent_engine.py 4-Rule Geriatric Engine
     """
     logs = []
     issues = []
@@ -752,14 +773,51 @@ def logical_consistency_check(extracted_data):
     if not isinstance(extracted_data, dict):
         return False, "Invalid JSON structure", logs
         
+    extracted_patient = extracted_data.get("patient", {})
+    extracted_drug = extracted_data.get("drug", {})
+    
     # 2. Age Check
-    age = extracted_data.get("patient", {}).get("age")
-    if age and isinstance(age, (int, str)):
-        try:
-            if int(age) > 120: issues.append(f"Invalid Age: {age}")
-            if int(age) < 18: issues.append(f"Pediatric case ({age}) requires manual review")
-        except: pass
-        
+    age = extracted_patient.get("age")
+    try:
+        age_val = int(age) if age else 0
+        if age_val > 120: issues.append(f"Invalid Age: {age}")
+        if age_val > 0 and age_val < 18: issues.append(f"Pediatric case ({age}) requires manual review")
+    except: 
+        age_val = 0
+    
+    # 3. [V8.8 PRO] Neuro-Symbolic Logic Check (4 Rules)
+    drug_name = extracted_drug.get("name", "").lower() + " " + extracted_drug.get("name_zh", "").lower()
+    dose_str = extracted_drug.get("dose", "0")
+    mg_val, valid_dose = normalize_dose_to_mg(dose_str)
+    
+    if valid_dose:
+        # Rule 1: Metformin (Glucophage) > 1000mg for Elderly
+        if age_val >= 80 and ("glucophage" in drug_name or "metformin" in drug_name):
+            if mg_val > 1000:
+                issues.append(f"⛔ Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)")
+
+        # Rule 2: Zolpidem > 5mg for Elderly
+        elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
+            if mg_val > 5:
+                issues.append(f"⛔ BEERS CRITERIA (Zolpidem {mg_val}mg > 5mg). High fall risk.")
+
+        # Rule 3: High Dose Aspirin > 325mg for Elderly
+        elif age_val >= 75 and ("aspirin" in drug_name or "bokey" in drug_name):
+            if mg_val > 325:
+                issues.append(f"⛔ High Dose Aspirin ({mg_val}mg). Risk of GI Bleeding.")
+
+        # Rule 4: Acetaminophen > 4000mg (General)
+        elif "panadol" in drug_name or "acetaminophen" in drug_name:
+            if mg_val > 4000:
+                issues.append(f"⛔ Acetaminophen Overdose ({mg_val}mg > 4000mg daily).")
+
+    # 4. Drug Knowledge Base Presence
+    raw_name_en = extracted_drug.get("name", "")
+    if raw_name_en:
+        drug_info = retrieve_drug_info(raw_name_en)
+        if not drug_info.get("found", False):
+             issues.append(f"Drug not in knowledge base: {raw_name_en}")
+
     if issues:
         return False, "; ".join(issues), logs
         

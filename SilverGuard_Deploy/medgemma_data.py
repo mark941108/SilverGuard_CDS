@@ -12,6 +12,7 @@ DRUG_DATABASE = {
         {"code": "BC23456790", "name_en": "Concor", "name_zh": "康肯", "generic": "Bisoprolol", "dose": "5mg", "appearance": "黃色心形", "indication": "降血壓", "warning": "心跳過慢者慎用", "default_usage": "QD_breakfast_after"},
         {"code": "BC23456799", "name_en": "Dilatrend", "name_zh": "達利全錠", "generic": "Carvedilol", "dose": "25mg", "appearance": "白色圓形 (刻痕)", "indication": "高血壓/心衰竭", "warning": "不可擅自停藥", "default_usage": "BID_meals_after"},
         {"code": "BC23456788", "name_en": "Lasix", "name_zh": "來適泄錠", "generic": "Furosemide", "dose": "40mg", "appearance": "白色圓形", "indication": "高血壓/水腫", "warning": "服用後排尿頻繁，避免睡前服用", "default_usage": "BID_morning_noon"},
+        {"code": "BC23456801", "name_en": "Hydralazine", "name_zh": "阿普利素", "generic": "Hydralazine", "dose": "25mg", "appearance": "黃色圓形", "indication": "高血壓", "warning": "不可隨意停藥", "default_usage": "TID_meals_after"},
     ],
     # --- Confusion Cluster 2: Diabetes ---
     "Diabetes": [
@@ -74,7 +75,6 @@ DRUG_DATABASE = {
     # --- Confusion Cluster 5: CNS ---
     "Sedative": [
         {"code": "BC23456794", "name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後立即就寢", "default_usage": "QD_bedtime"},
-        {"code": "BC23456801", "name_en": "Hydralazine", "name_zh": "阿普利素", "generic": "Hydralazine", "dose": "25mg", "appearance": "黃色圓形", "indication": "高血壓", "warning": "不可隨意停藥", "default_usage": "TID_meals_after"},
         {"code": "BC23456802", "name_en": "Hydroxyzine", "name_zh": "安泰樂", "generic": "Hydroxyzine", "dose": "25mg", "appearance": "白色圓形", "indication": "抗過敏/焦慮", "warning": "注意嗜睡", "default_usage": "TID_meals_after"},
     ],
      # --- Confusion Cluster 6: Lipid ---
