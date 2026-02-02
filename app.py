@@ -27,9 +27,11 @@ import medgemma_data # Local Drug Database (Offline Source of Truth)
 
 # [SECURITY] V12.15 Hardening: Dependency Hell Prevention
 # Explicitly check for critical external modules before starting the app.
-if not os.path.exists("medgemma_data.py"):
-    raise RuntimeError("❌ CRITICAL: 'medgemma_data.py' is missing! Please upload it to Hugging Face Files.")
-print("✅ Dependency Check: medgemma_data.py found.")
+DATA_AVAILABLE = os.path.exists("medgemma_data.py")
+if not DATA_AVAILABLE:
+    print("⚠️ WARNING: 'medgemma_data.py' is missing! System running in DEGRADED MODE (Mock Data).")
+else:
+    print("✅ Dependency Check: medgemma_data.py found.")
 
 # 1. Configuration
 HF_TOKEN = os.environ.get("HUGGINGFACE_TOKEN")
@@ -535,10 +537,16 @@ def check_drug_interaction(drug_a, drug_b):
     if not drug_a or not drug_b:
         return "⚠️ Please enter two drug names."
         
-    
-    # V7.5 FIX: Use GLOBAL_DRUG_ALIASES to prevent NameError
-    name_a = GLOBAL_DRUG_ALIASES.get(drug_a.lower(), drug_a.lower())
-    name_b = GLOBAL_DRUG_ALIASES.get(drug_b.lower(), drug_b.lower())
+    # V7.5 FIX: Use GLOBAL_DRUG_ALIASES with Safe Get
+    try:
+        d1 = str(drug_a).strip().lower()
+        d2 = str(drug_b).strip().lower()
+    except:
+        return "⚠️ Invalid Input Format"
+
+    name_a = GLOBAL_DRUG_ALIASES.get(d1, d1)
+    name_b = GLOBAL_DRUG_ALIASES.get(d2, d2)
+
     print(f"🔎 Checking interaction (Offline Mode): {name_a} + {name_b}")
     
     CRITICAL_PAIRS = {
@@ -1031,15 +1039,18 @@ def run_inference(image, patient_notes=""):
             current_try += 1
             correction_context += f"\n\n[System]: Crash: {str(e)}. Output simple valid JSON."
             
-    # --- TTS Logic (Hybrid) - V7.3: Properly indented inside run_inference ---
+    # --- TTS Logic (Hybrid) ---
     final_status = result_json.get("safety_analysis", {}).get("status", "UNKNOWN")
     speech_text = json_to_elderly_speech(result_json)
     audio_path = None
     tts_mode = "none"
     clean_text = speech_text.replace("⚠️", "注意").replace("✅", "").replace("🔴", "")
     
-    # Tier 1: gTTS (Online)
-    # Tier 1 & 2: Hybrid Privacy TTS
+    # Tier 1: gTTS (Online) / Tier 2: Offline Fallback
+    # [V5.5 Fix] Add UI Feedback before Blocking Call
+    log("🔊 Generating Audio (Please Wait)...")
+    yield final_status, result_json, speech_text, None, "\n".join(trace_logs), calendar_img
+    
     try:
         audio_path = text_to_speech(clean_text, lang='zh-TW')
     except Exception as e:
