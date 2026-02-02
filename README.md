@@ -29,7 +29,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Kaggle](https://img.shields.io/badge/Kaggle-Agentic%20Workflow%20Prize-FFD700)](https://www.kaggle.com/competitions/med-gemma-impact-challenge)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
-[![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces)
+[![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces/markwang941108/SilverGuard-V1)
 [![Docker](https://img.shields.io/badge/Docker-Compatible-blue?logo=docker)](#docker-reproducibility-optional)
 
 
@@ -640,28 +640,7 @@ To validate robustness against real-world optical noise, we performed **LCD Re-c
 
 This project implements an **Agentic Workflow** design, deploying MedGemma as an intelligent reasoning agent:
 
-### 🧠 Project Mindmap: The Agentic Brain
 
-```mermaid
-mindmap
-  root((AI Pharmacist))
-    Perception
-      Vision Encoder
-      Visual Features
-      Voice Context
-    Reasoning
-      MedGemma 1.5
-      Fine-Tuned CoT
-      Logic Checks
-    Action
-      JSON Output
-      Pass / Fail
-      Retry Loop
-    Impact
-      SilverGuard UI
-      TTS Audio
-      Green AI
-```
 
 ### 🏗️ Complete Workflow Architecture
 
