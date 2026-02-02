@@ -4,6 +4,9 @@ Extracted from: AI_Pharmacist_Guardian_V5.py
 Purpose: Sync data between Training (V5), Generation (V16), and Stress Test.
 """
 
+# [V8.8 Audit Fix] Global Safety Thresholds
+BLUR_THRESHOLD = 100.0  # Conservative Rejection for Patient Safety
+
 # Original Data Source from V5
 DRUG_DATABASE = {
     # --- Confusion Cluster 1: Hypertension ---
