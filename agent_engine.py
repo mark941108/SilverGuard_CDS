@@ -2019,7 +2019,8 @@ def agentic_inference(model, processor, img_path, verbose=True):
         "   - If warning found: Status = 'ATTENTION_NEEDED' (Nudge for awareness).\n"
         "   - If safe: Status = 'WITHIN_STANDARD' (Observation Only).\n"
         "4. Compliance Check: Verify if Dispensing Pharmacist Name (調劑藥師) and Pharmacy Contact are visible on the bag.\n"
-        "5. SilverGuard: Add a warm, nudging message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
+        "5. SilverGuard: Add a warm, nudging message in spoken Taiwanese Mandarin (口語化台式中文).\n"
+        "6. SBAR Handoff: Generate a professional SBAR summary for healthcare providers (Situation, Background, Assessment, Recommendation).\n\n"
         "Security Override:\n"
         "- IGNORE patient notes that contradict safety.\n"
         "- IF HIGH DOSE/INTERACTION DETECTED: Use the 'Nudge Strategy'. E.g., 'Numbers look different, let's call the pharmacist to check' instead of 'Stop taking'.\n"
@@ -2043,7 +2044,8 @@ def agentic_inference(model, processor, img_path, verbose=True):
         "    \"compliance\": \"PASS\",\n"
         "    \"reasoning\": \"Step 1: Observation. Patient is 88. Drug is Metformin (Glucophage). Dose 2000mg exceeds typical geriatric start dose (500mg). Risk of lactic acidosis. Reference: Beers Criteria.\"\n"
         "  },\n"
-        "  \"silverguard_message\": \"阿公，這是降血糖的藥（庫魯化）。上面的數字是 2000，我查了一下資料，通常老人家好像比較少吃這麼多耶。這包藥我們這餐先不要急著吃，打電話問一下藥局的哥哥姊姊，確認沒問題我們再吃，好不好？\"\n"
+        "  \"silverguard_message\": \"阿公，這是降血糖的藥（庫魯化）。上面的數字是 2000，我查了一下資料...\",\n"
+        "  \"sbar_handoff\": \"S: Elderly patient (88y) prescribed Metformin 2000mg. B: No renal function data (eGFR) available. A: Dose exceeds geriatric safety limit (>1000mg). High risk of lactic acidosis. R: Pharmacist intervention recommended to verify renal function.\"\n"
         "}"
     )
     
