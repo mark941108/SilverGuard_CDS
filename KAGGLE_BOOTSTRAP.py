@@ -153,7 +153,7 @@ print("   ⬇️ 安裝應用層依賴...")
 subprocess.run("pip install -U sentence-transformers faiss-cpu pydub", shell=True, check=True)
 subprocess.run("pip install -U pillow==10.4.0 librosa soundfile", shell=True, check=True)
 subprocess.run("pip install -U qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3", shell=True, check=True)
-subprocess.run("pip install -U gradio==4.44.1", shell=True, check=True)
+subprocess.run("pip install -U gradio==4.44.1 pydantic==2.10.6", shell=True, check=True)
 
 print("   ✅ 所有依賴安裝完成！")
 
