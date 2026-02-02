@@ -180,8 +180,9 @@ SilverGuard implements **Andrew Ng's Reflection Pattern** (2024), transforming a
 | **Avg Latency** | 2.4s | Single Attempt (T4 GPU) |
 | **Retry Latency** | 5.8s | With Self-Correction (Agentic Loop) |
 | **Autonomy Rate** | 91.2% | Cases handled without Human Review |
+| **Test Set Size** | n=50 | **⚠️ Preliminary** (Synthetic Data Only) |
 
-*Preliminary Benchmark on NVIDIA T4 GPU, BF16 precision.*
+*Preliminary Benchmark on NVIDIA T4 GPU, BF16 precision. Confidence Interval: ±13% at 95% CI due to small sample size. Full clinical validation (n=500) planned for Phase 3.*
 
 > **🌍 Impact Statement:** *SilverGuard doesn't just save lives—it saves the planet. By shifting inference from cloud to edge, we reduce carbon emissions by **90%** while maintaining clinical-grade accuracy.*
 

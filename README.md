@@ -9,6 +9,9 @@
 > 5. **KNOWN LIMITATIONS**: Synthetic training data only. Not clinically validated.
 > 6. **PATIENT PRIVACY**: Do NOT upload real patient PHI. Use anonymized demo data only.
 > 7. **INTERNATIONAL USE**: References Taiwan regulations only. Users must comply with local laws.
+> 8. **ERROR RATE DISCLOSURE**: This system has a known error rate and may miss dangerous conditions or flag safe medications. Do NOT rely on it as sole decision-making tool.
+> 9. **NOT FOR EMERGENCIES**: In case of adverse reaction, call emergency services immediately. Do NOT wait for AI analysis.
+> 10. **LIMITED SCOPE**: This prototype covers only 19 medications and cannot detect all drug-drug or drug-food interactions.
 
 # 🏥 SilverGuard: Intelligent Medication Safety System (Hybrid Privacy Architecture)
 
@@ -88,8 +91,8 @@ A **privacy-first, offline, multilingual, medically-intelligent** medication ver
 ### Our Solution: SilverGuard
 
 A **privacy-first, edge-deployed AI assistant** that:
-1. ✅ Runs **100% offline** on a single $300 GPU (T4) - no internet needed
-2. ✅ Understands **mixed EN/ZH scripts** natively (fine-tuned on Taiwanese labels)  
+1. ✅ **Core inference** runs 100% offline on a single $300 GPU (T4) - no PHI leaves device
+2. ✅ **Optional features**: TTS voice uses cloud API for demo quality (can be disabled for full air-gap)  
 3. ✅ Performs **medical reasoning** (catches dosage errors, drug interactions)
 4. ✅ Generates **elderly-friendly output** (large-font calendar + local accent TTS)
 5. ✅ Supports **migrant caregivers** (Indonesian/Vietnamese translations)

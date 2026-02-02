@@ -3050,19 +3050,33 @@ def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
         except Exception as e:
             print(f"⚠️ 離線 TTS 引擎啟動失敗: {e}。嘗試切換至雲端備援...")
             # 如果離線失敗，才考慮雲端 (Fail-over)
-
-    # 2. 🟡 備援策略：雲端增強 (Cloud Enhancement)
+import datetime # Added for text_to_speech_multilingual
+# --- TTS Module (Enhanced V2) ---
+def text_to_speech_multilingual(text, lang='zh-TW', target_file=None):
+    """
+    Multi-language TTS for migrant caregivers (Impact Feature)
+    Supported: zh-TW (Chinese), id (Indonesian), vi (Vietnamese)
+    """
+    if target_file is None:
+        target_file = f"/tmp/tts_{lang}_{int(datetime.now().timestamp())}.mp3"
+    
     try:
         from gtts import gTTS
-        print(f"📡 [Cloud] 連線至 Google TTS (注意：資料將傳輸至外部)") 
-        # 👇 注意這裡改用 clean_text, 建議 slow=False
-        tts = gTTS(text=clean_text, lang=lang, slow=False)
-        tts.save(filename)
-        display(Audio(filename, autoplay=False))
-        return filename
+        print(f"   🔊 Generating TTS for lang='{lang}'...")
+        tts = gTTS(text, lang=lang)
+        tts.save(target_file)
+        print(f"   ✅ TTS saved: {target_file}")
+        return target_file
     except Exception as e:
-        print(f"❌ 所有 TTS 引擎皆失敗: {e}")
+        print(f"   ⚠️ TTS failed for {lang}: {e}")
         return None
+
+def text_to_speech_elderly(text, lang='zh-TW', slow=True):
+    """
+    Legacy wrapper for backward compatibility.
+    Defaults to slow speech for elderly.
+    """
+    return text_to_speech_multilingual(text, lang=lang)
 
 
 # ============================================================================

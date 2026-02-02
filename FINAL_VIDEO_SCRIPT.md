@@ -10,7 +10,7 @@
 | 單字 | 發音拼法 | 備註 |
 |------|---------|------|
 | **MedGemma** | Med-Jemma | J 發音像 "Gem" |
-| **SigLIP** | Sig-Lip | 硬 G 音 |
+| **SigLIP** | Sig-Lip | Soft G (如 signal) |
 | **GPU** | G-P-U | 三個字母分開唸 |
 | **RAG** | Rag | 韻腳同 Bag |
 
