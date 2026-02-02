@@ -72,7 +72,6 @@ if not missing_files:
 else:
     # 【場景 B】乾淨環境 -> 從 GitHub 拉取
     print("   ☁️ 未偵測到本地檔案，啟動 [GitHub Clone Mode]...")
-    print("   ☁️ 未偵測到本地檔案，啟動 [GitHub Clone Mode]...")
     import shutil
     if os.path.exists("SilverGuard"):
         shutil.rmtree("SilverGuard")
