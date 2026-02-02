@@ -2,9 +2,13 @@
 ![SilverGuard CDS](assets/hero_image.jpg)
 
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
-> **NOT A MEDICAL DEVICE**: SilverGuard is a RESEARCH PROTOTYPE for the Google MedGemma Challenge. It is NOT approved by FDA, TFDA, or any regulatory authority.
-> **NOT FOR CLINICAL USE**: Do NOT use this software to make medical decisions. Always consult a licensed healthcare professional.
-> **SYNTHETIC DATA**: All training data is computer-generated. Real-world performance may differ.
+> 1. **NOT A MEDICAL DEVICE**: SilverGuard is a RESEARCH PROTOTYPE. Not FDA/TFDA approved.
+> 2. **NOT FOR CLINICAL USE**: Do NOT use for medical decisions. Consult a licensed professional.
+> 3. **AUTHOR DISCLAIMER**: Author is NOT a physician/pharmacist. This is a student research project.
+> 4. **NO LIABILITY**: Authors assume ZERO liability for errors or damages.
+> 5. **KNOWN LIMITATIONS**: Synthetic training data only. Not clinically validated.
+> 6. **PATIENT PRIVACY**: Do NOT upload real patient PHI. Use anonymized demo data only.
+> 7. **INTERNATIONAL USE**: References Taiwan regulations only. Users must comply with local laws.
 
 # 🏥 SilverGuard: Intelligent Medication Safety System (Hybrid Privacy Architecture)
 
@@ -119,7 +123,7 @@ docker run --gpus all -it silverguard-agent
 *   **👵 SilverGuard Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Simulated Taiwanese Mandarin) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Clinically Verified Translations** (Indonesian/Vietnamese) for non-Chinese speaking caregivers.
 *   **🗣️ Local Dialect Support**: Capable of **Localized Taiwanese Mandarin (Taiwan-Accent)** TTS, crucial for communicating with the 65+ demographic in rural Taiwan.
-*   **🔐 Privacy First**: **Core Inference Runs 100% Locally** on T4 GPU (Hybrid Privacy Model: De-identified TTS/API data is ephemeral).
+*   **🔐 Privacy First**: **Hybrid Privacy Architecture** - Core VLM inference runs **100% Locally** (PHI stays on device). Optional TTS module offers configurable privacy modes (Offline `pyttsx3` vs Cloud `gTTS`).
 *   **🧠 Agentic Reflection Pattern**: "Think before speaking" loop with self-critique and refinement (Andrew Ng, 2024).
 
 ## ⚡ Judges' Executive Summary (30-Second Insight)

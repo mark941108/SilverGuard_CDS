@@ -8,7 +8,7 @@
 ### Links
 * **Video Demo:** [INSERT YOUTUBE/VIDEO LINK HERE] (Must be < 3 mins)
 * **Code Repository:** [GitHub: mark941108/SilverGuard](https://github.com/mark941108/SilverGuard)
-* **Live Demo (Bonus):** [INSERT HUGGING FACE SPACE LINK IF AVAILABLE]
+* **Live Demo (Bonus):** [Hugging Face Space](https://huggingface.co/spaces/markwang941108/SilverGuard-V1)
 * **Model Weights (Bonus):** [INSERT HUGGING FACE MODEL LINK IF AVAILABLE]
 
 ### Your team
@@ -103,6 +103,32 @@ As an Energy & Refrigeration Engineering student, I approach AI with the same **
 - Medical AI = Critical Infrastructure → Requires **redundant safety layers** (Input Gate + Logic Check + Confidence Threshold).
 
 > *"In my field, 'system stability' is everything. This project applies industrial-grade safety standards to healthcare AI."*
+
+---
+
+---
+
+### 🏥 Path to Clinical Deployment (Regulatory Roadmap)
+
+**Phase 1 (Current): Research Prototype**
+- **Status**: Synthetic data validation (Sim2Real robustness testing).
+- **Risk**: Not suitable for clinical use.
+
+**Phase 2 (Q2 2026): Pilot Study**
+- **Partner**: Community Pharmacy in Taoyuan (under discussion).
+- **Scope**: 50 elderly patients, 3-month observational study.
+- **Objective**: Measure error detection rate vs pharmacist review (Gold Standard).
+- **IRB**: Application prepared for Institutional Review Board.
+
+**Phase 3 (Q3-Q4 2026): Clinical Trial**
+- **Design**: Prospective observational study, n=500.
+- **Primary Endpoint**: Reduction in medication administration errors.
+- **Secondary Endpoints**: User acceptance (SUS Score), time savings.
+
+**Phase 4 (2027): Regulatory Submission**
+- **Target**: TFDA Class II SaMD (Software as Medical Device).
+- **Estimated Cost**: $50,000-100,000 USD.
+- **Timeline**: 6-12 months review process.
 
 ---
 

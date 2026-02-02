@@ -5,13 +5,43 @@
    "Agentic Safety Research Prototype"
 ================================================================================
 
-⚠️⚠️⚠️ RESEARCH PROTOTYPE DISCLAIMER / 研究用原型免責聲明 ⚠️⚠️⚠️
+⚠️⚠️⚠️ CRITICAL LEGAL DISCLAIMER ⚠️⚠️⚠️
 --------------------------------------------------------------------------------
-1. This software ("SilverGuard") is a COMPUTATIONAL RESEARCH TOOL.
-2. It is NOT a licensed pharmacist, doctor, or medical device.
-3. It has NOT been approved by the FDA or TFDA.
-4. All outputs are PROBABILISTIC and must be verified by a HUMAN professional.
-5. The authors assume NO LIABILITY for any clinical decisions made using this code.
+1. NOT A MEDICAL DEVICE: SilverGuard is a RESEARCH PROTOTYPE for 
+   computational research purposes only. It has NOT been approved, 
+   cleared, or certified by the FDA, TFDA, CE Mark, or any regulatory 
+   authority as a medical device.
+
+2. NOT FOR CLINICAL USE: Do NOT use this software to make medical 
+   decisions including but not limited to: medication selection, dosage 
+   determination, discontinuation of medications, or diagnosis of 
+   conditions. ALL medical decisions must be made by licensed healthcare 
+   professionals.
+
+3. AUTHOR DISCLAIMER: The author is NOT a licensed physician, pharmacist, 
+   or healthcare provider. This software reflects a student research 
+   project and should NOT be construed as medical advice under any 
+   circumstances.
+
+4. NO LIABILITY: The authors, contributors, and distributors assume ZERO 
+   liability for ANY harm resulting from use of this software including 
+   but not limited to: medication errors, adverse drug events, 
+   misdiagnosis, system failures, data breaches, or any other damages 
+   whether direct, indirect, incidental, or consequential.
+
+5. KNOWN LIMITATIONS: This system operates on synthetic training data, 
+   covers limited medications, cannot assess drug interactions comprehensively, 
+   and has NOT been clinically validated. Real-world performance is UNKNOWN.
+
+6. PATIENT PRIVACY: Do NOT upload images containing real patient information. 
+   This demo uses fictional/anonymized data only. Any real PHI uploaded 
+   violates HIPAA and may be transmitted to third-party services.
+
+7. INTERNATIONAL USE: This software references Taiwan pharmaceutical 
+   regulations. Users in other jurisdictions must comply with local laws. 
+   The author makes no representation about legal compliance outside Taiwan.
+--------------------------------------------------------------------------------
+BY USING THIS SOFTWARE, YOU AGREE TO BE BOUND BY THIS DISCLAIMER.
 --------------------------------------------------------------------------------
 
 ⚠️⚠️⚠️ IMPORTANT NOTE FOR JUDGES ⚠️⚠️⚠️
@@ -3336,10 +3366,12 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     # ============ 載入字體 ============
     def load_font(size):
         font_paths = [
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
             "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Bold.otf",
             "NotoSansTC-Bold.otf", 
-            "NotoSansTC-Regular.otf",
-            "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc"
+            "NotoSansTC-Regular.otf"
         ]
         for path in font_paths:
             if os.path.exists(path):
@@ -4457,11 +4489,10 @@ if __name__ == "__main__":
     # 檢查常見輸出檔案
     import glob
     output_patterns = [
-        "medication_calendar_*.png",
-        "*.mp3",
+        "calendar_flagship_*.png",
+        "safety_alert_*.mp3",
         "elder_instruction.*",
-        "silver_guard_speech.*",
-        "safety_alert_*.*"
+        "silver_guard_speech.*"
     ]
     
     found_files = []
