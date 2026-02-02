@@ -67,10 +67,7 @@ As this is a medical safety project, we welcome security research, particularly 
 *   **Adversarial Attacks:** Visual prompt injections (e.g., malicious stickers on drug bags).
 *   **Model Extraction:** Attempts to recover training data (though we use synthetic data, we value robustness).
 
-If you discover a vulnerability, please do **NOT** open a public issue. Instead, please report it via:
-
-*   **Email:** [YOUR_EMAIL@EXAMPLE.COM] (Replace with actual contact if applicable or "Kaggle Message")
-*   **Subject:** `[SECURITY] - MedGemma Guardian Vulnerability`
+If you discover a vulnerability, please report it via the **GitHub Security Advisories** tab or contact the repository owner directly.
 
 We will acknowledge receipt within 48 hours.
 
