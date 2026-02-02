@@ -1152,10 +1152,53 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         color = "#c8e6c9"
         icon = "✅"
         
-    tts_text = f"{display_status}. {lang_pack['CONSULT']}."
+    # [V8.5 Fix] "True" Multilingual Support (No longer superficial)
+    # Strategy:
+    # 1. Chinese (zh-TW): Use Agent's generated "Warm Nudge" (silverguard_message)
+    # 2. Foreign (ID/VI): Use "Template Construction" (Safe Fallback) since we can't translate LLM Chinese output offline.
+    
+    # Extract Data for Template
+    extracted = case_data.get('extracted_data', {})
+    drug_info = extracted.get('drug', {}) if isinstance(extracted, dict) else {}
+    drug_name = drug_info.get('name', 'Obat') if isinstance(drug_info, dict) else 'Obat'
+    
+    agent_msg = case_data.get("silverguard_message", "")
+    
+    if target_lang == "zh-TW" and agent_msg:
+        # Use the Agent's warm persona
+        tts_text = agent_msg
+    elif target_lang == "id":
+        # Template: "High Risk! Metformin 2000mg varies from standard. Ask Pharmacist."
+        if status == "HIGH_RISK":
+            tts_text = f"Bahaya! Dosis {drug_name} terlalu tinggi. Mohon tanya apoteker. {lang_pack['CONSULT']}"
+        elif status == "WARNING":
+             tts_text = f"Peringatan untuk {drug_name}. Cek ulang dosis. {lang_pack['CONSULT']}"
+        else:
+             tts_text = f"Obat {drug_name} aman. {lang_pack['PASS']}"
+    elif target_lang == "vi":
+        if status == "HIGH_RISK":
+             tts_text = f"Nguy hiểm! Liều {drug_name} quá cao. Hỏi dược sĩ ngay. {lang_pack['CONSULT']}"
+        elif status == "WARNING":
+             tts_text = f"Cảnh báo thuốc {drug_name}. Kiểm tra lại liều. {lang_pack['CONSULT']}"
+        else:
+             tts_text = f"Thuốc {drug_name} an toàn. {lang_pack['PASS']}"
+    else:
+        # Emergency Fallback (Static)
+        tts_text = f"{display_status}. {lang_pack['CONSULT']}."
+        
     try:
-        audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
-    except:
+        # [V8.6] Headless TTS Wrapper for Stability
+        if not OFFLINE_MODE:
+             # Try Online TTS (Better Quality)
+             audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
+        else:
+             # Force Offline TTS (pyttsx3)
+             # Note: Offline TTS might struggle with mixed language (Bahasa + English drug names)
+             # But it's better than silence.
+             print("🔒 Offline TTS Fallback Active")
+             audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"]) # Function should handle generic fallbacks
+    except Exception as e:
+        print(f"⚠️ TTS Error: {e}")
         audio_path = None
     
     # Safe extraction with fallbacks
