@@ -667,57 +667,77 @@ mindmap
 
 <div translate="no">
 
+### 🏗️ Complete Workflow Architecture (Neuro-Symbolic Agent Loop)
+
+<div translate="no">
+
 ```mermaid
-graph TD
-    %% 定義樣式 - Neuro-Symbolic Color Semantics
-    classDef ai fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+graph LR
+
+    %% --- 1. 定義樣式 (Google Health AI Palette) ---
+
+    classDef input fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    classDef brain fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
     classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,color:#000
-    classDef risk fill:#ffcdd2,stroke:#c62828,stroke-width:3px,color:#000
-    classDef safe fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef database fill:#e0e0e0,stroke:#616161,stroke-width:2px,color:#000
+    classDef action fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef risk fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef db fill:#eeeeee,stroke:#616161,stroke-width:1px,shape:cylinder,color:#000
 
-    %% --- 流程開始 ---
-    Start([📸 User Uploads Image]) --> InputGate{Input Gate<br/>Laplacian Variance}
-    InputGate -- "Too Blurry / Non-Medical" --> Refusal([⛔ Active Refusal]):::risk
-    InputGate -- "Quality OK" --> VLM
+    %% --- 2. 節點與流程定義 ---
 
-    %% --- Subgraph 1: Perception (Neural) ---
-    subgraph SG_Perception [🧠 Perception Layer - MedGemma 1.5]
+    %% 感知層
+    subgraph Perception ["👁️ Perception Layer"]
         direction TB
-        VLM[SigLIP Encoder + LLM]:::ai
-        Context[Context Injection<br/>Error Feedback]:::ai
+        Img(["📸 Image Input"]) --> Gate{"Input Gate<br/>Blur Check"}
+        Voice(["🎤 Voice Context<br/>Caregiver Note"]) --> Context["Context Fusion"]:::input
+        Gate -- "Pass" --> Context
+        Gate -- "Blurry" --> Reject(["⛔ Active Refusal"]):::risk
     end
 
-    %% --- Subgraph 2: Reasoning (Agentic Loop) ---
-    subgraph SG_Agent [🔄 Agentic Reasoning Loop]
+    %% 認知層 (核心)
+    subgraph Cognition ["🧠 Neuro-Symbolic Agent Loop"]
         direction TB
         
-        Generate[Generate Analysis<br/>Temp: 0.6]:::ai
-        LogicCheck{🛡️ Symbolic<br/>Logic Check}:::logic
+        %% 流程鏈
+        Context --> Prompt["Dynamic Prompting"]:::brain
+        Prompt --> VLM["OPERATE: MedGemma<br/>System 1 (Intuition)"]:::brain
         
-        %% 失敗路徑 (Self-Correction) - THE MAGIC
-        LogicCheck -- "❌ Hallucination / Dose Error" --> TriggerRetry[⚠️ Trigger Self-Correction]:::risk
-        TriggerRetry --> AdjustParam[📉 STRATEGY SHIFT<br/>Lower Temp 0.6 → 0.2]:::risk
-        AdjustParam --> Context
-        Context --> Generate
-
-        %% 成功路徑
-        LogicCheck -- "✅ Logic Valid" --> SafetyClass{Safety Classification}:::logic
+        %% 分支 (拆開寫以確保編號穩定)
+        VLM -- "Try 1: Creative" --> T1("Temp = 0.6"):::brain
+        VLM -- "Try 2: Strict" --> T2("Temp = 0.2"):::risk
+        
+        %% 匯聚
+        T1 --> Logic{"TEST: Safety Critic<br/>System 2 (Symbolic)"}:::logic
+        T2 --> Logic
+        
+        %% RAG 知識庫
+        KB[("Local Drug DB<br/>Mock RAG")]:::db -.-> Logic
+        
+        %% 自我修正迴圈 (關鍵路徑)
+        Logic -- "❌ Logic Fail" --> Correction["REFINE: Error Injection<br/>Add Logic Constraint"]:::risk
+        Correction --> Prompt
     end
 
-    %% --- Subgraph 3: Action & Output ---
-    subgraph SG_Action [🛡️ SilverGuard Action Layer]
-        SafetyClass -- "🔴 High Risk" --> Alert([🚨 HIGH RISK ALERT<br/>Elderly TTS Warning]):::risk
-        SafetyClass -- "🟡 Warning" --> Review([🟡 Human Review Needed])
-        SafetyClass -- "🟢 Safe" --> UI([✅ SilverGuard UI<br/>Big Font Calendar]):::safe
+    %% 執行層
+    subgraph Action ["🛡️ Action Layer"]
+        direction TB
+        Logic -- "✅ Pass" --> RiskClass{"Risk Classifier"}:::action
+        Logic -- "🛑 Max Retries" --> Human(["🚩 Human Review"]):::risk
+        
+        RiskClass -- "Safe" --> UI(["✅ SilverGuard UI<br/>Calendar Gen"]):::action
+        RiskClass -- "High Risk" --> Alert(["🚨 RED ALERT<br/>TTS Warning"]):::risk
     end
 
-    %% 連接
-    VLM --> Generate
-    
-    %% 註解與裝飾
-    linkStyle default stroke-width:2px,fill:none,stroke:#333
+    %% --- 3. 連線著色 (精確索引) ---
+    %% Prompt --> VLM (紫色: 表示生成)
+    linkStyle 5 stroke:#7b1fa2,stroke-width:3px
+    %% Logic --> Correction (紅色虛線: 表示失敗)
+    linkStyle 11 stroke:#c62828,stroke-width:4px,stroke-dasharray: 5 5
+    %% Correction --> Prompt (紅色實線: 表示重試)
+    linkStyle 12 stroke:#c62828,stroke-width:4px
 ```
+
+</div>
 
 </div>
 

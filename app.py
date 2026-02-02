@@ -1176,7 +1176,49 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
 # ============================================================================
 # 🖥️ Gradio Interface
 # ============================================================================
-custom_css = "#risk-header {color: #d32f2f; font-weight: bold; font-size: 1.2em;}"
+custom_css = """
+/* 隱藏網頁特徵 */
+footer {display: none !important;}
+.gradio-container {max-width: 100% !important; padding: 0 !important; background-color: #f5f5f5;}
+
+/* 模擬 App 頂部欄 */
+#risk-header {
+    color: #d32f2f; 
+    font-weight: bold; 
+    font-size: 1.8em; /* 加大字體 */
+    text-align: center;
+    padding: 15px 0;
+    background-color: white;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+}
+
+/* 讓按鈕像手指觸控區 */
+button.primary {
+    border-radius: 30px !important;
+    height: 65px !important; /* 加高，方便手指點 */
+    font-size: 20px !important; /* 加大字體，長輩友善 */
+    font-weight: bold !important;
+    background: linear-gradient(135deg, #2196f3, #1976d2) !important;
+    border: none !important;
+    box-shadow: 0 4px 6px rgba(33, 150, 243, 0.3);
+}
+
+/* 卡片式設計 */
+.group {
+    border-radius: 20px !important;
+    background: white !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+    margin: 10px !important;
+    padding: 15px !important;
+    border: none !important;
+}
+
+/* 讓輸入框文字變大 (針對長輩) */
+textarea, input {
+    font-size: 16px !important;
+}
+"""
 
 def health_check():
     """System health diagnostic"""
@@ -1219,13 +1261,18 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 with gr.Column(scale=1):
                     input_img = gr.Image(type="pil", label="📸 Upload Drug Bag Photo")
                     
-                    gr.Markdown("### 👨‍👩‍👧‍👦 Caregiver / Pharmacist Proxy Input")
-                    gr.Markdown("*For patients unable to speak clearly, caregivers can input notes here.*")
-                    with gr.Row():
-                        voice_ex1 = gr.Button("🔊 'Allergic to Aspirin'")
-                        voice_ex2 = gr.Button("🔊 'Kidney Failure History'")
+                    gr.Markdown("### 🎤 Multimodal Input (Caregiver Voice / Text)")
                     
-                    voice_input = gr.Audio(sources=["microphone"], type="filepath", label="🎙️ Voice Note (Caregiver)")
+                    with gr.Row():
+                        # Real Microphone Input (Visual Impact)
+                        voice_input = gr.Audio(sources=["microphone"], type="filepath", label="🎙️ Record Voice Note")
+                        
+                        # Quick Scenarios
+                        with gr.Column():
+                            gr.Markdown("**Quick Scenarios (One-Tap):**")
+                            voice_ex1 = gr.Button("🔊 'Allergic to Aspirin'")
+                            voice_ex2 = gr.Button("🔊 'Kidney Failure History'")
+                    
                     # Proxy Text Input (Solution 1)
                     proxy_text_input = gr.Textbox(label="📝 Manual Note (Pharmacist/Family)", placeholder="e.g., Patient getting dizzy after medication...")
                     transcription_display = gr.Textbox(label="📝 Final Context used by Agent", interactive=False)
@@ -1269,7 +1316,8 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                     
                     # 📉 HIDE COMPLEX LOGIC (Accordion)
                     # V5.5 UI Polish: Auto-expand logs to show Agent "Thinking" Process
-                    with gr.Accordion("📊 Developer Logs (Agentic Reasoning Trace)", open=True):
+                    # 📉 VISUALIZE THINKING PROCESS (Key for Agentic Prize)
+                    with gr.Accordion("🧠 Agent Internal Monologue (Chain-of-Thought)", open=True):
                         trace_output = gr.Textbox(label="Agent Reasoning Trace", lines=10)
                         json_output = gr.JSON(label="JSON Result", visible=False)
 

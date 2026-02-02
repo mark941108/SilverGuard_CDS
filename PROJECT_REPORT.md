@@ -45,7 +45,63 @@ Unlike standard models that hallucinate when uncertain, our Agent implements a *
 3.  **Self-Correction (Temp 0.2):** If inconsistencies are found, the Agent **lowers its temperature** and retries with specific error context ("Warning: Dose too high").
 4.  **SilverGuard UI:** Converts complex JSON into **Elderly-Friendly Audio (TTS)** and **Large-Visual Calendars**.
 
-### Agentic Algorithm: Formal DefinitionThe Self-Correction Loop implements a **temperature-modulated retry policy**:
+### 🧠 System Architecture: Neuro-Symbolic Agent Loop
+
+<div translate="no">
+
+```mermaid
+graph LR
+    %% --- 1. Style Definitions ---
+    classDef input fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    classDef brain fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
+    classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,color:#000
+    classDef action fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef risk fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef db fill:#eeeeee,stroke:#616161,stroke-width:1px,shape:cylinder,color:#000
+
+    %% --- 2. Nodes & Flow ---
+    subgraph Perception ["👁️ Perception Layer"]
+        direction TB
+        Img(["📸 Image Input"]) --> Gate{"Input Gate<br/>Blur Check"}
+        Voice(["🎤 Voice Context<br/>Caregiver Note"]) --> Context["Context Fusion"]:::input
+        Gate -- "Pass" --> Context
+        Gate -- "Blurry" --> Reject(["⛔ Active Refusal"]):::risk
+    end
+
+    subgraph Cognition ["🧠 Neuro-Symbolic Agent Loop"]
+        direction TB
+        Context --> Prompt["Dynamic Prompting"]:::brain
+        Prompt --> VLM["OPERATE: MedGemma<br/>System 1 (Intuition)"]:::brain
+        
+        VLM -- "Try 1: Creative" --> T1("Temp = 0.6"):::brain
+        VLM -- "Try 2: Strict" --> T2("Temp = 0.2"):::risk
+        
+        T1 --> Logic{"TEST: Safety Critic<br/>System 2 (Symbolic)"}:::logic
+        T2 --> Logic
+        
+        KB[("Local Drug DB<br/>Mock RAG")]:::db -.-> Logic
+        
+        Logic -- "❌ Logic Fail" --> Correction["REFINE: Error Injection<br/>Add Logic Constraint"]:::risk
+        Correction --> Prompt
+    end
+
+    subgraph Action ["🛡️ Action Layer"]
+        direction TB
+        Logic -- "✅ Pass" --> RiskClass{"Risk Classifier"}:::action
+        Logic -- "🛑 Max Retries" --> Human(["🚩 Human Review"]):::risk
+        RiskClass -- "Safe" --> UI(["✅ SilverGuard UI"]):::action
+        RiskClass -- "High Risk" --> Alert(["🚨 RED ALERT TTS"]):::risk
+    end
+
+    %% --- 3. Link Styling ---
+    linkStyle 5 stroke:#7b1fa2,stroke-width:3px
+    linkStyle 11 stroke:#c62828,stroke-width:4px,stroke-dasharray: 5 5
+    linkStyle 12 stroke:#c62828,stroke-width:4px
+```
+
+</div>
+
+### Agentic Algorithm: Formal Definition
 
 $$
 \mathcal{T}_{attempt} = \begin{cases} 
