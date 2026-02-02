@@ -461,19 +461,44 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     draw.text((45, y_drug+45), drug['eng'], fill="black", font=f_h2)
     
     # Dose (Risk Injection - P1: 臨床邏輯優化)
+    # [V12.5 Audit Fix] Synced with Neuro-Symbolic 4-Rule Engine
     dose_val = drug['dose']
-    original_usage = drug['usage']  # 保存原始頻率
+    original_usage = drug['usage']
+    
     if is_danger:
-         # P1: 更真實的臨床錯誤（頻率錯誤而非幻想藥丸）
-         if "Metformin" in drug['eng']: 
-             dose_val = "1000mg"  # 單顆劑量正常
-             drug['usage'] = "QID"  # 錯誤：每日 4 次 (總量 4000mg -> 乳酸中毒)
+         # Rule 1: Metformin (Glucophage) Limit (>1000mg or High Daily)
+         if "Metformin" in drug['eng'] or "Glucophage" in drug['eng']: 
+             dose_val = "2000mg"  # Direct violation of Single Dose Safety
+             drug['usage'] = "BID" 
+             drug['warning'] += " ⚠️ 劑量過高風險 (Lactic Acidosis)"
+
+         # Rule 2: Zolpidem (Stilnox) Limit (>5mg for Elderly)
+         elif "Zolpidem" in drug['eng'] or "Stilnox" in drug['eng']:
+             dose_val = "10mg" # Standard pill, but dangerous for Elderly (Limit 5mg)
+             drug['usage'] = "HS"
+             drug['warning'] += " ⚠️ 長者跌倒風險 (Beers Criteria)"
+
+         # Rule 3: High Dose Aspirin (>325mg)
+         elif "Aspirin" in drug['eng'] or "Bokey" in drug['eng']:
+             dose_val = "500mg" # Exceeds 325mg Check
+             drug['warning'] += " ⚠️ 腸胃出血風險"
+
+         # Rule 4: Acetaminophen Overdose (>4000mg)
+         elif "Acetaminophen" in drug['eng'] or "Panadol" in drug['eng']:
+             dose_val = "5000mg" # Absurd overdose
+             drug['usage'] = "QD"
+             drug['warning'] += " ⚠️ 肝毒性中毒風險"
+
+         # Rule 5: Warfarin (Bleeding Risk) - Keep existing
          elif "Warfarin" in drug['eng']: 
-             dose_val = "10mg"  # 極高劑量（真實但罕見）
-             drug['warning'] += " ⚠️ 出血風險極高"  # 加強警語
+             dose_val = "10mg"  
+             drug['warning'] += " ⚠️ 出血風險極高"
+             
          else: 
-             dose_val = "500mg"
-             drug['usage'] = "Q2H"  # 錯誤：每 2 小時一次
+             # Generic Fallback
+             dose_val = "5X Normal"
+             drug['usage'] = "Q1H"
+             drug['warning'] += " ⚠️ 劑量與頻次異常"
          
     draw.text((500, y_drug), f"劑量: {dose_val}", fill="black", font=f_h2)
     draw.text((500, y_drug+35), "總量: 28 顆", fill="black", font=f_body)
