@@ -15,11 +15,14 @@ import os
 import random
 import qrcode
 import math
-from datetime import datetime # [Audit Fix] Dynamic Date Support
+from datetime import datetime, timezone, timedelta # [Audit Fix] Dynamic Date Support
 import requests
 import numpy as np
 import textwrap
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+
+# [UX Polish] Timezone Handling
+TZ_TW = timezone(timedelta(hours=8))
 
 # Output Config
 OUTPUT_DIR = "assets/stress_test"
