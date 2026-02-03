@@ -335,14 +335,7 @@ Our synthetic dataset adheres to **100% of the 13 mandatory items** specified in
 
 ---
 
-## 🎯 Project Overview
 
-**AI Pharmacist Guardian** + **SilverGuard** is a human-centered healthcare AI that:
-
-1. **📷 Visual Recognition** - Extract prescription from drug bag images (end-to-end VLM, no OCR)
-2. **🎤 Voice Context** - Integrate caregiver audio logs ([Google MedASR](https://huggingface.co/google/medasr)) for deeper safety checks
-3. **🔍 Safety Analysis** - Detect medication risks for elderly patients
-4. **👴 SilverGuard Mode** - TTS voice readout + Large-font UI for cognitively impaired users
 
 ### 🌏 Strategic Testbed: Why Taiwan?
 
@@ -603,11 +596,7 @@ $$\text{Annual Savings} = 2,700 \times \$50 = \$135,000 \text{ USD}$$
 
 ---
 
-## 📸 Clinical Validation: Sim2Real "Screen-to-Camera" Test
-To validate robustness against real-world optical noise, we performed **LCD Re-capture Tests**:
-1.  Displayed drug bags on a screen.
-2.  captured images using a smartphone to introduce **Moiré patterns**, **glare**, and **lens distortion**.
-3.  **Result:** System successfully processed these physical-digital hybrid inputs.
+
 
 ## 🏆 Demo Results
 
@@ -977,7 +966,7 @@ To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disc
 *   **Proof of Concept**: The "Clinical Knowledge Base" utilizes a **Hybrid Strategy**.
     *   **Edge/Demo**: A lightweight **Mock-RAG (Dictionary/Fuzzy Match)** or **Local FAISS** is used for zero-latency, offline-capable demonstration.
     *   **Production Goal**: Scalable Vector Database (ChromaDB) indexing millions of drugs.
-*   **Current Limit**: Contains **17 representative drugs**. Queries for drugs outside this set will trigger a "General Logic Check" rather than a specific literature review.
+*   **Current Limit**: Contains **18 representative drugs**. Queries for drugs outside this set will trigger a "General Logic Check" rather than a specific literature review.
 
 ---
 
@@ -1096,7 +1085,20 @@ This project uses **MedGemma 1.5-4B Multimodal** as its core reasoning engine. R
 | **Medical Text Reasoning** | Improved accuracy in extracting structured data from medical documents (drug names, dosages, instructions) |
 | **Edge-Ready** | 4B parameters + 4-bit quantization enables deployment on pharmacy computers without datacenter resources |
 
+
 > **Source**: [MedGemma Model Card](https://developers.google.com/health-ai-developer-foundations/medgemma/model-card) — Google Health AI Developer Foundations
+
+### 🎤 MedASR integration
+*   **Pipeline:** We use **[Google MedASR](https://huggingface.co/google/medasr)** (Medical Automated Speech Recognition) to transcribe caregiver voice logs into text, then inject this text into MedGemma's context window with a specific system prompt: `[📢 CAREGIVER VOICE NOTE]`.
+
+*   **MedASR Advantages**:
+    - **Medical Terminology**: 58% fewer errors than Whisper Large-V3 on medical dictation (5.2% vs. 12.5% WER on chest X-ray dictations)
+    - **Conformer Architecture**: 105M parameters optimized for medical domain
+    - **Multilingual Support**: Handles medical terms across languages
+    - **Official Documentation**: [Google HAI-DEF](https://developers.google.com/health-ai-developer-foundations/medasr)
+
+*   **Use Case**: Migrant caregivers (Indonesian/Vietnamese) can dictate observations in their native language, which MedASR transcribes with medical terminology intact, enabling MedGemma to cross-reference with the prescription.
+*   **Benefit**: This allows the agent to perform "Cross-Modal Reasoning" (e.g., comparing visual pills vs. auditory allergy warnings) without the massive compute cost of training a new audio encoder.
 
 ### Global Health Context (WHO Alignment)
 
@@ -1267,38 +1269,28 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 *   **Thresholding:** We use a conservative logic where `WARNING` is only triggered if specific contraindications (e.g., Age > 80 + High Dose) are met, rather than generic warnings.
 *   **Visual Hierarchy:** SilverGuard's UI uses distinct color coding (Red for lethal, Yellow for caution) so pharmacists can prioritize their attention. Our internal testing shows a specificity of ~92%, ensuring alerts are meaningful.
 
-#### Q2: The `DRUG_DATABASE` currently has only 18 distinct medications. Is this scalable?
+#### Q6: The `DRUG_DATABASE` currently has only 18 distinct medications. Is this scalable?
 **A: Yes, we use a "Lightweight Proto-Strategy" for edge demo efficiency.**
 *   **Architecture Note:** For this **Edge-AI Prototype**, we implemented a zero-latency dictionary lookup.
 *   **Production Vision:** The `retrieve_drug_info` interface is designed to be **hot-swapped** with a scalable Vector Database (e.g., ChromaDB) or RxNorm API in Phase 2, without changing the core reasoning logic.
 
-#### Q3: Why specifically MedGemma? Why not a general vision model like PaliGemma?
+#### Q7: Why specifically MedGemma? Why not a general vision model like PaliGemma?
 **A: Because of the "SigLIP" encoder and Medical Fine-tuning.**
 *   **SigLIP Vision Encoder:** MedGemma 1.5 uses SigLIP, which offers superior OCR capabilities for **reading small text (e.g., "0.5mg" vs "5.0mg")** on drug bags compared to standard CLIP encoders.
 *   **Medical Nuance:** Being fine-tuned on medical text, MedGemma understands that "mg" and "mcg" make a **critical difference**, whereas general models might treat them as typos. This reduces the risk of hallucination in dosage extraction.
 
-#### Q4: Does the agent's "Retry Loop" introduce unacceptable latency?
+#### Q8: Does the agent's "Retry Loop" introduce unacceptable latency?
 **A: We trade Latency for Safety (The "Fail-Safe" Trade-off).**
 *   **The Math:** A standard inference takes ~2 seconds. A retry loop might take 5-8 seconds.
 *   **The Philosophy:** In a clinical setting, waiting 5 seconds for a verified answer is acceptable; getting an instant but wrong answer (hallucination) creates severe risk.
 *   **Latency Guard:** We explicitly set `MAX_RETRIES = 2` to prevent infinite loops and ensure the system degrades gracefully to "Human Review Needed" if it takes too long.
 
-#### Q5: What is the core philosophy of your safety architecture?
+#### Q9: What is the core philosophy of your safety architecture?
 **A: "An architecture of safety isn't just about accuracy; it's about knowing when to ask for help."**
 
 SilverGuard is an **Offline-First**, LLM-powered visual QA system designed to be the logic layer between elderly patients and their medications. It runs locally on edge devices (T4 GPU optimized), providing a **privacy-preserving** safety net that detects errors before pills are swallowed.
 
-*(Note: Demo features like High-Quality TTS use hybrid cloud services for presentation, but the core safety architecture is designed for 100% air-gapped deployment.)*
-*   **Pipeline:** We use **[Google MedASR](https://huggingface.co/google/medasr)** (Medical Automated Speech Recognition) to transcribe caregiver voice logs into text, then inject this text into MedGemma's context window with a specific system prompt: `[📢 CAREGIVER VOICE NOTE]`.
 
-*   **MedASR Advantages**:
-    - **Medical Terminology**: 58% fewer errors than Whisper Large-V3 on medical dictation (5.2% vs. 12.5% WER on chest X-ray dictations)
-    - **Conformer Architecture**: 105M parameters optimized for medical domain
-    - **Multilingual Support**: Handles medical terms across languages
-    - **Official Documentation**: [Google HAI-DEF](https://developers.google.com/health-ai-developer-foundations/medasr)
-
-*   **Use Case**: Migrant caregivers (Indonesian/Vietnamese) can dictate observations in their native language, which MedASR transcribes with medical terminology intact, enabling MedGemma to cross-reference with the prescription.
-*   **Benefit:** This allows the agent to perform "Cross-Modal Reasoning" (e.g., comparing visual pills vs. auditory allergy warnings) without the massive compute cost of training a new audio encoder.
 
 ---
 
