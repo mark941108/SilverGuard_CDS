@@ -145,15 +145,26 @@ subprocess.run("pip install --no-cache-dir torch==2.6.0+cu118 torchvision==0.21.
 # 修正: 不再鎖定 4.47.1，改為安裝最新穩定版
 # ⚠️ [Omni-Nexus Warning] Version Roulette: transformers 5.0+ may introduce breaking changes.
 # Update with caution! Currently unpinned to support checking for latest versions.
-print("   ⬇️ 安裝 Hugging Face Stack (Gemma 3 Support)...")
-subprocess.run('pip install -U "huggingface-hub>=0.29.0" "transformers>=4.51.0" accelerate bitsandbytes peft datasets', shell=True, check=True)
+# [修正版] 安裝白金依賴矩陣 (V12.15 Final Fix)
+print("   ⬇️ 安裝關鍵 AI 依賴 (PyTorch + Transformers + Gradio)...")
 
-# 5. 應用層依賴 (RAG, Vision, Audio)
-print("   ⬇️ 安裝應用層依賴...")
-subprocess.run("pip install -U sentence-transformers faiss-cpu pydub", shell=True, check=True)
-subprocess.run("pip install -U pillow==10.4.0 librosa soundfile", shell=True, check=True)
-subprocess.run("pip install -U qrcode[pil] albumentations==1.3.1 opencv-python-headless gTTS edge-tts nest_asyncio pyttsx3", shell=True, check=True)
-subprocess.run("pip install -U gradio==4.44.1 pydantic==2.10.6", shell=True, check=True)
+# 1. 核心 AI 引擎 (強制升級 Transformers 以支援 Gemma 3)
+subprocess.run(
+    'pip install -U "torch>=2.6.0" "transformers>=4.51.0" "accelerate>=1.3.0" "bitsandbytes>=0.45.0" "peft>=0.14.0"', 
+    shell=True, check=True
+)
+
+# 2. UI 介面 (關鍵：Gradio 5.0+ 才能解決 Pydantic 衝突)
+subprocess.run(
+    'pip install -U "gradio>=5.15.0" "fastapi>=0.115.0" "pydantic>=2.10.0"', 
+    shell=True, check=True
+)
+
+# 3. 視覺與音訊工具
+subprocess.run(
+    'pip install -U "pillow>=10.4.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]"', 
+    shell=True, check=True
+)
 
 print("   ✅ 所有依賴安裝完成！")
 

@@ -2,10 +2,10 @@
 # For Kaggle V5 Training Pipeline
 
 # Core ML (Enforce recent versions for Gemma 3 architecture)
-transformers==4.51.2
-accelerate>=0.26.0
-bitsandbytes>=0.43.0
-peft>=0.10.0
+transformers>=4.51.0
+accelerate>=1.3.0
+bitsandbytes>=0.45.0
+peft>=0.14.0
 datasets
 huggingface_hub>=0.29.0
 
@@ -22,7 +22,9 @@ opencv-python-headless
 qrcode[pil]
 
 # Demo & UI
-gradio>=5.0.0  # Latest stable for modern features
+gradio>=5.15.0  # Golden Matrix: Latest stable for Pydantic 2 Fix
+fastapi>=0.115.0
+pydantic>=2.10.0
 matplotlib
 seaborn
 scikit-learn
