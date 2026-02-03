@@ -193,6 +193,10 @@ print("="*80)
 import nest_asyncio
 nest_asyncio.apply()
 
+# [UX Polish] Timezone Handling
+from datetime import datetime, timezone, timedelta
+TZ_TW = timezone(timedelta(hours=8))
+
 print("\n[1/2] HuggingFace 登入...")
 from kaggle_secrets import UserSecretsClient
 from huggingface_hub import login
