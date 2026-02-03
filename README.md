@@ -128,6 +128,7 @@ docker run --gpus all -it silverguard-agent
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Visual Translation Override** (UI text degrades to simple native warnings for ID/VI) and **Clinically Verified Translations**.
 *   **🗣️ Local Dialect Support**: Capable of **Localized Taiwanese Mandarin (Taiwan-Accent)** TTS, crucial for communicating with the 65+ demographic in rural Taiwan.
 *   **🔐 Privacy First**: **Hybrid Privacy Architecture** - Core VLM inference runs **100% Locally** (PHI stays on device). Optional TTS module offers configurable privacy modes (Offline `pyttsx3` vs Cloud `gTTS`).
+    > **Note:** For high-quality demonstration, the Kaggle Notebook defaults to **Online Mode** (Cloud TTS). Production deployments (Docker/HF Space) default to **Active Offline Mode** (Privacy First).
 *   **🧠 Agentic Reflection Pattern**: "Think before speaking" loop with self-critique and refinement (Andrew Ng, 2024).
 
 ## ⚡ Judges' Executive Summary (30-Second Insight)

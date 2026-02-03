@@ -36,7 +36,7 @@ The industry is pivoting from vials to pouches. Amazon validated this shift by a
 
 ### Overall solution
 **Effective use of HAI-DEF models (MedGemma):**
-Our solution, **SilverGuard (Medication Safety Assistant)**, is NOT a "Universal Drug Bag Reader" (which is technically impossible due to physical noise). Instead, it is a **Standardized Drug Label Verification Assistant** powered by fine-tuned **MedGemma 1.5-4B**. We consciously trade "convenience" for "safety," implementing strict input gates that reject substandard images rather than guessing.
+Our solution, **SilverGuard (Medication Safety Assistant)**, is NOT a "Universal Drug Bag Reader" (which is technically impossible due to physical noise). Instead, it is a **Standardized Drug Label Verification Assistant** powered by fine-tuned **MedGemma 1.5-4B**. We consciously trade "convenience" for "safety," implementing strict **Hybrid Input Gates** that reject substandard images rather than relying on probabilistic guessing.
 
 **Core Innovation: The Self-Correcting Agent**
 Unlike standard models that hallucinate when uncertain, our Agent implements a **Human-Like Feedback Loop**:

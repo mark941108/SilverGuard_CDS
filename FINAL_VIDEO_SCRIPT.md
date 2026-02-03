@@ -132,7 +132,8 @@ Switching to **Air-Gapped Mode**. Zero data leaves this device.
 
 **【複製到 Text】(下方格子)**
 ```text
-Standard AI guesses. SilverGuard **reflects**.
+Standard AI guesses. SilverGuard **validates**.
+It uses **Hybrid Verification**—combining VLM reasoning with numeric pattern matching.
 Look at the log... **Strategy Shift**.
 It detected a risk, **lowered its temperature**, and re-evaluated the logic.
 It caught the error that others missed.
