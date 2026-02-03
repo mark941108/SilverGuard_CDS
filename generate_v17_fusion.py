@@ -3,7 +3,10 @@ import random
 import math
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+# [UX Polish] Timezone Handling
+TZ_TW = timezone(timedelta(hours=8))
 
 import qrcode
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps

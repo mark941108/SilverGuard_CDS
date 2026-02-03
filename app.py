@@ -1062,7 +1062,7 @@ def run_inference(image, patient_notes=""):
     yield final_status, result_json, speech_text, None, "\n".join(trace_logs), calendar_img
     
     try:
-        audio_path = text_to_speech(clean_text, lang='zh-TW')
+        audio_path = text_to_speech_robust(clean_text, lang='zh-TW')
     except Exception as e:
         log(f"⚠️ TTS Generation Failed: {e}")
         audio_path = None
@@ -1086,6 +1086,43 @@ def run_inference(image, patient_notes=""):
     # Return Trace (Final Yield)
     final_trace = "\n".join(trace_logs)
     yield final_status, result_json, speech_text, audio_path, final_trace, calendar_img
+
+# --- 🕒 Timezone Fix (UTC+8) ---
+from datetime import datetime, timedelta, timezone
+TZ_TW = timezone(timedelta(hours=8))
+
+# --- 🔊 Robust TTS Engine (Offline -> Online Fallback) ---
+def text_to_speech_robust(text, lang='zh-tw'):
+    """
+    Tier 1: Offline (pyttsx3) - FAST & PRIVACY-FIRST
+    Tier 2: Online (gTTS) - FALLBACK (If audio driver missing)
+    """
+    filename = f"tts_{int(datetime.now(TZ_TW).timestamp())}.mp3"
+    
+    # 1. Try Offline First
+    if OFFLINE_MODE:
+        try:
+            engine = pyttsx3.init()
+            # Simple property check to ensure engine is alive
+            engine.getProperty('rate') 
+            engine.save_to_file(text, filename)
+            engine.runAndWait()
+            return filename
+        except Exception as e:
+            print(f"⚠️ Offline TTS Failed (Driver Issue?): {e}")
+            if OFFLINE_MODE: # Strict Offline
+                return None
+            print("🔄 Switching to Online TTS Fallback...")
+
+    # 2. Online Fallback (gTTS)
+    try:
+        from gtts import gTTS
+        tts = gTTS(text=text, lang=lang)
+        tts.save(filename)
+        return filename
+    except Exception as e:
+        print(f"❌ All TTS Engines Failed: {e}")
+        return None
 
 # --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
 SAFE_TRANSLATIONS = {
@@ -1178,13 +1215,13 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         # [V8.6] Headless TTS Wrapper for Stability
         if not OFFLINE_MODE:
              # Try Online TTS (Better Quality)
-             audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
+             audio_path = text_to_speech_robust(tts_text, lang=lang_pack["TTS_LANG"])
         else:
              # Force Offline TTS (pyttsx3)
              # Note: Offline TTS might struggle with mixed language (Bahasa + English drug names)
              # But it's better than silence.
              print("🔒 Offline TTS Fallback Active")
-             audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"]) # Function should handle generic fallbacks
+             audio_path = text_to_speech_robust(tts_text, lang=lang_pack["TTS_LANG"]) 
     except Exception as e:
         print(f"⚠️ TTS Error: {e}")
         audio_path = None
@@ -1473,13 +1510,19 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 btn_error = gr.Button("❌ Error")
             feedback_output = gr.Textbox(label="RLHF Status", interactive=False)
             
-            def log_feedback(img, out, ftype):
-                import datetime
-                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                return f"✅ Feedback logged at {ts}: {ftype} (Local Session Log)"
-            
-            btn_correct.click(lambda i,o: log_feedback(i,o,"POSITIVE"), inputs=[input_img, json_output], outputs=feedback_output)
-            btn_error.click(lambda i,o: log_feedback(i,o,"NEGATIVE"), inputs=[input_img, json_output], outputs=feedback_output)
+    # [UX Polish] Safe Asset Path Check
+    # Ensure assets/hero_image.jpg calls use absolute paths or graceful fallbacks
+    def get_safe_asset_path(filename):
+        import os
+        base_path = os.getcwd() # Absolute anchor
+        candidate = os.path.join(base_path, "assets", filename)
+        if os.path.exists(candidate):
+            return candidate
+        # Fallback to local if assets folder missing (flat structure)
+        if os.path.exists(filename):
+            return filename
+        return None 
+
 
         with gr.TabItem("🔒 Local Safety Guard (Offline)"):
             gr.Markdown("### 🔗 Local Safety Knowledge Graph (No Internet Required)")

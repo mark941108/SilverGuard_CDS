@@ -251,6 +251,7 @@ else:
     os.environ["MEDGEMMA_USE_V17_DATA"] = "0"
     print("⚠️ V8 will use internal V5 generator (fallback)")
 
-# 執行主程式
-subprocess.run(["python", "agent_engine.py"], check=True)
+# 執行主程式 (註解說明：請在 Notebook 的下一個 Cell 手動執行 !python agent_engine.py，避免 Bootstrap 卡死)
+# subprocess.run(["python", "agent_engine.py"], check=True)
+print("🎉 Bootstrap Complete! Now run agent_engine.py in a separate cell.")
 
