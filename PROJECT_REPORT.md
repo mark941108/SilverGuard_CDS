@@ -143,7 +143,7 @@ We embrace **"Intellectual Honesty"** by proactively disclosing limitations and 
 > *"We chose deterministic validation (Regex for dose units) over probabilistic AI—not due to lack of sophistication, but because life-critical systems demand **certainty over creativity**."*
 
 #### 2. **Limited Drug Database (Phase 1: Proto-Strategy)**
-**Limitation:** The current system tracks **18 medications** (corrected from 17) and uses a **Hybrid Lookup** (Dictionary Fallback) in the Demo environment for stability, rather than a full ChromaDB connection.
+**Limitation:** The current system tracks **19 medications** (corrected from 17) and uses a **Hybrid Lookup** (Dictionary Fallback) in the Demo environment for stability, rather than a full ChromaDB connection.
 
 **Mitigation (Scalable Architecture):**
 - ✅ **Strategy Pattern Implementation:** For this **Edge-AI Prototype**, we utilized a lightweight lookup to demonstrate the *logic flow* with zero latency.

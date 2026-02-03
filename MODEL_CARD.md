@@ -40,7 +40,7 @@ This is a **research prototype** and has several important limitations:
     The model was trained primarily on **synthetic drug bag images** generated to mimic Taiwanese hospital standards. While we applied adversarial augmentation (Sim2Real techniques), performance on extremely noisy real-world images may vary.
 
 2.  **Limited Knowledge Base (POC Scope):**
-    The current safety logic is hardcoded for a **18-drug prototype** (representing major chronic diseases like Hypertension and Diabetes). It does not contain a comprehensive database of all FDA-approved drugs.
+    The current safety logic is hardcoded for a **19-drug prototype** (representing major chronic diseases like Hypertension and Diabetes). It does not contain a comprehensive database of all FDA-approved drugs.
 
 3.  **Out-of-Distribution (OOD) Detection Limitation:**
     The OOD gate (`check_is_prescription`) relies on **semantic validation** of VLM output rather than a dedicated image classifier.

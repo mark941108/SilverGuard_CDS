@@ -11,7 +11,7 @@
 > 7. **INTERNATIONAL USE**: References Taiwan regulations only. Users must comply with local laws.
 > 8. **ERROR RATE DISCLOSURE**: This system has a known error rate and may miss dangerous conditions or flag safe medications. Do NOT rely on it as sole decision-making tool.
 > 9. **NOT FOR EMERGENCIES**: In case of adverse reaction, call emergency services immediately. Do NOT wait for AI analysis.
-> 10. **LIMITED SCOPE**: This prototype covers only 18 medications and cannot detect all drug-drug or drug-food interactions.
+> 10. **LIMITED SCOPE**: This prototype covers only 19 medications and cannot detect all drug-drug or drug-food interactions.
 
 # 🏥 SilverGuard: Intelligent Medication Safety System (V1.0 Impact Edition)
 
@@ -755,7 +755,7 @@ Attempt 2 (Temp 0.2): "Drug: Glucophage, Dosage: 500mg"
 
 > **⚠️ Sim2Real Gap Acknowledgment (Critical Limitation):** This model is trained **exclusively on synthetic data** (programmatically generated images). However, we have upgraded the generator to strictly follow the **Taiwan Pharmacist Act (藥師法)** labeling standards—including **Noto Sans CJK TC fonts**, **Dispensing Date**, and **Drug Appearance** fields—to maximize structural realism. The features "Appearance" and "Chart No" are now included to match hospital standards.
 
-> **📚 Prototype Scope (18 Drugs):** The `DRUG_DATABASE` contains **18 representative medications** across 7 categories. This is a **deliberate POC (Proof of Concept) design**, not a production system. If an unknown drug is encountered, the RAG system (Hybrid Vector/Mock) will return "NOT_FOUND" and trigger human review. In production (Phase 4), this local dictionary would be replaced by real-time queries to RxNorm/Micromedex APIs. We prioritize demonstrating the *safety architecture* over knowledge breadth—the pipeline correctly *admits its limitations* rather than inventing answers.
+> **📚 Prototype Scope (19 Drugs):** The `DRUG_DATABASE` contains **19 representative medications** across 7 categories. This is a **deliberate POC (Proof of Concept) design**, not a production system. If an unknown drug is encountered, the RAG system (Hybrid Vector/Mock) will return "NOT_FOUND" and trigger human review. In production (Phase 4), this local dictionary would be replaced by real-time queries to RxNorm/Micromedex APIs. We prioritize demonstrating the *safety architecture* over knowledge breadth—the pipeline correctly *admits its limitations* rather than inventing answers.
 
 ### Model Configuration
 | Parameter | Value |
@@ -967,7 +967,7 @@ To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disc
 *   **Proof of Concept**: The "Clinical Knowledge Base" utilizes a **Hybrid Strategy**.
     *   **Edge/Demo**: A lightweight **Mock-RAG (Dictionary/Fuzzy Match)** or **Local FAISS** is used for zero-latency, offline-capable demonstration.
     *   **Production Goal**: Scalable Vector Database (ChromaDB) indexing millions of drugs.
-*   **Current Limit**: Contains **18 representative drugs**. Queries for drugs outside this set will trigger a "General Logic Check" rather than a specific literature review.
+*   **Current Limit**: Contains **19 representative drugs**. Queries for drugs outside this set will trigger a "General Logic Check" rather than a specific literature review.
 
 ---
 
@@ -1270,7 +1270,7 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 *   **Thresholding:** We use a conservative logic where `WARNING` is only triggered if specific contraindications (e.g., Age > 80 + High Dose) are met, rather than generic warnings.
 *   **Visual Hierarchy:** SilverGuard's UI uses distinct color coding (Red for lethal, Yellow for caution) so pharmacists can prioritize their attention. Our internal testing shows a specificity of ~92%, ensuring alerts are meaningful.
 
-#### Q6: The `DRUG_DATABASE` currently has only 18 distinct medications. Is this scalable?
+#### Q6: The `DRUG_DATABASE` currently has only 19 distinct medications. Is this scalable?
 **A: Yes, we use a "Lightweight Proto-Strategy" for edge demo efficiency.**
 *   **Architecture Note:** For this **Edge-AI Prototype**, we implemented a zero-latency dictionary lookup.
 *   **Production Vision:** The `retrieve_drug_info` interface is designed to be **hot-swapped** with a scalable Vector Database (e.g., ChromaDB) or RxNorm API in Phase 2, without changing the core reasoning logic.
@@ -1297,7 +1297,7 @@ SilverGuard is an **Offline-First**, LLM-powered visual QA system designed to be
 
 ### ⚖️ Non-Affiliation & Disclaimer
 ⚠️ **Disclaimer**: This project is a **"Sim2Real Prototype"** for the Kaggle MedGemma Challenge. It demonstrates a **Human-in-the-Loop Triage Tool**, NOT a diagnostic medical device.
-⚠️ **POC Limitation**: The current knowledge base is a subset of 18 distinct medications for architectural demonstration. Production deployment requires integration with full-scale drug databases (e.g., RxNorm, Micromedex).
+⚠️ **POC Limitation**: The current knowledge base is a subset of 19 distinct medications for architectural demonstration. Production deployment requires integration with full-scale drug databases (e.g., RxNorm, Micromedex).
 ⚠️ **Transparency Report**:
 *   **Privacy**: Core VLM inference runs 100% offline.
 *   **TTS**: For this demo, Google Translate API (`gTTS`) is used for high-quality audio. Production systems must use offline engines (e.g., MMS-TTS) for full air-gapped compliance.
