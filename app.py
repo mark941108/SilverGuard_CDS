@@ -1091,6 +1091,17 @@ def run_inference(image, patient_notes=""):
 from datetime import datetime, timedelta, timezone
 TZ_TW = timezone(timedelta(hours=8))
 
+# [UX Polish] Safe Asset Path Check
+def get_safe_asset_path(filename):
+    import os
+    base_path = os.getcwd() 
+    candidate = os.path.join(base_path, "assets", filename)
+    if os.path.exists(candidate):
+        return candidate
+    if os.path.exists(filename):
+        return filename
+    return None
+
 # --- 🔊 Robust TTS Engine (Offline -> Online Fallback) ---
 def text_to_speech_robust(text, lang='zh-tw'):
     """
@@ -1331,6 +1342,11 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
     gr.Markdown("# 🏥 SilverGuard: Intelligent Medication Safety System")
     gr.Markdown("**Release v1.0 | Powered by MedGemma**")
     
+    # [UX Polish] Hero Image (with Fallback)
+    hero_path = get_safe_asset_path("hero_image.jpg")
+    if hero_path:
+        gr.Image(hero_path, show_label=False, show_download_button=False, container=False, height=200)
+    
     # Disclaimer Header (Enhanced Visibility)
     gr.HTML("""
     <div style="background-color: #fff3cd; border: 2px solid #ffecb5; border-radius: 5px; padding: 15px; margin-bottom: 20px; text-align: center;">
@@ -1510,18 +1526,6 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 btn_error = gr.Button("❌ Error")
             feedback_output = gr.Textbox(label="RLHF Status", interactive=False)
             
-    # [UX Polish] Safe Asset Path Check
-    # Ensure assets/hero_image.jpg calls use absolute paths or graceful fallbacks
-    def get_safe_asset_path(filename):
-        import os
-        base_path = os.getcwd() # Absolute anchor
-        candidate = os.path.join(base_path, "assets", filename)
-        if os.path.exists(candidate):
-            return candidate
-        # Fallback to local if assets folder missing (flat structure)
-        if os.path.exists(filename):
-            return filename
-        return None 
 
 
         with gr.TabItem("🔒 Local Safety Guard (Offline)"):
