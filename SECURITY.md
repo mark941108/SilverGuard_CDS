@@ -47,7 +47,7 @@ The system correctly interprets this as concerning patient context rather than a
 
 **Layer 2: Logic Consistency Check**
 - Mathematical validation of dosages (unit conversion, summation)
-- Cross-reference with drug database (17 medications for POC scope)
+- Cross-reference with drug database (18 representative medications for POC scope)
 - **Unknown Drug Handling**: Returns `UNKNOWN_DRUG` status for unrecognized medications, triggering mandatory human review
 
 **Layer 3: Human-in-the-Loop**

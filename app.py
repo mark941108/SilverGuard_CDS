@@ -7,12 +7,33 @@ from peft import PeftModel
 from PIL import Image, ImageDraw, ImageFont
 import json
 import re
-import spaces  # ZeroGPU support
+# [Audit Fix] Portability: Mock 'spaces' if not on ZeroGPU
+try:
+    import spaces
+except ImportError:
+    class spaces:
+        @staticmethod
+        def GPU(duration=60):
+            def decorator(func): return func
+            return decorator
+        
 import pyttsx3 # V7.5 FIX: Missing Import
 from datetime import datetime  # For calendar timestamp
 import sys
 sys.path.append('.') # Ensure local modules are found
 import medgemma_data # Local Drug Database (Offline Source of Truth)
+
+# [Audit Fix] Global TTS Singleton (Prevent Segfault)
+_TTS_ENGINE = None
+
+def get_tts_engine():
+    global _TTS_ENGINE
+    if _TTS_ENGINE is None:
+        try:
+            _TTS_ENGINE = pyttsx3.init()
+        except Exception as e:
+            print(f"⚠️ Global TTS Init Failed: {e}")
+    return _TTS_ENGINE
 
 # ============================================================================
 # 🏥 SilverGuard: Intelligent Medication Safety System - Hugging Face Space Demo
@@ -20,6 +41,7 @@ import medgemma_data # Local Drug Database (Offline Source of Truth)
 # Project: SilverGuard (formerly AI Pharmacist Guardian)
 # Author: Wang Yuan-dao (Solo Developer & Energy Engineering Student)
 # Philosophy: Zero-Cost Edge AI + Agentic Safety Loop
+# Version: V1.0 Impact Edition (Build v12.22)
 #
 # This app provides an interactive demo for the MedGemma Impact Challenge.
 # It loads the fine-tuned adapter from Hugging Face Hub (Bonus 1) and runs inference.
@@ -32,6 +54,22 @@ if not DATA_AVAILABLE:
     print("⚠️ WARNING: 'medgemma_data.py' is missing! System running in DEGRADED MODE (Mock Data).")
 else:
     print("✅ Dependency Check: medgemma_data.py found.")
+
+# [UX Safeguard] Ensure Chinese Font Exists (Audit Fix)
+FONT_PATH = "NotoSansTC-Bold.otf"
+if not os.path.exists(FONT_PATH):
+    print("⚠️ Font missing! Downloading NotoSansTC for Safety...")
+    try:
+        import subprocess
+        # Use curl or wget depending on OS, or python request
+        # Since wget might not be on Windows, let's use python requests for cross-platform safety
+        import requests
+        url = "https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC-Bold.otf"
+        r = requests.get(url, allow_redirects=True)
+        open(FONT_PATH, 'wb').write(r.content)
+        print("✅ Font downloaded successfully.")
+    except Exception as e:
+        print(f"❌ Font download failed: {e}")
 
 # 1. Configuration
 HF_TOKEN = os.environ.get("HUGGINGFACE_TOKEN")
@@ -413,8 +451,12 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     
     # ============ 視覺繪製 ============
     y_off = 40
+    # [Fix] 安全定義時區 (防止 global 尚未定義) (Timezone Safety Fix)
+    from datetime import datetime, timedelta, timezone
+    TZ_TW = timezone(timedelta(hours=8))
+    
     draw.text((50, y_off), "🗓️ 用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
-    draw.text((WIDTH - 350, y_off + 20), f"📅 {datetime.now().strftime('%Y-%m-%d')}", fill=COLORS["text_muted"], font=font_body)
+    draw.text((WIDTH - 350, y_off + 20), f"📅 {datetime.now(TZ_TW).strftime('%Y-%m-%d')}", fill=COLORS["text_muted"], font=font_body)
     
     y_off += 120
     draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
@@ -597,12 +639,7 @@ def check_drug_interaction(drug_a, drug_b):
         
     return "✅ No critical interaction found in Local Safety Database."
 
-def check_drug_interaction_online_legacy(d1, d2):
-    """
-    [DEPRECATED] Online implementation for reference only. 
-    SilverGuard V1.0 uses offline_safety_knowledge_graph().
-    """
-    pass # Code removed for offline compliance
+
 
 def json_to_elderly_speech(result_json):
     """Generates the TTS script for SilverGuard"""
@@ -651,15 +688,16 @@ def normalize_dose_to_mg(dose_str):
     if not dose_str: return 0.0, False
     try:
         s = str(dose_str).lower().replace(" ", "")
-        # V8.8 Audit Fix: Added 'ug' support for thyroid/vitamin meds
-        match = re.search(r'(\d+(?:\.\d+)?)\s*(mg|g|mcg|ug)', s, re.IGNORECASE)
+        # V8.8 Audit Fix: Added 'ug' support and Chinese units
+        match = re.search(r'(\d+(?:\.\d+)?)\s*(mg|g|mcg|ug|ml|毫克|公克)', s, re.IGNORECASE)
         if not match: return 0.0, False
 
         value = float(match.group(1))
         unit = match.group(2)
         
-        if unit == 'g': return value * 1000.0, True
+        if unit in ['g', '公克']: return value * 1000.0, True
         elif unit in ['mcg', 'ug']: return value / 1000.0, True
+        elif unit == '毫克': return value, True # mg
         else: return value, True
     except:
         return 0.0, False
@@ -714,15 +752,20 @@ def logical_consistency_check(extracted_data):
             if mg_val > 4000:
                 issues.append(f"⛔ Acetaminophen Overdose ({mg_val}mg > 4000mg daily).")
 
-    # 4. Drug Knowledge Base Presence
+    # 4. Drug Knowledge Base Presence (Agentic Sync)
     raw_name_en = extracted_drug.get("name", "")
     if raw_name_en:
         drug_info = retrieve_drug_info(raw_name_en)
         if not drug_info.get("found", False):
-             # [Audit Fix] Downgrade Error to Warning (Allow Unknown Drugs)
-             logs.append(f"⚠️ Warning: Drug not in database ({raw_name_en}). Proceeding with generic checks.")
+             # [Audit Fix] Sync with agent_engine.py: Explicitly flag as UNKNOWN (Pass Logic to avoid loop)
+             logs.append(f"⚠️ Warning: Drug not in database ({raw_name_en}).")
+             return True, "⚠️ UNKNOWN_DRUG detected. Manual Review Required.", logs
 
     if issues:
+        # [Audit Fix] Prevent Infinite Retry for Unknown Drugs
+        if any("Drug not in database" in issue for issue in issues):
+             return True, "⚠️ UNKNOWN_DRUG detected. Manual Review Required.", logs
+             
         return False, "; ".join(issues), logs
         
     return True, "Logic OK", logs
@@ -994,6 +1037,7 @@ def run_inference(image, patient_notes=""):
             generated_tokens = generate_ids[:, input_len:]
             response = processor.batch_decode(generated_tokens, skip_special_tokens=True)[0]
             result_json = parse_model_output(response)
+            result_json["agentic_retries"] = current_try # [Audit Fix] Enable UI Self-Correction Badge
             
             # V7.3 FIX: logical_consistency_check returns (bool, str), not list
             logic_passed = True
@@ -1009,9 +1053,18 @@ def run_inference(image, patient_notes=""):
                 if logic_passed: # Only act if basic logic passes
                     critic_passed, critic_msg = safety_critic_tool(result_json)
                     if not critic_passed:
-                        logic_passed = False
-                        logic_msg = f"Critic Rejection: {critic_msg}"
-                        log(f"   🛡️ Safety Critic Intercepted: {critic_msg}")
+                        # [Audit Fix] Stop retry for Unknown Drug (Infinite Loop Prevention)
+                        if "not found in database" in critic_msg or "UNKNOWN_DRUG" in critic_msg:
+                             log(f"   ⚠️ Unknown Drug detected ({critic_msg}). Stop Retry -> Force Human Review.")
+                             # Force outcome to Human Review
+                             if "safety_analysis" not in result_json: result_json["safety_analysis"] = {}
+                             result_json["safety_analysis"]["status"] = "HUMAN_REVIEW_NEEDED"
+                             result_json["safety_analysis"]["reasoning"] = f"⚠️ System cannot identify drug: {critic_msg}"
+                             # logic_passed remains True to break loop
+                        else:
+                             logic_passed = False
+                             logic_msg = f"Critic Rejection: {critic_msg}"
+                             log(f"   🛡️ Safety Critic Intercepted: {critic_msg}")
 
                 yield "PROCESSING", {}, "", None, "\n".join(trace_logs)
                 if not logic_passed:
@@ -1131,6 +1184,10 @@ def text_to_speech_robust(text, lang='zh-tw'):
     Tier 1: Offline (pyttsx3) - FAST & PRIVACY-FIRST
     Tier 2: Online (gTTS) - FALLBACK (If audio driver missing)
     """
+    # [Safety] Truncate text to avoid API ban / timeout (Audit Fix)
+    if len(text) > 200: 
+        print(f"✂️ Text truncated for TTS ({len(text)} -> 200 chars)")
+        text = text[:197] + "..."
     import uuid
     # Use UUID for unique filename preventing race conditions (Concurrency Safe)
     filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
@@ -1138,7 +1195,10 @@ def text_to_speech_robust(text, lang='zh-tw'):
     # 1. Try Offline First (Privacy Preferred)
     if OFFLINE_MODE:
         try:
-            engine = pyttsx3.init()
+            # [Fix] Use Global Lazy Singleton (Prevent Suicidal Re-init)
+            engine = get_tts_engine()
+            if not engine: raise ImportError("Global TTS Engine init failed")
+
             # Try to set voice if possible (best effort)
             try:
                 voices = engine.getProperty('voices')
@@ -1153,7 +1213,7 @@ def text_to_speech_robust(text, lang='zh-tw'):
             return filename
         except Exception as e:
             print(f"⚠️ Offline TTS Failed (Driver Issue?): {e}")
-            if OFFLINE_MODE: # Strict Offline logic might just return None, but let's try cloud as 2nd line of defense unless strict
+            if OFFLINE_MODE: 
                 print("🔄 Switching to Online TTS Fallback...")
 
     # 2. Online Fallback (gTTS)
@@ -1202,6 +1262,18 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
     status = safety.get("status", "WARNING")
     
     lang_pack = SAFE_TRANSLATIONS.get(target_lang, SAFE_TRANSLATIONS["zh-TW"])
+    
+    # [Hotfix] 針對外語使用者的安全降級顯示 (Migrant Caregiver UX Fix)
+    if target_lang != "zh-TW" and status in ["HIGH_RISK", "WARNING"]:
+        # 外語模式下，不顯示中文的詳細推理，改顯示通用的英文/當地語言警告
+        fallback_reason = {
+            "id": "Alasan: Dosis atau penggunaan tidak standar. (Reason: Non-standard dosage/usage.)",
+            "vi": "Lý do: Liều lượng hoặc cách sử dụng không chuẩn. (Reason: Non-standard dosage/usage.)",
+            "en": "Reason: Dosage issue or missing data. Please show this screen to a pharmacist."
+        }
+        # 覆蓋原本的中文 Reasoning
+        # Use simple dictionary get with default fallback
+        safety['reasoning'] = fallback_reason.get(target_lang, "Reason: Potential safety issue detected.")
     
     if status == "HIGH_RISK":
         display_status = lang_pack["HIGH_RISK"]
@@ -1421,6 +1493,9 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                     proxy_text_input = gr.Textbox(label="📝 Manual Note (Pharmacist/Family)", placeholder="e.g., Patient getting dizzy after medication...")
                     transcription_display = gr.Textbox(label="📝 Final Context used by Agent", interactive=False)
                     
+                    # [Director's Cut] Offline Simulation Toggle (For Demo Recording)
+                    privacy_toggle = gr.Checkbox(label="🔒 Simulate Network Failure (Air-Gapped Mode)", value=False, elem_id="offline-toggle")
+                    
                     # [Audit Fix P0-6] Multilingual Support (Migrant Caregivers)
                     lang_dropdown = gr.Dropdown(
                         choices=["zh-TW", "id", "vi", "en"], 
@@ -1477,7 +1552,15 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 status_json = gr.JSON(label="Diagnostic Report")
                 status_btn.click(health_check, outputs=status_json)
 
-            def run_full_flow_with_tts(image, audio_path, text_override, proxy_text, target_lang, progress=gr.Progress()):
+            def run_full_flow_with_tts(image, audio_path, text_override, proxy_text, target_lang, simulate_offline, progress=gr.Progress()):
+                # [Director's Cut] Logic Override: Force Offline Mode for Demo
+                global OFFLINE_MODE
+                original_mode = OFFLINE_MODE
+                
+                if simulate_offline:
+                    print("🔒 [DEMO] User triggered OFF-SWITCH. Simulating Air-Gapped Environment...")
+                    OFFLINE_MODE = True
+                
                 transcription = ""
                 pre_logs = []
                 
@@ -1543,10 +1626,13 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                         
                         progress(1.0, desc="✅ Complete!")
                         yield transcription, status_box + f"\n\n{privacy_mode}", res_json, html_view, final_audio, calendar_img, full_trace, sbar
+                
+                # Restore original state (Prevent permanent lockout)
+                OFFLINE_MODE = original_mode
             
             btn.click(
                 fn=run_full_flow_with_tts, 
-                inputs=[input_img, voice_input, transcription_display, proxy_text_input, caregiver_lang_dropdown], 
+                inputs=[input_img, voice_input, transcription_display, proxy_text_input, caregiver_lang_dropdown, privacy_toggle], 
                 outputs=[transcription_display, status_output, json_output, silver_html, audio_output, calendar_output, trace_output, sbar_output]
             )
             voice_ex1.click(lambda: "Patient is allergic to Aspirin.", outputs=transcription_display)

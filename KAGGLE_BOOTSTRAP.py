@@ -4,7 +4,7 @@
 ================================================================================
 📋 戰略更新對應 (V12.13 Hotfix):
    1. [UPGRADE] 升級 Transformers 至 >= 4.51.0 (支援 Gemma 3)。
-      原因：MedGemma 1.5 使用 Gemma 3 架構，舊版 4.47.1 發生 Model Type Error。
+      原因：MedGemma 1.5 使用 Gemma 3 架構，確保 SigLIP 編碼器兼容性。
       風險管理：DryRunError 預期已由 V8.py 的 pip 禁用 (Silence Internal Pip) 解決。
    2. [CLEANUP] 保持移除「手術刀邏輯」。
 ================================================================================
@@ -126,7 +126,8 @@ except:
 print("\n[5/6] 安裝白金版本組合 (PyTorch 2.6.0 + cu118)...")
 
 # 1. 系統依賴 (TTS & Audio 必備)
-subprocess.run("apt-get update -y && apt-get install -y libespeak1 libsndfile1 ffmpeg", shell=True, check=True)
+# 1. 系統依賴 (TTS & Audio 必備 + 中文字型)
+subprocess.run("apt-get update -y && apt-get install -y libespeak1 libsndfile1 ffmpeg fonts-noto-cjk", shell=True, check=True)
 
 # 2. 暴力移除舊版 (防止 Version Conflict)
 print("   ☢️ 清理衝突套件...")

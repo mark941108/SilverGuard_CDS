@@ -102,7 +102,7 @@ A **privacy-first, edge-deployed AI assistant** that:
 ---
 
 ## 🚀 Quick Start
-> **Current Version:** V1.0 Impact Edition (Internal Build: v8.2)
+> **Current Version:** V1.0 Impact Edition (Internal Build: v12.22)
 
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
 > Please add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN` before running.
@@ -110,6 +110,7 @@ A **privacy-first, edge-deployed AI assistant** that:
 1.  **Run All Cells**: Execute the notebook from top to bottom.
 2.  **Cell 5 (Core Agent Workflow)**: This cell runs the core MedGemma agent (`agent_engine.py`). It will output a JSON safety analysis.
 3.  **Cell 7 (SilverGuard UI)**: This cell generates the elder-friendly calendar UI and TTS audio.
+4.  **Local Gradio Demo (Optional)**: For the full interactive experience, run `python app.py` in the terminal to launch the Web UI.
 
 4.  **Screenshot**: Capture a screenshot of the terminal output (Cell 5) and the SilverGuard UI (Cell 7) for the demo.
 
@@ -124,7 +125,7 @@ docker run --gpus all -it silverguard-agent
 
 ## 🌟 Key Features (Impact)
 *   **👵 SilverGuard Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Simulated Taiwanese Mandarin) and **Large-Font Calendars**.
-*   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Clinically Verified Translations** (Indonesian/Vietnamese) for non-Chinese speaking caregivers.
+*   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Visual Translation Override** (UI text degrades to simple native warnings for ID/VI) and **Clinically Verified Translations**.
 *   **🗣️ Local Dialect Support**: Capable of **Localized Taiwanese Mandarin (Taiwan-Accent)** TTS, crucial for communicating with the 65+ demographic in rural Taiwan.
 *   **🔐 Privacy First**: **Hybrid Privacy Architecture** - Core VLM inference runs **100% Locally** (PHI stays on device). Optional TTS module offers configurable privacy modes (Offline `pyttsx3` vs Cloud `gTTS`).
 *   **🧠 Agentic Reflection Pattern**: "Think before speaking" loop with self-critique and refinement (Andrew Ng, 2024).
@@ -896,6 +897,7 @@ By running **locally on Kaggle/Colab T4 (or Local PC)**:
 | **🧠 Human-in-the-Loop** | Confidence < 80% → "Human Review Needed" flag |
 | **💾 Memory Efficient** | 4-bit quantization fits in 8GB VRAM |
 | **📋 HIPAA-Compliant Design** | All processing in RAM, data wiped after session |
+| **🕒 Timezone Robustness** | UTC+8 Hard-coded logic prevents "Yesterday Bug" in early morning tests |
 
 ### Deployment Roadmap
 
@@ -1207,7 +1209,8 @@ To ensure "Anti-Fragility," we subjected the system to **Adversarial Attacks**:
 | **The "Lying" Context** | Voice audio contradicts visual evidence (e.g., Audio: "Ulcers", Image: "Aspirin") | **Multimodal Conflict Logic** | ✅ **BLOCKED** (Agent prioritizes safety warning) |
 | **LASA Trap** | Look-Alike Sound-Alike drug names (Hydroxyzine vs Hydralazine) | **Confidence & Dose Check** | ⚠️ **MITIGATED** (Flags inconsistency) |
 | **Boundary Attack** | Edge case ages (e.g., 65-year-old threshold) | **Standardized Rules** | ✅ **HANDLED** (Logic upgraded to AGS Beers Standard >= 65) |
-| **Infinite Retry Loop** | Maliciously ambiguous input to force loops | **Circuit Breaker** | ✅ **BLOCKED** (Max Retries = 2) |
+| **Infinite Retry Loop** | Maliciously ambiguous input to force loops | **Circuit Breaker** | ✅ **BLOCKED** (Max Retries = 2 + Human Review Fallback) |
+| **Unknown Drug Injection** | Non-existent drug names | **Interception Layer** | ✅ **BLOCKED** (Strict DB Lookup + Active Refusal) |
 
 ---
 
@@ -1232,7 +1235,9 @@ docker run --gpus all -p 7860:7860 -v $(pwd)/logs:/app/logs medgemma-guardian
 We acknowledge the **Sim2Real gap**. To mitigate this without compromising patient privacy (using real PHI), we implemented a multi-layered defense:
 1.  **Input Validation Gate:** Before inference, the system calculates the Laplacian Variance of the image. If it's too blurry or OOD (Out-of-Distribution), it **actively refuses** to process it.
 2.  **Adversarial Training:** The "Gallery of Horrors" dataset injected extreme noise, rotation, and occlusion during training.
-3.  **Fail-Safe Protocol:** Our philosophy is "Refusal is safer than hallucination." If the confidence score drops below 80%, the system flags `HUMAN_REVIEW_NEEDED` rather than guessing.
+3.  **Fail-Safe Protocol:** Our philosophy is "Refusal is safer than hallucination."
+    *   **Dynamic Confidence Threshold:** We employ a risk-adaptive strategy. For `HIGH_RISK` predictions, we lower the acceptance threshold to **50% (Recall Priority)** to catch every potential danger. For `PASS` (safe) predictions, we require a strict **75% Confidence** to prevent false assurances.
+    *   **Fallback:** If confidence drops below these thresholds, the system flags `HUMAN_REVIEW_NEEDED`.
 
 ### Q2: Why is this considered an "Agentic Workflow" and not just a standard classifier?
 **A: Because it exhibits "Self-Correction" and "Dynamic Reasoning."**

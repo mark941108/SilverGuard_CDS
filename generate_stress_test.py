@@ -691,27 +691,27 @@ if __name__ == "__main__":
     from PIL import ImageEnhance # Import needed for optical stress
     print("🏥 MedGemma Challenge Generator V12 (Full Compliance + Clean Version)...")
     
-    # 1. Generate 3 Perfect Images (Expect: PASS)
-    for i in range(1, 4):
+    # 1. Generate 5 Perfect Images (Expect: PASS)
+    for i in range(1, 6):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
         generate_v9_bag(f"{OUTPUT_DIR}/demo_clean_{i}.png", p, d, is_danger=False, optical_severity=0)
         
-    # 2. Generate 3 Dirty Images (Expect: WARNING/PASS depending on legibility)
-    for i in range(1, 4):
+    # 2. Generate 20 Dirty Images (Expect: WARNING/PASS depending on legibility)
+    for i in range(1, 21):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
         generate_v9_bag(f"{OUTPUT_DIR}/demo_dirty_{i}.png", p, d, is_danger=False, optical_severity=2)
 
-    # 3. Generate 10 Dangerous Images (Expect: HIGH_RISK)
-    for i in range(1, 11):
+    # 3. Generate 25 Dangerous Images (Expect: HIGH_RISK)
+    for i in range(1, 26):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
         generate_v9_bag(f"{OUTPUT_DIR}/IMG_{i:04d}.png", p, d, is_danger=True, optical_severity=1)
     
     # 4. 🎯 V12 新增：乾淨版（無浮水印）供 Sim2Physical 拍照測試
     print("📸 Generating CLEAN versions for Sim2Physical testing...")
-    for i in range(1, 4):
+    for i in range(1, 6):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
         generate_v9_bag(f"{OUTPUT_DIR}/clean_photo_test_{i}.png", p, d, is_danger=False, optical_severity=0, clean_version=True)

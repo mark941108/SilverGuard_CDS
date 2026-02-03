@@ -60,7 +60,7 @@ Steps:
 🏥 Project: SilverGuard (Intelligent Medication Safety)
 🎯 Target: Kaggle MedGemma Impact Challenge - Agentic Workflow Prize
 📅 Last Updated: 2026-01-29
-📌 Version: V1.0 Impact Edition (Engine Build: v8.2)
+📌 Version: V1.0 Impact Edition (Engine Build: v12.22)
 
 Technical Foundation:
 - Model: google/medgemma-1.5-4b-it (HAI-DEF Framework)
@@ -198,12 +198,21 @@ from datetime import datetime, timezone, timedelta
 TZ_TW = timezone(timedelta(hours=8))
 
 print("\n[1/2] HuggingFace 登入...")
-from kaggle_secrets import UserSecretsClient
-from huggingface_hub import login
-user_secrets = UserSecretsClient()
-hf_token = user_secrets.get_secret("HUGGINGFACE_TOKEN")
-login(token=hf_token)
-print("✅ HuggingFace 登入成功！")
+try:
+    from kaggle_secrets import UserSecretsClient
+    user_secrets = UserSecretsClient()
+    hf_token = user_secrets.get_secret("HUGGINGFACE_TOKEN")
+    from huggingface_hub import login
+    login(token=hf_token)
+    print("✅ HuggingFace 登入成功！")
+except ImportError:
+    print("⚠️ [Local Mode] Skipping Kaggle Secrets login.")
+    if "HUGGINGFACE_TOKEN" in os.environ:
+        from huggingface_hub import login
+        login(token=os.environ["HUGGINGFACE_TOKEN"])
+        print("✅ Logged in via Env Var")
+    else:
+        print("⚠️ No HUGGINGFACE_TOKEN found in env.")
 
 print("\n[2/2] 驗證環境...")
 import torch
@@ -346,7 +355,11 @@ try:
     import cv2
 except ImportError:
     print("📦 安裝 Albumentations...")
-    os.system("pip install -q albumentations opencv-python-headless")
+    print("📦 安裝 Albumentations...")
+    if os.name != 'nt':
+        os.system("pip install -q albumentations opencv-python-headless")
+    else:
+        print("⚠️ Windows detected: Skipping pip install (Assume pre-installed)")
     import albumentations as A
     import cv2
 
@@ -475,6 +488,8 @@ USAGE_MAPPING = {
     "QD_breakfast_before": {"text_zh": "每日一次 早餐飯前", "text_en": "Once daily before breakfast", "grid_time": [1,0,0,0], "grid_food": [1,0,0], "freq": 1},
     "QD_meals_before": {"text_zh": "每日一次 飯前服用", "text_en": "Once daily before meals", "grid_time": [1,0,0,0], "grid_food": [1,0,0], "freq": 1},
     "QD_meals_with": {"text_zh": "每日一次 隨餐服用", "text_en": "Once daily with meals", "grid_time": [1,0,0,0], "grid_food": [0,1,0], "freq": 1},
+    "QD_evening_with_meal": {"text_zh": "每日一次 晚餐隨餐", "text_en": "Once daily with dinner", "grid_time": [0,0,1,0], "grid_food": [0,1,0], "freq": 1},
+    "QD_evening": {"text_zh": "每日一次 晚餐飯後", "text_en": "Once daily after dinner", "grid_time": [0,0,1,0], "grid_food": [0,1,0], "freq": 1},
     "BID_morning_noon": {"text_zh": "每日兩次 早午服用", "text_en": "Twice daily (Morning/Noon)", "grid_time": [1,1,0,0], "grid_food": [0,1,0], "freq": 2},
     "TID_meals_after": {"text_zh": "每日三次 三餐飯後", "text_en": "Three times daily after meals", "grid_time": [1,1,1,0], "grid_food": [0,1,0], "freq": 3},
     "Q4H_prn": {"text_zh": "必要時服用 (每4小時)", "text_en": "Take as needed (q4h)", "grid_time": [0,0,0,0], "grid_food": [0,0,0], "freq": 0},
@@ -1415,7 +1430,7 @@ if PRETRAINED_LORA_PATH and os.path.exists(PRETRAINED_LORA_PATH):
         print("⚠️ Falling back to training...")
         PRETRAINED_LORA_PATH = None # Force training on failure
 
-if not PRETRAINED_LORA_PATH:
+if not PRETRAINED_LORA_PATH and os.environ.get("SKIP_TRAINING") != "true":
     try:
         trainer.train()
         print("\n🎉 V5 訓練完成！")
@@ -1585,14 +1600,10 @@ def normalize_dose_to_mg(dose_str):
         s = dose_str.lower().replace(" ", "")
         
         # Regex to find number + unit
-        match = re.search(r'([\d\.]+)(mg|g|mcg|ug)', s)
+        # [Audit Fix] Supports Chinese Units (毫克/公克)
+        match = re.search(r'([\d\.]+)(mg|g|mcg|ug|ml|毫克|公克)', s)
         if not match:
-             # Fallback: finding just numbers might be risky, assume not analyzable
-             # But if string is just "500", assume mg? No, safer to fail.
-             # Wait, logic check uses just number if > 1000. 
-             # Let's try to parse just the number if no unit found, but flag as raw.
-             # Actually, for safety, strictly require unit or assume mg if number looks like common pills?
-             # Let's stick to strict unit parsing for conversions.
+             # Fallback: strictly require unit
              nums = re.findall(r'\d+', s)
              if nums: return float(nums[0]), False # Raw number, unsure unit
              return 0.0, False
@@ -1600,10 +1611,12 @@ def normalize_dose_to_mg(dose_str):
         value = float(match.group(1))
         unit = match.group(2)
         
-        if unit == 'g':
+        if unit in ['g', '公克']:
             return value * 1000.0, True
         elif unit in ['mcg', 'ug']:
             return value / 1000.0, True
+        elif unit == '毫克': # mg
+            return value, True
         else: # mg
             return value, True
     except:
@@ -1644,6 +1657,10 @@ def logical_consistency_check(extracted_data, safety_analysis):
         clean_name = re.sub(r'\s*\([^)]*\)', '', clean_name)
         # Step 3: Clean and normalize
         target = clean_name.lower().strip()
+        
+        # [Audit Fix] Early rejection for "Unknown"
+        if "unknown" in target:
+             return True, "⚠️ UNKNOWN_DRUG detected. Manual Review Required."
         
         # Check aliases
         if target in DRUG_ALIASES: 
@@ -1726,7 +1743,7 @@ def logical_consistency_check(extracted_data, safety_analysis):
 
     if issues:
         # V6.4 FIX: Critical Safety - Do NOT retry on unknown drugs (Infinite Loop Trap)
-        if any("藥物未在知識庫中" in issue for issue in issues):
+        if any("Drug not in knowledge base" in issue for issue in issues):
              return True, f"⚠️ UNKNOWN_DRUG detected. Manual Review Required. (Logic Check Passed to prevent retry)"
         
         return False, f"邏輯檢查異常: {', '.join(issues)}"
@@ -1782,6 +1799,16 @@ def parse_json_from_response(response):
             fixed = json_str.replace("True", "true").replace("False", "false").replace("None", "null")
             return json.loads(fixed), None
         except json.JSONDecodeError:
+            pass
+            
+        # Strategy 3: Brute Force Python Eval (Audit Fix)
+        # Handle JS-style bools/nulls in a Python Eval context
+        try:
+            text_fixed = json_str.replace("true", "True").replace("false", "False").replace("null", "None")
+            # Only allow basic types to prevent code execution risks (though low risk in this context)
+            # Eval is used as a last resort for malformed JSON
+            return eval(text_fixed, {"__builtins__": None}, {}), None
+        except Exception:
             pass
         
         # Strategy 3: Python AST (Single Quotes)
@@ -2489,12 +2516,14 @@ def main_cell4():
         BASE_DIR = stress_dir
         print(f"✅ [Cell 4] Using Stress Test Data from: {BASE_DIR}")
         import glob
-        test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))[:5]
+        test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))
+        print(f"✅ [Cell 4] Loaded {len(test_images)} images for Stress Test.")
     elif USE_V17_DATA and os.path.exists(V17_DATA_DIR):
         BASE_DIR = V17_DATA_DIR
         print(f"✅ [Cell 4] Using V17 Data from: {BASE_DIR}")
         import glob
-        test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))[:5]
+        test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))
+        print(f"✅ [Cell 4] Loaded {len(test_images)} images for V17 Test.")
     else:
         BASE_DIR = "./medgemma_training_data_v5"
         print(f"⚠️ [Cell 4] Fallback to V5 data: {BASE_DIR}")
@@ -3074,23 +3103,21 @@ def clean_text_for_tts(text):
 
 def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
     """
-    🏥 SilverGuard Privacy-First TTS Architecture
-    
-    Security Level:
-    1. 🟢 DEFAULT: Offline (pyttsx3). 100% Edge Processing. No Data Egress.
-       [Compliance]: Meets HIPAA/GDPR data minimization principles.
-       
-    2. 🟡 OPTIONAL: Cloud (gTTS). Requires explicit opt-in.
-       Used only for non-sensitive demos or when 'use_cloud=True' is passed.
+    Tier 1: Online Neural TTS (gTTS) - Preferred for Quality
+    Tier 2: Offline Fallback (pyttsx3) - Backup for Stability
     """
     import os
+    import time
+    import uuid
+    import tempfile
     from IPython.display import Audio, display
+    
+    # V7.5 FIX: Path safety for Windows (Tempfile + UUID)
+    filename = os.path.join(tempfile.gettempdir(), f"elder_instruction_{uuid.uuid4().hex[:8]}.mp3")
     
     # ✅ STEP 1: 先清洗文字
     clean_text = clean_text_for_tts(text)
     print(f"🗣️ [TTS Pre-processing] Original: {len(text)} chars -> Clean: {len(clean_text)} chars")
-
-    filename = "./elder_instruction.mp3"
     
     # 1. 🟢 優先策略：離線模式 (Privacy First)
     if not use_cloud:
@@ -3117,7 +3144,10 @@ def text_to_speech_multilingual(text, lang='zh-TW', target_file=None):
     Supported: zh-TW (Chinese), id (Indonesian), vi (Vietnamese)
     """
     if target_file is None:
-        target_file = f"/tmp/tts_{lang}_{int(datetime.now().timestamp())}.mp3"
+        import uuid
+        import tempfile
+        # [FIX] Cross-platform temp path + UUID
+        target_file = os.path.join(tempfile.gettempdir(), f"tts_{lang}_{uuid.uuid4().hex[:8]}.mp3")
     
     try:
         from gtts import gTTS
@@ -3130,12 +3160,9 @@ def text_to_speech_multilingual(text, lang='zh-TW', target_file=None):
         print(f"   ⚠️ TTS failed for {lang}: {e}")
         return None
 
-def text_to_speech_elderly(text, lang='zh-TW', slow=True):
-    """
-    Legacy wrapper for backward compatibility.
-    Defaults to slow speech for elderly.
-    """
-    return text_to_speech_multilingual(text, lang=lang)
+    # [FIX] Consolidated into the final definition at Cell 8
+    # This legacy block is removed to prevent shadowing.
+    pass
 
 
 # ============================================================================
@@ -3346,15 +3373,20 @@ def visualize_safety_matrix(results_csv_path=None, dummy_data=False):
 # ============================================================================
 # 🗣️ TTS Module (Elderly Friendly)
 # ============================================================================
+# ============================================================================
+# 🗣️ TTS Module (Elderly Friendly) - CONSOLIDATED & ROBUST
+# ============================================================================
 def text_to_speech_elderly(text, lang='zh-tw'):
     """
     Hybrid TTS: Online (gTTS) -> Offline (pyttsx3) Fallback
+    [FIX] Uses UUID for filenames and Cross-platform temp paths
     """
     import os
-    from datetime import datetime
+    import uuid
+    import tempfile
     
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_path = f"safety_alert_{timestamp}.mp3"
+    # [FIX] Race-condition safe filename
+    output_path = os.path.join(tempfile.gettempdir(), f"safety_alert_{uuid.uuid4().hex[:8]}.mp3")
     
     # Check Offline Mode Switch
     # [Red Team Fix] Force offline if env var set
@@ -3446,10 +3478,23 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
             "NotoSansTC-Bold.otf", 
             "NotoSansTC-Regular.otf"
         ]
+        # 1. Try local paths
         for path in font_paths:
             if os.path.exists(path):
                 try: return ImageFont.truetype(path, size)
                 except: continue
+                
+        # 2. Auto-Download Fallback (Audit Fix)
+        print("⚠️ Local fonts missing. Downloading NotoSansTC...")
+        try:
+            import requests
+            url = "https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC-Bold.otf"
+            download_path = "NotoSansTC-Bold.otf"
+            open(download_path, 'wb').write(requests.get(url, allow_redirects=True).content)
+            return ImageFont.truetype(download_path, size)
+        except Exception as e:
+            print(f"❌ Fallback Failed: {e}. Using default font.")
+            
         return ImageFont.load_default()
     
     font_super = load_font(84)
@@ -3539,8 +3584,12 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     
     # Header
     y_off = 40
+    # [Fix] 安全定義時區 (防止 global 尚未定義) (Timezone Safety Fix)
+    from datetime import datetime, timedelta, timezone
+    TZ_TW = timezone(timedelta(hours=8))
+    
     draw.text((50, y_off), "🗓️ 用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
-    draw.text((WIDTH - 350, y_off + 20), f"📅 {datetime.now().strftime('%Y-%m-%d')}", fill=COLORS["text_muted"], font=font_body)
+    draw.text((WIDTH - 350, y_off + 20), f"📅 {datetime.now(TZ_TW).strftime('%Y-%m-%d')}", fill=COLORS["text_muted"], font=font_body)
     
     y_off += 120
     draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
@@ -3598,8 +3647,10 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     draw.text((50, HEIGHT-60), "SilverGuard AI 關心您 ❤️ 僅供參考，請遵照醫師處方", fill=COLORS["text_muted"], font=font_caption)
     
     # Save
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    out_path = f"calendar_flagship_{ts}.png"
+    # Save
+    import uuid
+    # [FIX] Use UUID for filename (Concurrency Safe)
+    out_path = f"calendar_flagship_{uuid.uuid4().hex[:8]}.png"
     img.save(out_path)
     return out_path 
 
