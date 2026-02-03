@@ -1102,37 +1102,70 @@ def get_safe_asset_path(filename):
         return filename
     return None
 
+# [UX Polish] Font Safety (Prevent Tofu)
+def get_font(size):
+    import os
+    from PIL import ImageFont
+    
+    # Priority: Local -> System (Kaggle) -> Default
+    candidates = [
+        "assets/fonts/NotoSansCJKtc-Bold.otf",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc", # apt-get location
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+        "/usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc"
+    ]
+    
+    for path in candidates:
+        if os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, size)
+            except:
+                continue
+    
+    print("⚠️ Warning: Chinese font not found, falling back to default.")
+    return ImageFont.load_default()
+
 # --- 🔊 Robust TTS Engine (Offline -> Online Fallback) ---
 def text_to_speech_robust(text, lang='zh-tw'):
     """
     Tier 1: Offline (pyttsx3) - FAST & PRIVACY-FIRST
     Tier 2: Online (gTTS) - FALLBACK (If audio driver missing)
     """
-    filename = f"tts_{int(datetime.now(TZ_TW).timestamp())}.mp3"
+    import uuid
+    # Use UUID for unique filename preventing race conditions (Concurrency Safe)
+    filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
     
-    # 1. Try Offline First
+    # 1. Try Offline First (Privacy Preferred)
     if OFFLINE_MODE:
         try:
             engine = pyttsx3.init()
-            # Simple property check to ensure engine is alive
-            engine.getProperty('rate') 
+            # Try to set voice if possible (best effort)
+            try:
+                voices = engine.getProperty('voices')
+                target_lang_id = 'zh' if 'zh' in lang else lang
+                target_voice = next((v for v in voices if target_lang_id in v.id.lower()), None)
+                if target_voice: engine.setProperty('voice', target_voice.id)
+            except:
+                pass
+            
             engine.save_to_file(text, filename)
             engine.runAndWait()
             return filename
         except Exception as e:
             print(f"⚠️ Offline TTS Failed (Driver Issue?): {e}")
-            if OFFLINE_MODE: # Strict Offline
-                return None
-            print("🔄 Switching to Online TTS Fallback...")
+            if OFFLINE_MODE: # Strict Offline logic might just return None, but let's try cloud as 2nd line of defense unless strict
+                print("🔄 Switching to Online TTS Fallback...")
 
     # 2. Online Fallback (gTTS)
     try:
         from gtts import gTTS
-        tts = gTTS(text=text, lang=lang)
+        # Map simple codes to gTTS standard
+        lang_map = {'zh': 'zh-TW', 'zh-TW': 'zh-TW', 'en': 'en', 'id': 'id', 'vi': 'vi'}
+        tts = gTTS(text=text, lang=lang_map.get(lang, 'zh-TW'))
         tts.save(filename)
         return filename
     except Exception as e:
-        print(f"❌ All TTS Engines Failed: {e}")
+        print(f"❌ Critical TTS Failure: {e}")
         return None
 
 # --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
@@ -1395,7 +1428,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                         label="🌏 Output Language / 語言 / Bahasa"
                     )
                     
-                    btn = gr.Button("🔍 Analyze & Safety Check", variant="primary", size="lg")
+                    btn = gr.Button("🔍 Analyze (Analisa / Gửi)", variant="primary", size="lg")
                     
                     # Quick Win: Examples
                     gr.Examples(
