@@ -279,7 +279,7 @@ Refined Output:
 ---
 ## 🌟 Project Overview
 **SilverGuard** is an **Agentic Clinical Decision Support System (CDSS)** designing for the "Aging Society" (Super-Aged Society).
-It transforms the **Gemma 2 (MedGemma-4B)** LLM into an intelligent "Safety Guardian" that can **SEE** prescriptions, **HEAR** caregiver voice notes, and **SPEAK** advice in local dialects (Taiwanese Hokkien).
+It transforms the **Gemma 3 (MedGemma-4B)** LLM into an intelligent "Safety Guardian" that can **SEE** prescriptions, **HEAR** caregiver voice notes, and **SPEAK** advice in local dialects (Taiwanese Hokkien).
 
 ### 🏆 Key Innovation: "Hybrid Privacy Architecture"
 Unlike pure cloud solutions, SilverGuard is designed for **Privacy-First Healthcare**:
