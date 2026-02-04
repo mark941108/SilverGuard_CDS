@@ -140,6 +140,7 @@ Standard AI guesses. **Silver Guard** validates.
 **SigLIP** eyes see "Aspirin". **MedASR** ears hear "Bleeding".
 **CRITICAL ALERT: CONTRAINDICATION.**
 It uses **Hybrid Verification**... combining VLM reasoning with numeric pattern matching.
+(And yes, for this demo we're mocking the database, but the production code is fully vector-ready.)
 Look at the log... [Pause] **Strategy Shift**.
 It detected a risk, **lowered its temperature**, and re-evaluated the logic.
 It caught the error that others missed.

@@ -1596,7 +1596,6 @@ def normalize_dose_to_mg(dose_str):
     if not dose_str: return 0.0, False
     
     try:
-    try:
         if not dose_str: return 0.0, False
         # [Audit Fix] Handle commas (1,000) and spaces robustly
         s = dose_str.lower().replace(",", "").replace(" ", "")
@@ -4283,20 +4282,26 @@ def launch_agentic_app():
             "Task:\n"
             "1. Extract: Patient info, Drug info (English name + Chinese function), Usage.\n"
             "2. Safety Check: Cross-reference AGS Beers Criteria 2023. Flag HIGH_RISK if age>80 + high dose.\n"
-            "3. Missing Data Check (CRITICAL): If a specific lab value is required to determine safety (e.g., eGFR for Metformin, INR for Warfarin) and is NOT visible, do NOT guess. Return status 'MISSING_DATA'.\n"
+            "3. **Wayfinding (Gap Detection)**: If critical info is missing/ambiguous (e.g., dosage obscured), output 'status': 'NEED_INFO'. Do NOT guess. Suggest a specific question for the patient to ask.\n"
             "4. Cross-Check Context: Consider the provided CAREGIVER VOICE NOTE (if any) for allergies or specific conditions.\n"
             "5. SilverGuard: Add a warm message in spoken Taiwanese Mandarin (口語化台式中文).\n\n"
             "Output Constraints:\n"
             "- Return ONLY a valid JSON object.\n"
-            "- If status is 'MISSING_DATA', 'reasoning' MUST specify exactly what is missing (e.g., '缺少最近三個月的 eGFR 數值，無法排除乳酸中毒風險').\n"
+            "- **NEW**: Include 'internal_state': {known_facts: [], missing_slots: []}.\n"
+            "- If NEED_INFO: Include 'wayfinding': {'question': '...', 'options': ['A', 'B']}.\n"
             "- 'safety_analysis.reasoning' MUST be in Traditional Chinese (繁體中文).\n"
             "- Add 'silverguard_message' field using the persona of a caring grandchild (貼心晚輩).\n\n"
-            "JSON Example for Missing Data:\n"
+            "JSON Example for Gap Detection:\n"
             "{\n"
             "  \"extracted_data\": {...},\n"
+            "  \"internal_state\": {\"missing_slots\": [\"dosage\"]},\n"
             "  \"safety_analysis\": {\n"
-            "    \"status\": \"MISSING_DATA\",\n"
-            "    \"reasoning\": \"⚠️ 偵測到 Metformin 高劑量處方，但藥袋上無腎功能(eGFR)數據。請補上 eGFR 數值以判斷安全性。\"\n"
+            "    \"status\": \"NEED_INFO\",\n"
+            "    \"reasoning\": \"影像不清，無法確認 Metformin 劑量。\"\n"
+            "  },\n"
+            "  \"wayfinding\": {\n"
+            "    \"question\": \"請問包裝上寫的是 500mg 還是 850mg？\",\n"
+            "    \"options\": [\"500mg\", \"850mg\"]\n"
             "  }\n"
             "}"
         )

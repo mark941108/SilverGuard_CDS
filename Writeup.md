@@ -176,7 +176,7 @@ graph TD
     As an Energy Engineering student, I optimized the system for the lowest possible carbon footprint. By running quantified (4-bit) MedGemma on Edge GPUs (T4) instead of querying massive cloud clusters:
 
     *   **CO₂ Reduction:** Emissions dropped from ~4.32g (Cloud) to **~0.42g per query** (Edge).
-    *   **Real-World Impact:** This efficiency means a community pharmacy can run SilverGuard 24/7 **for the energy cost of a single lightbulb**, making AI safety accessible.
+    *   **Zero Marginal Cost:** After the initial hardware cost, the system operates at **Zero Marginal Cost**, freeing healthcare providers from recurring Cloud API fees.
     *   **Future Roadmap:** Porting to **Android AICore (Pixel 9 Pro)** for a battery-powered, 100% offline solution.
 
 **Quantifiable Health Impact:**

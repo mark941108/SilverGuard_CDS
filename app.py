@@ -952,29 +952,42 @@ def run_inference(image, patient_notes=""):
         "[CORE TASK]\n"
         "1. **Extract**: Patient info, Drug info (Name + Chinese indication), Usage.\n"
         "2. **Safety Scan**: Reference AGS Beers Criteria 2023. Flag HIGH_RISK if age>65 + high dose.\n"
-        "3. **Wayfinding (Active Context-Seeking)**: Don't just analyze. **Empower** the patient. Suggest 1 specific, high-value question they should ask their doctor to optimize their care (e.g., about side effects, kidney function, or timing).\n"
-        "4. **SilverGuard Persona**: Speak as a 'caring grandchild' (貼心晚輩). Use phrases that validate their effort (e.g., '您把身體照顧得很好'). Speak in warm, spoken Taiwanese Mandarin.\n\n"
+        "3. **Wayfinding Protocol (Context-Seeking)**: \n"
+        "   - **Gap Detection**: If critical info (dosage, frequency) is missing/blurry/ambiguous, DO NOT HALLUCINATE.\n"
+        "   - **Action**: Output 'status': 'NEED_INFO'.\n"
+        "   - **Visual Grounding**: Reference the specific area of the image (e.g., 'bottom left red text') that is unclear.\n"
+        "   - **Empower**: Ask ONE specific question to resolve the ambiguity. Provide 'options' for the user to click.\n"
+        "4. **SilverGuard Persona**: Speak as a 'caring grandchild' (貼心晚輩). Use phrases that validate their effort.\n\n"
         "[OUTPUT CONSTRAINTS]\n"
         "- Return ONLY a valid JSON object.\n"
+        "- **NEW**: 'internal_state': {known_facts: [], missing_slots: []} for State-Aware Reasoning.\n"
         "- 'safety_analysis.reasoning': Technical & rigorous (Traditional Chinese).\n"
-        "- 'sbar_handoff': Professional clinical note (SBAR format) for Pharmacist/Caregiver review.\n"
+        "- 'sbar_handoff': Professional clinical note (SBAR format).\n"
         "- 'silverguard_message': Warm, large-font-friendly, spoken style.\n"
-        "- 'doctor_question': A specific, smart question for the patient to ask the doctor (Wayfinding).\n\n"
-        "### ONE-SHOT EXAMPLE:\n"
+        "- 'doctor_question': A specific, smart question for the patient to ask the doctor (Wayfinding).\n"
+        "- **If NEED_INFO**: Include 'wayfinding': {'question': '...', 'options': ['A', 'B'], 'visual_cue': '...'} \n\n"
+        "### ONE-SHOT EXAMPLE (NEED_INFO Case):\n"
         "{\n"
         "  \"extracted_data\": {\n"
         "    \"patient\": {\"name\": \"王大明\", \"age\": 88},\n"
-        "    \"drug\": {\"name\": \"Glucophage\", \"name_zh\": \"庫魯化 (降血糖)\", \"dose\": \"500mg\"},\n"
-        "    \"usage\": \"每日兩次，飯後 (BID)\"\n"
+        "    \"drug\": {\"name\": \"Metformin\", \"name_zh\": \"庫魯化\", \"dose\": \"?\"},\n"
+        "    \"usage\": \"?\"\n"
+        "  },\n"
+        "  \"internal_state\": {\n"
+        "    \"known_facts\": [\"Patient 88y\", \"Drug: Metformin\"],\n"
+        "    \"missing_slots\": [\"dosage\", \"frequency\"]\n"
         "  },\n"
         "  \"safety_analysis\": {\n"
-        "    \"status\": \"WARNING\",\n"
-        "    \"reasoning\": \"病患88歲高齡且使用 Metformin，需注意腎功能(eGFR)是否低於30，以避免乳酸中毒風險。\"\n"
+        "    \"status\": \"NEED_INFO\",\n"
+        "    \"reasoning\": \"影像中藥名清晰，但劑量部分被手指遮擋，無法確認是 500mg 還是 850mg。\"\n"
         "  },\n"
-        "  \"sbar_handoff\": \"**S (Situation):** Elderly patient (88y) prescribed Metformin 500mg BID. **B (Background):** Geriatric renal decline risk. **A (Assessment):** High risk of lactic acidosis if eGFR < 30. **R (Recommendation):** Verify recent eGFR; consider dose reduction if renal impairment confirmed.\",\n"
-        "  \"doctor_question\": \"請問醫生：以我現在88歲的年紀，腎功能指數適合吃這個劑量的庫魯化嗎？需要減量嗎？\",\n"
-        "  \"silverguard_message\": \"阿公，您真棒，都有按時吃藥照顧身體！❤️ 這是您的『庫魯化』，醫生說要『呷飽才吃』喔。\"\n"
-        "}"
+        "  \"wayfinding\": {\n"
+        "    \"question\": \"阿公，我看不太清楚藥袋左下角（手指壓住的地方）。請問上面是寫 500 還是 850？\",\n"
+        "    \"options\": [\"500 mg\", \"850 mg\", \"看不清楚\"],\n"
+        "    \"visual_cue\": \"bottom left corner obscured by finger\"\n"
+        "  },\n"
+        "  \"silverguard_message\": \"阿公，這包藥是庫魯化（降血糖）。但我看不太清楚劑量... 能幫我看一下嗎？\"\n"
+        "}\n"
     )
 
     # ===== AGENTIC LOOP =====
@@ -1082,6 +1095,35 @@ def run_inference(image, patient_notes=""):
             response = processor.batch_decode(generated_tokens, skip_special_tokens=True)[0]
             result_json = parse_model_output(response)
             result_json["agentic_retries"] = current_try # [Audit Fix] Enable UI Self-Correction Badge
+            
+            # --- [WAYFINDING] Active Context-Seeking Trigger ---
+            # If the model explicitly asks for info (System 2 Gap Detection), we stop reasoning and ask.
+            safety_node = result_json.get("safety_analysis", {})
+            if safety_node.get("status") == "NEED_INFO":
+                log(f"   🛑 Wayfinding Triggered: Gap Detection active (Missing: {result_json.get('internal_state', {}).get('missing_slots', 'Unknown')})")
+                
+                # Generate Calendar (Visualization of what we know so far)
+                try: 
+                    cal_img_path = create_medication_calendar(result_json)
+                    cal_img_stream = Image.open(cal_img_path)
+                except Exception as cal_err: 
+                    log(f"   ⚠️ Calendar Gen failed: {cal_err}")
+                    cal_img_stream = None
+
+                # Generate Voice Guidance (The "Voice Nudge")
+                wayfinding = result_json.get("wayfinding", {})
+                question_text = wayfinding.get("question", "請問這裡有些不清楚，能幫我確認嗎？")
+                
+                audio_path_wayfinding = None
+                if ENABLE_TTS:
+                    # Specific Prompt for TTS
+                    audio_path_wayfinding = text_to_speech(question_text, lang="zh-tw")
+                
+                trace_logs.append(f"❓ [Wayfinding] Asking User: {question_text}")
+                
+                # Yield with Special Status "NEED_INFO"
+                yield "NEED_INFO", result_json, question_text, audio_path_wayfinding, "\n".join(trace_logs), cal_img_stream
+                break # Exit the Retry Loop (Success in identifying gap)
             
             # V7.3 FIX: logical_consistency_check returns (bool, str), not list
             logic_passed = True
@@ -1276,6 +1318,71 @@ def text_to_speech_robust(text, lang='zh-tw'):
         print(f"❌ Critical TTS Failure: {e}")
         return None
 
+def submit_clarification(user_option, current_json):
+    """
+    Handle the user's response to the Wayfinding question.
+    Re-run Guardrails (g-AMIE Pattern) to ensure safety.
+    """
+    if not current_json: 
+        return gr.update(visible=False), "⚠️ Error: No Context", {}, "", None, None, ""
+    
+    # 1. Update Context (State-Aware Update)
+    updated_json = current_json.copy()
+    missing = updated_json.get("internal_state", {}).get("missing_slots", [])
+    
+    # Heuristic Slot Filling
+    if "dosage" in str(missing) or "dose" in str(missing):
+        updated_json["extracted_data"]["drug"]["dose"] = user_option
+    elif "freq" in str(missing) or "time" in str(missing):
+        updated_json["extracted_data"]["usage"] = user_option
+    else:
+        # Fallback append
+        if "usage" not in updated_json["extracted_data"]: 
+            updated_json["extracted_data"]["usage"] = ""
+        updated_json["extracted_data"]["usage"] += f" ({user_option})"
+        
+    print(f"🔄 [Wayfinding] Context Updated via UI: {user_option}")
+
+    # 2. Re-Run Safety Logic (Post-Clarification Guardrails)
+    logic_passed, logic_msg, logic_logs = logical_consistency_check(updated_json["extracted_data"])
+    critic_passed, critic_msg = safety_critic_tool(updated_json)
+    
+    status = "PASS"
+    reasoning = "✅ User verified information. Safety checks passed."
+    
+    issues = []
+    if not logic_passed: issues.append(logic_msg)
+    if not critic_passed: issues.append(critic_msg)
+    
+    if issues:
+        status = "WARNING"
+        reasoning = f"⚠️ Safety Issue found after clarification: {'; '.join(issues)}"
+        if any(x in str(issues) for x in ["⛔", "HIGH_RISK", "Overdose"]):
+            status = "HIGH_RISK"
+            
+    updated_json["safety_analysis"]["status"] = status
+    updated_json["safety_analysis"]["reasoning"] = reasoning
+    
+    # 3. Regenerate Outputs
+    html, audio = silverguard_ui(updated_json)
+    try:
+        cal_path = create_medication_calendar(updated_json)
+        cal_img = Image.open(cal_path)
+    except:
+        cal_img = None
+        
+    # Return format matching the UI outputs
+    return (
+        gr.update(visible=False), # Hide Wayfinding Group
+        status,                   # Status Header
+        updated_json,             # JSON Output
+        html,                     # SilverGuard HTML
+        audio,                    # Audio Output
+        cal_img,                  # Calendar Image
+        "\n".join(logic_logs)     # Trace Output
+    )
+
+
 # --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
 SAFE_TRANSLATIONS = {
     "zh-TW": {
@@ -1303,6 +1410,75 @@ SAFE_TRANSLATIONS = {
         "TTS_LANG": "vi"
     }
 }
+
+# ============================================================================
+# 🚦 WAYFINDING TURN-2 HANDLER
+# ============================================================================
+def submit_clarification(user_option, current_json):
+    """
+    Handle the user's response to the Wayfinding question.
+    Re-run Guardrails (g-AMIE Pattern) to ensure safety.
+    """
+    if not current_json: 
+        return "⚠️ Error: No Context", None, None, None, None, None
+    
+    # 1. Update Context (State-Aware Update)
+    updated_json = current_json.copy()
+    missing = updated_json.get("internal_state", {}).get("missing_slots", [])
+    
+    # Heuristic Slot Filling
+    target = "usage"
+    if "dosage" in str(missing) or "dose" in str(missing):
+        updated_json["extracted_data"]["drug"]["dose"] = user_option
+    elif "freq" in str(missing) or "time" in str(missing):
+        updated_json["extracted_data"]["usage"] = user_option
+    else:
+        # Fallback append
+        if "usage" not in updated_json["extracted_data"]: updated_json["extracted_data"]["usage"] = ""
+        updated_json["extracted_data"]["usage"] += f" ({user_option})"
+        
+    print(f"🔄 [Wayfinding] Context Updated via UI: {user_option}")
+
+    # 2. Re-Run Safety Logic (Post-Clarification Guardrails)
+    # This detects if the USER'S answer creates a conflict (e.g. 2000mg)
+    logic_passed, logic_msg, logic_logs = logical_consistency_check(updated_json["extracted_data"])
+    critic_passed, critic_msg = safety_critic_tool(updated_json)
+    
+    status = "PASS"
+    reasoning = "✅ User verified information. Safety checks passed."
+    
+    issues = []
+    if not logic_passed: issues.append(logic_msg)
+    if not critic_passed: issues.append(critic_msg)
+    
+    if issues:
+        status = "WARNING"
+        reasoning = f"⚠️ Safety Issue found after clarification: {'; '.join(issues)}"
+        # Check Criticals
+        if any(x in str(issues) for x in ["⛔", "HIGH_RISK", "Overdose"]):
+            status = "HIGH_RISK"
+            
+    updated_json["safety_analysis"]["status"] = status
+    updated_json["safety_analysis"]["reasoning"] = reasoning
+    
+    # 3. Regenerate Outputs
+    html, audio = silverguard_ui(updated_json)
+    try:
+        cal_path = create_medication_calendar(updated_json)
+        cal_img = Image.open(cal_path)
+    except:
+        cal_img = None
+        
+    # Return format matching the UI buttons
+    return (
+        gr.update(visible=False), # Hide Wayfinding Group
+        gr.update(value=status),  # Status Header
+        updated_json,
+        html,
+        audio,
+        cal_img,
+        "\n".join(logic_logs)
+    )
 
 def silverguard_ui(case_data, target_lang="zh-TW"):
     """SilverGuard UI 生成器 (多語系版)"""
@@ -1573,7 +1749,18 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                         info="Select language for SilverGuard alerts"
                     )
                     
+                    # --- 🚦 WAYFINDING UI (Interactive Gap Detection) ---
+                    with gr.Group(visible=False, elem_id="wayfinding_ui") as wayfinding_group:
+                        gr.Markdown("### ❓ AI Verification Needed (AI需要確認)")
+                        wayfinding_msg = gr.Textbox(label="Clarification Question", interactive=False, lines=2)
+                        with gr.Row():
+                            wayfinding_options = gr.Radio(label="Select Correct Option", choices=[], interactive=True)
+                            wayfinding_btn = gr.Button("✅ Confirm Update", variant="primary", scale=0)
+                            
                     status_output = gr.Textbox(label="🛡️ Safety Status", elem_id="risk-header")
+                    
+                    # Store Context for Wayfinding Interaction (Turn 2)
+                    interaction_state = gr.State({})
                     
                     # 👵 SilverGuard UI Priority (Per Blind Spot Scan)
                     silver_html = gr.HTML(label="👵 SilverGuard UI") 
@@ -1602,7 +1789,6 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
 
             def run_full_flow_with_tts(image, audio_path, text_override, proxy_text, target_lang, simulate_offline, progress=gr.Progress()):
                 # [Audit Fix P0] Use local state instead of modifying global
-                # This prevents multi-user state pollution in Gradio
                 effective_offline_mode = OFFLINE_MODE or simulate_offline
                 
                 if simulate_offline:
@@ -1619,64 +1805,90 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                      transcription = text_override
                 elif audio_path:
                     progress(0.1, desc="🎤 Processing Caregiver Audio...")
-                    # [Audit Fix P0] Unpack 4 values: text, success, confidence, logs
                     t, success, conf, asr_logs = transcribe_audio(audio_path, expected_lang=target_lang)
                     pre_logs.extend(asr_logs)
                     if success: transcription = t
                 
-                # V7.10 Red Team Fix: Privacy Masking in Logs
                 masked_transcription = transcription[:2] + "****" + transcription[-2:] if len(transcription) > 4 else "****"
                 print(f"🎤 Context: {masked_transcription} (Length: {len(transcription)}) | Lang: {target_lang}")
                 
-                # Step 2: Inference (Streamed)
                 progress(0.3, desc="🧠 MedGemma Agent Thinking...")
-                
-                # Initial UI State
                 status_box = "🔄 System Thinking..."
                 full_trace = ""
                 
                 # Generator Loop
-                # [Audit Fix] Unpack 6 values (added calendar_img)
                 for status, res_json, speech, audio_path_old, trace_log, cal_img_stream in run_inference(image, patient_notes=transcription):
-                    # Update Logs immediately
                     full_trace = "\n".join(pre_logs) + "\n" + trace_log
                     
-                    # Privacy UI Indicator
-                    privacy_mode = "🟢 Online Mode (High Quality Voice)"
+                    privacy_mode = "🟢 Online (High Quality)"
                     if effective_offline_mode or (res_json and res_json.get("_tts_mode") == "offline"):
-                        privacy_mode = "🔒 Offline Privacy Mode (Secure Local TTS)"
+                        privacy_mode = "🔒 Offline (Privacy)"
+                    
+                    # Default Wayfinding State: Hidden
+                    wf_vis = gr.update(visible=False)
+                    wf_q = gr.update()
+                    wf_opt = gr.update()
+                    
+                    # --- [WAYFINDING HANDLER] ---
+                    if status == "NEED_INFO":
+                        status_box = "❓ AI Verification Needed"
+                        wf_data = res_json.get("wayfinding", {})
+                        question = wf_data.get("question", "Verification Needed")
+                        options = wf_data.get("options", ["Yes", "No"])
+                        
+                        # Urgent Visual Queue
+                        wf_vis = gr.update(visible=True)
+                        wf_q = gr.update(value=question)
+                        wf_opt = gr.update(choices=options, value=None)
+                        
+                        yield (
+                            transcription, 
+                            status_box, 
+                            res_json, 
+                            "<div>Asking...</div>", # HTML placeholder
+                            audio_path_old, # The question audio
+                            cal_img_stream, 
+                            full_trace, 
+                            "Wayfinding Active...",
+                            wf_vis, wf_q, wf_opt, res_json # State Update
+                        )
+                        return # Stop Generator to wait for user input
                     
                     # If intermediate step
                     if status == "PROCESSING":
-                        yield transcription, status_box + f"\n\n{privacy_mode}", {}, "", None, None, full_trace, ""
+                        yield transcription, status_box + f"\n\n{privacy_mode}", {}, "", None, None, full_trace, "", wf_vis, wf_q, wf_opt, res_json
                     else:
                         # Final Result
                         status_box = status
-                        
-                        # [Audit Fix] Handle MISSING_DATA explicitly to avoid "Green Pass" trap
                         if status in ["MISSING_DATA", "UNKNOWN"]:
                              display_status = "⚠️ DATA MISSING"
-                             color = "#fff9c4" # Light Yellow
-                             
-                        # V6.5 UI Polish: Visualize Agentic Self-Correction
+                             color = "#fff9c4"
+
                         if res_json.get("agentic_retries", 0) > 0:
                             status_box += " (⚡ Agent Self-Corrected)"
                         
-                        # Extract SBAR
                         sbar = res_json.get("sbar_handoff", "**No SBAR data generated.**")
                         
-                        # Step 3: UI Gen
                         progress(0.8, desc="👵 Generating SilverGuard UI...")
                         html_view, audio_path_new = silverguard_ui(res_json, target_lang=target_lang)
                         
-                        # Smart Audio Selector
                         final_audio = audio_path_new if target_lang != "zh-TW" else audio_path_old
                         if not final_audio: final_audio = audio_path_old
                         
                         progress(1.0, desc="✅ Complete!")
-                        # Use the streamed calendar image if available, else None
                         final_cal = cal_img_stream if cal_img_stream else None
-                        yield transcription, status_box + f"\n\n{privacy_mode}", res_json, html_view, final_audio, final_cal, full_trace, sbar
+                        
+                        yield (
+                            transcription, 
+                            status_box + f"\n\n{privacy_mode}", 
+                            res_json, 
+                            html_view, 
+                            final_audio, 
+                            final_cal, 
+                            full_trace, 
+                            sbar,
+                            wf_vis, wf_q, wf_opt, res_json
+                        )
                 
                 
                 # [Audit Fix P0] No longer needed - using local variable
@@ -1684,8 +1896,16 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
             btn.click(
                 fn=run_full_flow_with_tts, 
                 inputs=[input_img, voice_input, transcription_display, proxy_text_input, caregiver_lang_dropdown, privacy_toggle], 
-                outputs=[transcription_display, status_output, json_output, silver_html, audio_output, calendar_output, trace_output, sbar_output]
+                outputs=[transcription_display, status_output, json_output, silver_html, audio_output, calendar_output, trace_output, sbar_output, wayfinding_group, wayfinding_msg, wayfinding_options, interaction_state]
             )
+            
+            # Wayfinding Event Handler
+            wayfinding_btn.click(
+                fn=submit_clarification,
+                inputs=[wayfinding_options, interaction_state],
+                outputs=[wayfinding_group, status_output, json_output, silver_html, audio_output, calendar_output, trace_output]
+            )
+
             voice_ex1.click(lambda: "Patient is allergic to Aspirin.", outputs=transcription_display)
             voice_ex2.click(lambda: "Patient has history of kidney failure (eGFR < 30).", outputs=transcription_display)
             
