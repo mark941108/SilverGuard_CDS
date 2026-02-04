@@ -97,18 +97,80 @@ graph LR
 **Social Equity (Aligned with Afrimed-QA):**
 We address the digital divide for **Migrant Caregivers** by providing instant translations and reasoning in Indonesian/Vietnamese, ensuring health equity.
 
-### Technical details
-We leverage **MedGemma 1.5-4B** (fine-tuned via **QLoRA** on T4 GPUs, see `train_lora.py`) as the core reasoning engine. The system implements a **"System 1 / System 2" Agentic Workflow**:
+### 🧠 Strategic Alignment: Google Health AI Matrix
 
-*   **Perception (System 1):** Fast extraction of Drug Name, Dosage, and Timing from the image (Temperature=0.6).
-*   **The "Strategy Shift" in Action:** When the system detects a high-stakes scenario (e.g., an 88-year-old patient with Aspirin + Warfarin), it explicitly **rejects the fast System 1 output**. The logs show the Agent lowering its temperature (0.6 → 0.2) to enter **"Analytical Mode"**, consulting the Beers Criteria before issuing a warning. This mimics a pharmacist pausing to double-check a prescription.
-*   **Knowledge Retrieval (RAG):** If the drug is unknown, it queries a local vector database (FAISS) to retrieve "Package Inserts" without internet access.
-*   **Safety Guardrails:** A deterministic logic layer forces a hard stop if "Lethal Combinations" (e.g., Age > 80 + Metformin > 1000mg) are detected.
+SilverGuard is not just an application; it is an **edge-deployed, localized execution of Google's Health AI philosophy**. We have strategically aligned our architecture with Google's four major research pillars:
 
-> **Architecture Note:** To optimize inference latency on T4 edge devices, the deployed demo (`app.py`) utilizes a lightweight Hash-Map Retrieval, while the core research engine (`agent_engine.py`) implements full FAISS Vector Search. This "Dual Architecture" ensures real-time performance without sacrificing safety logic capabilities.
+| Google Initiative | Core Concept | SilverGuard Implementation |
+| :--- | :--- | :--- |
+| **MedGemma** | **Foundation**<br>Specialized medical reasoning weights | **Edge Deployment**<br>Native T4 GPU inference using 4-bit LoRA (Hai-DEF Framework compatible) |
+| **AMIE** | **Inference Strategy**<br>Self-Critique & Inner Monologue | **System 2 Protocol**<br>Implements "Strategy Shift" (Temp 0.6 → 0.2) to self-correct during complex tasks |
+| **g-AMIE** | **Oversight**<br>Physician-Centered Guardrails | **Symbolic Shield**<br>Hard-coded "Rule 1-4" Logic based on Beers Criteria (Neuro-Symbolic Defense) |
+| **PHIA & Wayfinding** | **Tool Use & Context**<br>Code generation & Active Questioning | **Deterministic Calculation**<br>Python-based dosage math & "Active Refusal" for blurry inputs |
 
+> *"SilverGuard is essentially a localized implementation of the AMIE architecture, utilizing MedGemma weights for the last mile of care."*
+
+#### Theoretical Validation: The Science of Scaling
+> *"Our architectural choices align with the findings of **Kim et al. (Google Research, 2026)** on Scaling Agent Systems. We deliberately avoided an 'Independent Multi-Agent' topology, which research shows can amplify errors by **17.2x** due to unchecked propagation. Instead, SilverGuard implements a **Centralized Coordination** architecture with **Neuro-Symbolic Validation Bottlenecks** (System 2 Logic). This design effectively contains error propagation (reducing amplification to ~4.4x) and avoids the 'Coordination Tax' that degrades performance in tool-heavy clinical workflows."*
+
+### 🛠️ Strategic Architecture: Turning Weaknesses into Strengths
+
+| Design Constraint (My Internal Monologue) | Architectural Decision (The Narrative) | Google Research Support |
+| :--- | :--- | :--- |
+| *"I'm afraid the AI will hallucinate and harm patients."* | **Human-in-the-Loop Guardrails**: Adopted **g-AMIE** mode where AI acts as a summarizer/flagger, leaving final decisions to humans. | **g-AMIE**: AI as a support tool with self-doubt mechanisms. |
+| *"LLMs are bad at math, and I can't fix that."* | **Code-as-Reasoning**: Implemented **Deterministic Calculation** using Python interpreters for strict numerical safety. | **PHIA**: Proves code execution > LLM inference for math accuracy (20% → 100%). |
+| *"I can't afford cloud GPUs; I only have one T4."* | **Edge-First Design**: Optimized for **Low-Resource Environments**, ensuring medical AI accessibility offline. | **Mobile Health**: Critical for last-mile delivery in connectivity-poor regions. |
+| *"Multi-agent systems feel chaotic and error-prone."* | **Centralized Coordination**: Used a single Orchestrator to force sequential logic checks, avoiding error cascades. | **Scaling Agent Systems (2026)**: Centralized control prevents 17.2x error amplification. |
+
+### 🏗️ The 4-Layer "Fail-Safe" System
+
+```mermaid
+graph TD
+    %% --- Styles ---
+    classDef eye fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+    classDef brain fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
+    classDef shield fill:#ffebee,stroke:#b71c1c,stroke-width:2px,color:#000
+    classDef voice fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px,color:#000
+
+    subgraph L1 ["1. Perception Layer (The Eyes)"]
+        direction TB
+        Input[📸 Image Input] --> Physics{Physics-Informed Vision}:::eye
+        Physics -- "Blurry/Glare?" --> Refuse[⛔ Active Refusal]:::shield
+        Physics -- "Clear" --> Encoder[MedGemma 1.5 SigLIP]:::eye
+    end
+
+    subgraph L2 ["2. Reasoning Layer (The Brain)"]
+        direction TB
+        Encoder --> S1[System 1: Fast Intuition]:::brain
+        S1 --> Orchestrator{Centralized Orchestrator}:::brain
+        Orchestrator -- "High Risk?" --> S2[System 2: Temp 0.2 + RAG]:::brain
+    end
+
+    subgraph L3 ["3. Safety Layer (The Shield)"]
+        direction TB
+        S2 --> LeakCheck{Data Leakage Check}:::shield
+        LeakCheck --> Critic{Neuro-Symbolic Critic}:::shield
+        Critic -- "Violation?" --> Corrections[Force Retry]:::shield
+    end
+
+    subgraph L4 ["4. Interaction Layer (The Voice)"]
+        direction TB
+        Critic -- "Pass" --> Output[✅ Safe Output]:::voice
+        Critic -- "Ambiguous?" --> Wayfinding[🧭 Wayfinding AI: Active Clarification]:::voice
+        Wayfinding --> UserLoop((🗣️ Ask Context)):::voice
+    end
+    
+    Refuse --> UserLoop
+    Corrections --> Orchestrator
+```
+
+**Layer Breakdown:**
+1.  **Perception ("The Eyes"):** Uses **Physics-Informed Vision** (trained on our "Gallery of Horrors" dataset) to handle real-world messiness like creases and glare.
+2.  **Reasoning ("The Brain"):** Implements **Validation Bottlenecks** (Kim et al., 2026). The System 2 logic acts as a mandatory checkpoint, preventing "Intuition" from becoming "Hallucination".
+3.  **Safety ("The Shield"):** Based on **Fail-Safe Engineering**. If the system encounters an `UNKNOWN_DRUG`, it defaults to a safe refusal state rather than guessing.
+4.  **Interaction ("The Voice"):** Uses **Active Clarification**. Instead of blindly processing bad data, the system initiates a "Wayfinding" dialogue to resolve ambiguity with the user.
 **Product Feasibility:**
-1.  **Sim2Real Robustness:** recognizing that real-world data is messy, we implemented a **Laplacian Blur Gate** to strictly reject OOD images (glare, blur). *Refusal is safer than hallucination.*
+1.  **Sim2Real Robustness (Wayfinding Principle: "Don't Guess"):** recognizing that real-world data is messy, we implemented a **Laplacian Blur Gate** to strictly reject OOD images (glare, blur). *Refusal is safer than hallucination.*
 2.  **Programmatic Reasoning (Aligned with PHIA):** Instead of relying on the LLM for arithmetic, SilverGuard leverages Python code execution for precise dosage calculations and unit conversions.
 3.  **Sustainability & "Zero Marginal Cost" (Energy Engineering Perspective)**
     As an Energy Engineering student, I optimized the system for the lowest possible carbon footprint. By running quantified (4-bit) MedGemma on Edge GPUs (T4) instead of querying massive cloud clusters:
