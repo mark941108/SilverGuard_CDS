@@ -128,6 +128,31 @@ This implements the **TOTE Loop** (Test-Operate-Test-Exit) from cognitive psycho
 
 ---
 
+### 🔬 Strategic Alignment with Google Health AI Research
+SilverGuard's architecture is not just an engineering choice; it is a deliberate application of Google's latest Health AI research principles (2024-2025) to solve local problems.
+
+#### 1. Core Cognitive Architecture: Aligned with AMIE
+*   **Feature:** "Reflexion Pattern" / "System 2 Mode"
+*   **Research Concept:** **"Mx Agent" (Management Reasoning Agent)**
+*   **Alignment:** SilverGuard adopts a dual-system cognitive architecture inspired by **Google's AMIE**. While our VLM acts as the conversational interface (Dialogue Agent), the underlying **'Mx Agent'** (our Safety Critic) performs deliberate, guideline-based reasoning before any output is rendered.
+
+#### 2. Safety Architecture: Aligned with g-AMIE
+*   **Feature:** "Hard Rules" / "Input Gates"
+*   **Research Concept:** **"Guardrail Agent"**
+*   **Alignment:** To mitigate hallucination risks in high-stakes scenarios, we implemented a **'Guardrail Agent'** architecture similar to **g-AMIE**. This deterministic layer filters potentially harmful advice, serving as a digital proxy for physician oversight in remote settings.
+
+#### 3. Computational Logic: Aligned with PHIA
+*   **Feature:** "Safety Logic (Python Code)"
+*   **Research Concept:** **"Programmatic Reasoning"**
+*   **Alignment:** Instead of relying on the LLM for arithmetic, SilverGuard leverages **'Programmatic Reasoning'**—a technique pioneered in **Google's PHIA**—to execute precise dosage calculations, ensuring mathematical certainty.
+
+#### 4. Social Equity: Aligned with Afrimed-QA
+*   **Feature:** "Migrant Caregiver Support"
+*   **Research Concept:** **"Health Equity"**
+*   **Alignment:** Aligning with the mission of **Google's Afrimed-QA**, SilverGuard addresses the digital divide for **underrepresented populations**. By supporting migrant caregivers in Taiwan, we ensure that AI safety benefits are equitably distributed across linguistic barriers.
+
+---
+
 ### Limitations & Anti-Fragility Design
 
 We embrace **"Intellectual Honesty"** by proactively disclosing limitations and our engineering mitigations:

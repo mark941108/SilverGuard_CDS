@@ -22,6 +22,7 @@ Model Architecture: Gemini 3 Pro (Audio-Native).
 - Pronunciation Guardrails:
   - "MedGemma" -> [mɛd-dʒɛm-mə]
   - "SigLIP" -> [sɪɡ-lɪp]
+  - "MedASR" -> [mɛd-eɪ-ɛs-ɑr]
 ```
 
 
@@ -91,50 +92,55 @@ Your voice is:
 ---
 
 ## 🎙️ Scene 1: The Hook (0:00 - 0:20)
+**BGM: Pulse/Heartbeat (Cyberpunk Style)**
 
 **【複製到 Style instructions】(上方格子)**
-> Speak in a serious, introspective tone. You are a senior engineer starting a presentation.
-> [Tone: Cinematic, Storytelling] (Matching Veo 3.1 Visuals)
+> **Speak with high urgency and intensity. Every second counts. You are pitching a life-saving technology.**
+> [Tone: Urgent, High Stakes, Fast Paced] (Matching Veo 3.1 Visuals)
 
 **【複製到 Text】(下方格子)**
 ```text
-As an Energy Engineering student, I am trained to prevent system failures.
+As an Energy Engineering student, [Proudly] I am trained to prevent system failures.
 But in healthcare... errors can have serious consequences.
 Existing OCR makes mistakes. Standard LLMs hallucinate.
-This is SilverGuard C-D-S. A Clinical Decision Support prototype.
+This is **Silver Guard** C-D-S. A Clinical Decision Support prototype.
 ```
 
 ---
 
 ## 🎙️ Scene 2: Edge AI Solution (0:20 - 0:35)
+**BGM: Glitch/Suspense -> Silence**
 
 **【複製到 Style instructions】(上方格子)**
-> Speak in a confident, punchy, and technical tone.
-> [Tone: Instructional, Crisp] (Matching Screen Recording)
+> **Start with sudden confusion and alarm ("Wait..."), then switch immediately to confident, reassuring technical authority.**
+> [Tone: Dramatic Realization -> Reassuring Expert] (Matching Screen Recording)
 
 **【複製到 Text】(下方格子)**
 ```text
-Wait... Network lost?
+Wait... [Surprised] Network lost?
 *(SFX: Glitch / Static Noise)*
 No problem. Watch the privacy shield activate.
 Switching to **Air-Gapped Mode**. Zero data leaves this device.
 *(Visual: UI turns Grey/Green with "OFFLINE MODE" badge)*
-*(Technical Note for Judges: Presentation uses cloud TTS for auditory clarity; system effectively falls back to pyttsx3/SAPI5 when offline.)*
+*(Technical Note: Apply "Radio EQ" effect to the line above in post-prod)*
 ```
 
 ---
 
 ## 🎙️ Scene 3: Agentic Core (0:35 - 1:25)
+**BGM: Tech Minimal (Clean & Rhythm)**
 
 **【複製到 Style instructions】(上方格子)**
-> Speak in an analytical and dramatic tone.
-> [Tone: Instructional, Crisp] (Matching Screen Recording)
+> **Speak in a fast, punchy rhythm for the tech stack (SigLIP/MedASR). Then, PAUSE and speak slowly and dramatically for the "Strategy Shift".**
+> [Tone: Machine-Gun Fire -> Dramatic Reveal] (Matching Screen Recording)
 
 **【複製到 Text】(下方格子)**
 ```text
-Standard AI guesses. SilverGuard **validates**.
-It uses **Hybrid Verification**—combining VLM reasoning with numeric pattern matching.
-Look at the log... **Strategy Shift**.
+Standard AI guesses. **Silver Guard** validates.
+**SigLIP** eyes see "Aspirin". **MedASR** ears hear "Bleeding".
+**CRITICAL ALERT: CONTRAINDICATION.**
+It uses **Hybrid Verification**... combining VLM reasoning with numeric pattern matching.
+Look at the log... [Pause] **Strategy Shift**.
 It detected a risk, **lowered its temperature**, and re-evaluated the logic.
 It caught the error that others missed.
 
@@ -142,20 +148,25 @@ We trade latency for safety.
 Because getting an answer three seconds late... is better than getting a wrong answer instantly.
 ```
 
-**🎬 Visual Cue:**特寫 (Close-up) the terminal/logs showing "STRATEGY SHIFT: Lowering Temperature -> System 2 Mode" to prove Agentic behavior.
+**🎬 Visual Cue (Tech Stack Overlay):**
+*   **0:39 ("SigLIP eyes...")**: Highlight text **"Aspirin 100mg"** on drug bag image.
+*   **0:42 ("MedASR ears...")**: Show Audio Waveform + Subtitle: **"Grandma fell and is bleeding now!"**.
+*   **0:43 ("Critical Alert")**: Show RED "❌ STOP MEDICATION - BLEEDING RISK" stamp.
+*   **0:45 ("Strategy Shift")**:特寫 (Close-up) the terminal/logs showing "STRATEGY SHIFT: Lowering Temperature -> System 2 Mode" to prove Agentic behavior.
 
 ---
 
 ## 🎙️ Scene 4: SilverGuard Impact (1:25 - 2:20)
+**BGM: Warm Piano/Strings (Emotional)**
 
 **【複製到 Style instructions】(上方格子)**
-> Shift your tone to be warm, empathetic, and human-centric.
-> [Tone: Cinematic, Storytelling] (Matching Veo 3.1 Visuals)
+> **Speak slowly and gently, with deep empathy and warmth. Like a doctor comforting a patient.**
+> [Tone: Cinematic, Storytelling, Slower Pace] (Matching Veo 3.1 Visuals)
 
 **【複製到 Text】(下方格子)**
 ```text
-Raw JSON is useless to a grandmother. 
-SilverGuard translates safety alerts into large-font visuals.
+Raw J-S-O-N is useless to a grandmother. 
+Silver Guard translates safety alerts into large-font visuals.
 
 But clarity isn't just for the elderly; it's for those who care for them.
 Taiwan's two-hundred-fifty-thousand migrant caregivers now have safety alerts in their language.
@@ -165,6 +176,7 @@ Visual safety alerts. Ensuring care has no language barrier.
 
 [Action: Cross-Lingual Morphing]
 Maintain the exact timbre of "Enceladus" but switch language to Indonesian smoothly.
+*Fallback: If AI struggles with Indonesian, use Google Translate audio or keep English narration.*
 Text: "MOHON TANYA APOTEKER"
 
 ---
@@ -179,9 +191,9 @@ Text: "MOHON TANYA APOTEKER"
 We are not replacing pharmacists. 
 We are giving them a second pair of eyes that never gets tired.
 
-Powered by Med-JEM-ma. Built for privacy. Designed for impact.
+Powered by **Med-JEM-ma**. Built for privacy. Designed for impact.
 
-This is SilverGuard C-D-S. 
+This is **Silver Guard** C-D-S. 
 Safe. Scalable. And available now on Kaggle.
 ```
 

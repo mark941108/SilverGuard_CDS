@@ -188,8 +188,14 @@ def parse_dosage_usage(usage_tag):
         "QD_meals_before": "每日1次，飯前服用",
         "QD_meals_with": "每日1次，隨餐服用",
         "QD_bedtime": "每日1次，睡前服用",
+        # [Audit Fix P0] Add missing usage keys for Warfarin, Xarelto, Panadol
+        "QD_evening": "每日1次，晚上服用",
+        "QD_evening_with_meal": "每日1次，晚餐後隨餐服用",
+        "Q4H_prn": "需要時每4小時服用1次 (每日最多6次)",
         "BID_meals_after": "每日2次，飯後服用",
         "BID_morning_noon": "每日2次，早午服用 (避免夜尿)",
         "TID_meals_after": "每日3次，飯後服用"
     }
-    return map_.get(usage_tag, "遵照醫囑服用")
+    # [Audit Fix P0] Add fallback to prevent KeyError
+    return map_.get(usage_tag, f"遵照醫囑服用 ({usage_tag})")
+

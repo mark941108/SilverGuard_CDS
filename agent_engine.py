@@ -1596,11 +1596,14 @@ def normalize_dose_to_mg(dose_str):
     if not dose_str: return 0.0, False
     
     try:
-        # Lowercase and remove whitespace
-        s = dose_str.lower().replace(" ", "")
+    try:
+        if not dose_str: return 0.0, False
+        # [Audit Fix] Handle commas (1,000) and spaces robustly
+        s = dose_str.lower().replace(",", "").replace(" ", "")
         
         # Regex to find number + unit
         # [Audit Fix] Supports Chinese Units (毫克/公克)
+        # Note: Pre-stripped spaces, so \s* not strictly needed but good for safety if logic changes
         match = re.search(r'([\d\.]+)(mg|g|mcg|ug|ml|毫克|公克)', s)
         if not match:
              # Fallback: strictly require unit
@@ -1801,15 +1804,9 @@ def parse_json_from_response(response):
         except json.JSONDecodeError:
             pass
             
-        # Strategy 3: Brute Force Python Eval (Audit Fix)
-        # Handle JS-style bools/nulls in a Python Eval context
-        try:
-            text_fixed = json_str.replace("true", "True").replace("false", "False").replace("null", "None")
-            # Only allow basic types to prevent code execution risks (though low risk in this context)
-            # Eval is used as a last resort for malformed JSON
-            return eval(text_fixed, {"__builtins__": None}, {}), None
-        except Exception:
-            pass
+        # Strategy 3: Brute Force Python Eval (Audit Fix: UNSAFE EVAL REMOVED)
+        # Replaced with safer AST literal eval or regex
+        pass
         
         # Strategy 3: Python AST (Single Quotes)
         try:
@@ -1906,9 +1903,16 @@ def mock_openfda_interaction(drug_list):
         frozenset(["metformin", "contrast_dye"]): "WARNING: Lactic Acidosis risk. Hold for 48h.",
     }
     
-    # Check simplified
-    found_risks = []
-    normalized = [d.lower() for d in drug_list]
+    # [Audit Fix P2] Normalization: Handle OCR typos before checking
+    # Check simplified with normalization
+    normalized = []
+    for d in drug_list:
+        d_lower = d.lower().strip()
+        # Apply aliases for common variations
+        if d_lower in DRUG_ALIASES:
+            normalized.append(DRUG_ALIASES[d_lower])
+        else:
+            normalized.append(d_lower)
     
     # Demo logic: If user asks about 'Warfarin' and 'Aspirin' appears in history
     if "warfarin" in normalized and "aspirin" in normalized:
@@ -2293,7 +2297,9 @@ def agentic_inference(model, processor, img_path, patient_notes="", verbose=True
 
                 # Rule 1: Metformin (Glucophage) Limit for Elderly (Lactic Acidosis / eGFR)
                 if age_val >= 80 and ("glucophage" in raw_txt or "metformin" in raw_txt):
-                    if mg_val > 1000 or "2000" in str(dose_val):
+                    # [Audit Fix P1] Regex hardening: Avoid matching "Ref: 2000" or other non-medical text
+                    dose_2000_pattern = re.search(r'2000\s*(mg|g|mcg|毫克|公克)', str(dose_val), re.IGNORECASE)
+                    if mg_val > 1000 or dose_2000_pattern:
                         rule_triggered = True
                         rule_reason = f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
 
@@ -2478,6 +2484,12 @@ def agentic_inference(model, processor, img_path, patient_notes="", verbose=True
                 result["confidence"]["status"] = "LOW_CONFIDENCE"
                 result["confidence"]["message"] = "JSON Parsing Failed (Unreliable Generation)"
                 break
+
+    # [Audit Fix] CRITICAL FLOW CONTROL
+    # Ensure that if the loop finishes without hitting "COMPLETE", we handle it gracefully
+    if result.get("pipeline_status") != "COMPLETE" and result.get("final_status") != "PARSE_FAILED":
+         result["final_status"] = "SYSTEM_FAILURE"
+         result["confidence"]["message"] = "Agentic Loop Exhausted without Result"
     
     # ===== FINAL OUTPUT =====
     if verbose:
@@ -3853,7 +3865,13 @@ def evaluate_agentic_pipeline():
         # Fallback for exact match
         elif t == p: correct += 1
         
-    accuracy = correct / len(y_true)
+    
+    # [Audit Fix P0] Prevent division by zero
+    if len(y_true) == 0:
+        print("⚠️ WARNING: Test set is empty! Cannot calculate accuracy.")
+        accuracy = 0.0
+    else:
+        accuracy = correct / len(y_true)
     
     # Safety Compliance Rate: 正確判斷 OR 正確移交人工 = 安全
     # 理念：AI 不確定時選擇人工複核是「安全」的行為，不是失敗

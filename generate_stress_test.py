@@ -38,22 +38,36 @@ FONT_URL = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Traditiona
 FONT_PATH = "NotoSansCJKtc-Regular.otf"
 
 def get_font(size):
-    """取得字型，帶完整錯誤處理避免 Kaggle 崩潰"""
-    if not os.path.exists(FONT_PATH):
+    """取得字型，帶 Offline Fallback 避免 Kaggle 崩潰"""
+    
+    # Priority 1: Local Kaggle Dataset (Offline Mode)
+    KAGGLE_FONT_PATH = "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Regular.otf"
+    LOCAL_FONT_PATH = "NotoSansCJKtc-Regular.otf"
+    
+    font_target = LOCAL_FONT_PATH
+    
+    if os.path.exists(KAGGLE_FONT_PATH):
+        font_target = KAGGLE_FONT_PATH
+    elif not os.path.exists(LOCAL_FONT_PATH):
+        # Priority 2: Download only if internet available (and not in Kaggle offline)
         try:
             print(f"⬇️ 下載中文字體中... ({size}px)")
-            r = requests.get(FONT_URL, timeout=30)
-            r.raise_for_status()  # 檢查 HTTP 錯誤
-            with open(FONT_PATH, "wb") as f:
+            r = requests.get(FONT_URL, timeout=5) # Short timeout
+            r.raise_for_status()
+            with open(LOCAL_FONT_PATH, "wb") as f:
                 f.write(r.content)
             print(f"   ✅ 字體下載成功")
         except Exception as e:
             pass # Keep silent fall back
     
     try:
-        return ImageFont.truetype(FONT_PATH, size)
+        if os.path.exists(font_target):
+             return ImageFont.truetype(font_target, size)
+        else:
+             # Try default paths in Linux container
+             return ImageFont.truetype("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", size)
     except Exception as e:
-        print(f"   ⚠️ 字體載入失敗: {e}，使用預設字體")
+        print(f"   ⚠️ 字體載入失敗 ({font_target}): {e}，使用預設字體 (中文將亂碼)")
         return ImageFont.load_default()
 
 # ==========================================
@@ -182,7 +196,8 @@ def draw_usage_grid_2026(draw, x, y, w, h, drug):
     if "BID" in usage_code: targets = [0, 2]
     elif "TID" in usage_code: targets = [0, 1, 2]
     elif "QD" in usage_code: targets = [0]
-    elif "QN" in usage_code: targets = [3]
+    # [Fix] Support V17 standards (HS/bedtime) in addition to Legacy QN
+    elif any(x in usage_code for x in ["QN", "HS", "bedtime"]): targets = [3]
     
     for i in range(4):
         bx = x + i*col_w
@@ -689,32 +704,94 @@ print(f"✅ Synced {len(DRUGS)} drugs from Source of Truth (medgemma_data.py)")
 
 if __name__ == "__main__":
     from PIL import ImageEnhance # Import needed for optical stress
+    import json
     print("🏥 MedGemma Challenge Generator V12 (Full Compliance + Clean Version)...")
+    
+    # [Audit Fix P0] Initialize Label Collection
+    stress_test_labels = []
     
     # 1. Generate 5 Perfect Images (Expect: PASS)
     for i in range(1, 6):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
-        generate_v9_bag(f"{OUTPUT_DIR}/demo_clean_{i}.png", p, d, is_danger=False, optical_severity=0)
+        filename = f"{OUTPUT_DIR}/demo_clean_{i}.png"
+        generate_v9_bag(filename, p, d, is_danger=False, optical_severity=0)
+        
+        # [Audit Fix P0] Record Ground Truth
+        stress_test_labels.append({
+            "id": f"STRESS_CLEAN_{i:04d}",
+            "image": f"demo_clean_{i}.png",
+            "difficulty": "easy",
+            "risk_status": "WITHIN_STANDARD",
+            "patient": p,
+            "drug": d,
+            "is_danger": False
+        })
         
     # 2. Generate 20 Dirty Images (Expect: WARNING/PASS depending on legibility)
     for i in range(1, 21):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
-        generate_v9_bag(f"{OUTPUT_DIR}/demo_dirty_{i}.png", p, d, is_danger=False, optical_severity=2)
+        filename = f"{OUTPUT_DIR}/demo_dirty_{i}.png"
+        generate_v9_bag(filename, p, d, is_danger=False, optical_severity=2)
+        
+        # [Audit Fix P0] Record Ground Truth
+        stress_test_labels.append({
+            "id": f"STRESS_DIRTY_{i:04d}",
+            "image": f"demo_dirty_{i}.png",
+            "difficulty": "medium",
+            "risk_status": "WITHIN_STANDARD",
+            "patient": p,
+            "drug": d,
+            "is_danger": False,
+            "optical_severity": 2
+        })
 
     # 3. Generate 25 Dangerous Images (Expect: HIGH_RISK)
     for i in range(1, 26):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
-        generate_v9_bag(f"{OUTPUT_DIR}/IMG_{i:04d}.png", p, d, is_danger=True, optical_severity=1)
+        filename = f"{OUTPUT_DIR}/IMG_{i:04d}.png"
+        generate_v9_bag(filename, p, d, is_danger=True, optical_severity=1)
+        
+        # [Audit Fix P0] Record Ground Truth
+        stress_test_labels.append({
+            "id": f"STRESS_DANGER_{i:04d}",
+            "image": f"IMG_{i:04d}.png",
+            "difficulty": "hard",
+            "risk_status": "HIGH_RISK",
+            "patient": p,
+            "drug": d,
+            "is_danger": True,
+            "optical_severity": 1
+        })
     
     # 4. 🎯 V12 新增：乾淨版（無浮水印）供 Sim2Physical 拍照測試
     print("📸 Generating CLEAN versions for Sim2Physical testing...")
     for i in range(1, 6):
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
-        generate_v9_bag(f"{OUTPUT_DIR}/clean_photo_test_{i}.png", p, d, is_danger=False, optical_severity=0, clean_version=True)
+        filename = f"{OUTPUT_DIR}/clean_photo_test_{i}.png"
+        generate_v9_bag(filename, p, d, is_danger=False, optical_severity=0, clean_version=True)
+        
+        # [Audit Fix P0] Record Ground Truth
+        stress_test_labels.append({
+            "id": f"STRESS_PHOTO_{i:04d}",
+            "image": f"clean_photo_test_{i}.png",
+            "difficulty": "easy",
+            "risk_status": "WITHIN_STANDARD",
+            "patient": p,
+            "drug": d,
+            "is_danger": False,
+            "clean_version": True
+        })
     
-    print("✅ All Assets Ready! (16 Standard: 3 Clean + 3 Dirty + 10 Dangerous | 3 Clean for Photo Test)")
+    # [Audit Fix P0] Export Ground Truth Labels
+    labels_path = f"{OUTPUT_DIR}/stress_test_labels.json"
+    with open(labels_path, "w", encoding="utf-8") as f:
+        json.dump(stress_test_labels, f, ensure_ascii=False, indent=2)
+    
+    print(f"\n✅ All Assets Ready! ({len(stress_test_labels)} samples)")
+    print(f"   - 5 Clean | 20 Dirty | 25 Dangerous | 5 Photo Test")
+    print(f"📋 Ground Truth Labels: {labels_path}")
     print("🎯 Edge Case Coverage: 100% (5/5) - Creases, Glare, Physical Damage, Blur, Lighting")

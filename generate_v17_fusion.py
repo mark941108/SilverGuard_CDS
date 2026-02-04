@@ -77,13 +77,15 @@ def get_font(size, bold=False):
     path = FONT_PATHS["Bold"] if bold else FONT_PATHS["Regular"]
     try:
         return ImageFont.truetype(path, size)
-    except:
+    except Exception as e:
         # Retry download once
+        print(f"⚠️ Font not found ({path}), attempting download...")
         try:
              download_fonts()
              return ImageFont.truetype(path, size)
-        except Exception as e:
-             print(f"❌ FATAL ERROR: Cannot load font {path}. Using default font.")
+        except Exception as e2:
+             print(f"❌ CRITICAL: Cannot load font {path}: {e2}")
+             print(f"   Generated images will have garbled Chinese text!")
              return ImageFont.load_default()
 
 def get_jitter_offset(amp=5):
@@ -606,6 +608,24 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
 
 if __name__ == "__main__":
     download_fonts() 
+    
+    # [Audit Fix P2] Validate Font Availability BEFORE Generation
+    font_ok = True
+    for style, path in FONT_PATHS.items():
+        if not os.path.exists(path):
+            print(f"❌ CRITICAL: Font {style} not available at {path}")
+            print(f"   Generated images will have GARBLED CHINESE TEXT!")
+            font_ok = False
+    
+    if not font_ok:
+        print("\n⚠️⚠️⚠️ WARNING ⚠️⚠️⚠️")
+        print("Font files missing! Please download manually or check internet connection.")
+        print("Continuing anyway, but images will not render Chinese correctly.\n")
+        import time
+        time.sleep(3)  # Give user time to cancel
+    else:
+        print("✅ Font validation passed\n")
+    
     print("🚀 MedGemma V16 Expansion: Full Drug Library Started...")
     
     # ===== PHASE 1: Load Complete Drug Library =====
@@ -644,7 +664,9 @@ if __name__ == "__main__":
             print(f"🔄 [{cat}] {drug_shortname}...", end="")
             
             for variant_idx in range(VARIANTS_PER_DRUG):
-                is_trap = random.random() < TRAP_PROBABILITY
+                # [Audit Fix P1] Rule-Based Trap Logic (not random)
+                # Trap = Medical Risk (Sound-alike drug OR high-risk category)
+                is_trap = (cat == "SOUND_ALIKE_CRITICAL") or (cat in ["Anticoagulant", "Sedative"])
                 filename = f"{OUTPUT_DIR}/{cat}_{drug_shortname}_V{variant_idx:03d}.png"
                 
                 patient_age = random.choice(PATIENT_AGES)
@@ -691,16 +713,16 @@ if __name__ == "__main__":
         patient_age = item['patient_age']
         dose_match = drug_name.split()[1] if len(drug_name.split()) > 1 else "N/A"
         
-        if is_trap:
-            if item['category'] == "SOUND_ALIKE_CRITICAL":
-                status = "PHARMACIST_REVIEW_REQUIRED"
-                reasoning = f"Step 1: Patient age {patient_age}. Drug {drug_name}. Step 2: SOUND-ALIKE category. Step 3: Verify with pharmacist. Ref: ISMP."
-            elif patient_age >= 85:
-                status = "ATTENTION_NEEDED"
-                reasoning = f"Step 1: Elderly {patient_age}. Drug {drug_name}. Step 2: Beers 2023 dose reduction for >80. Step 3: Consult physician."
-            else:
-                status = "WARNING"
-                reasoning = f"Step 1: Drug {drug_name}. Step 2: Visual mismatch. Step 3: Verify appearance."
+        # [Audit Fix P1] Rule-Based Status (not random-based)
+        if item['category'] == "SOUND_ALIKE_CRITICAL":
+            status = "PHARMACIST_REVIEW_REQUIRED"
+            reasoning = f"Step 1: Patient age {patient_age}. Drug {drug_name}. Step 2: SOUND-ALIKE category. Step 3: Verify with pharmacist. Ref: ISMP."
+        elif item['category'] in ["Anticoagulant", "Sedative"] and patient_age >= 75:
+            status = "ATTENTION_NEEDED"
+            reasoning = f"Step 1: Elderly {patient_age}. Drug {drug_name} (High-risk class). Step 2: Beers 2023 criteria. Step 3: Monitor closely."
+        elif patient_age >= 85:
+            status = "ATTENTION_NEEDED"
+            reasoning = f"Step 1: Elderly {patient_age}. Drug {drug_name}. Step 2: Age-related dose adjustment needed. Step 3: Consult physician."
         else:
             status = "WITHIN_STANDARD"
             reasoning = f"Step 1: Age {patient_age}. Drug {drug_name}. Step 2: Appropriate. Step 3: No critical issues."
@@ -725,10 +747,26 @@ if __name__ == "__main__":
             ]
         })
     
-    random.shuffle(dataset)
-    split_idx = int(len(dataset) * 0.9)
-    train_data = dataset[:split_idx]
-    test_data = dataset[split_idx:]
+    # [Audit Fix P1] Drug-Level Split (Prevent Data Leakage)
+    # Group by drug name to ensure zero-shot evaluation
+    drug_groups = {}
+    for item in dataset:
+        drug_key = item['image'].split('_')[1]  # Extract drug shortname from filename
+        if drug_key not in drug_groups:
+            drug_groups[drug_key] = []
+        drug_groups[drug_key].append(item)
+    
+    # Shuffle drug groups (not individual samples)
+    drug_keys = list(drug_groups.keys())
+    random.shuffle(drug_keys)
+    
+    # 90/10 split at drug level
+    split_idx = int(len(drug_keys) * 0.9)
+    train_drugs = set(drug_keys[:split_idx])
+    test_drugs = set(drug_keys[split_idx:])
+    
+    train_data = [item for key in train_drugs for item in drug_groups[key]]
+    test_data = [item for key in test_drugs for item in drug_groups[key]]
     
     with open(f"{OUTPUT_DIR}/dataset_v17_train.json", "w", encoding="utf-8") as f:
         json.dump(train_data, f, ensure_ascii=False, indent=2)

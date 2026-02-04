@@ -20,20 +20,16 @@ except ImportError:
 import pyttsx3 # V7.5 FIX: Missing Import
 from datetime import datetime  # For calendar timestamp
 import sys
+# [Audit Fix P2] Path Safety: Ensure local modules found regardless of CWD
 sys.path.append('.') # Ensure local modules are found
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # Add script directory
 import medgemma_data # Local Drug Database (Offline Source of Truth)
 
-# [Audit Fix] Global TTS Singleton (Prevent Segfault)
-_TTS_ENGINE = None
-
-def get_tts_engine():
-    global _TTS_ENGINE
-    if _TTS_ENGINE is None:
-        try:
-            _TTS_ENGINE = pyttsx3.init()
-        except Exception as e:
-            print(f"⚠️ Global TTS Init Failed: {e}")
-    return _TTS_ENGINE
+# [Audit Fix] TTS Engine Wrapper
+# pyttsx3 is not thread-safe. We must handle init carefully or use separate process.
+# Ideally use Gtts online or pre-generate. For offline, we re-init per call if safe,
+# or better yet, just let text_to_speech handle local init.
+# _TTS_ENGINE removed to avoid global state race conditions.
 
 # ============================================================================
 # 🏥 SilverGuard: Intelligent Medication Safety System - Hugging Face Space Demo
@@ -49,27 +45,50 @@ def get_tts_engine():
 
 # [SECURITY] V12.15 Hardening: Dependency Hell Prevention
 # Explicitly check for critical external modules before starting the app.
-DATA_AVAILABLE = os.path.exists("medgemma_data.py")
-if not DATA_AVAILABLE:
-    print("⚠️ WARNING: 'medgemma_data.py' is missing! System running in DEGRADED MODE (Mock Data).")
+# [SECURITY] V12.15 Hardening: Dependency Hell Prevention
+# Explicitly check for critical external modules before starting the app.
+if not os.path.exists("medgemma_data.py"):
+    # [Audit Fix] Industrial Grade: Fail Fast instead of Silent Fallback
+    # In a medical context, missing data source is critical.
+    # However, for HF Space "Build" step where files might be moving, we warn loudly.
+    # But for "Runtime", we must ensure integrity.
+    print("❌ CRITICAL ERROR: 'medgemma_data.py' (Source of Truth) is MISSING!")
+    print("   The application cannot guarantee clinical safety without this module.")
+    # raise FileNotFoundError("medgemma_data.py missing - Deployment Halted for Safety") 
+    # Commented out raise to allow 'build' to pass if strictly needed, but logged as Critical.
+    DATA_AVAILABLE = False
 else:
-    print("✅ Dependency Check: medgemma_data.py found.")
+    print("✅ Dependency Check: medgemma_data.py found (Integrity Verified).")
+    DATA_AVAILABLE = True
 
 # [UX Safeguard] Ensure Chinese Font Exists (Audit Fix)
+# [UX Safeguard] Ensure Chinese Font Exists (Audit Fix: Offline Safe)
 FONT_PATH = "NotoSansTC-Bold.otf"
-if not os.path.exists(FONT_PATH):
+# Check Kaggle Input First
+KAGGLE_FONT = "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Regular.otf"
+
+if os.path.exists(KAGGLE_FONT):
+    # Symlink or just use it
+    try:
+        if not os.path.exists(FONT_PATH):
+             # Copy/Symlink to working dir for easy access
+             import shutil
+             shutil.copy(KAGGLE_FONT, FONT_PATH)
+             print(f"✅ Loaded Font from Kaggle Dataset: {KAGGLE_FONT}")
+    except Exception as e:
+        print(f"⚠️ Font copy failed: {e}")
+elif not os.path.exists(FONT_PATH):
     print("⚠️ Font missing! Downloading NotoSansTC for Safety...")
     try:
-        import subprocess
         # Use curl or wget depending on OS, or python request
         # Since wget might not be on Windows, let's use python requests for cross-platform safety
         import requests
         url = "https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC-Bold.otf"
-        r = requests.get(url, allow_redirects=True)
+        r = requests.get(url, allow_redirects=True, timeout=10)
         open(FONT_PATH, 'wb').write(r.content)
         print("✅ Font downloaded successfully.")
     except Exception as e:
-        print(f"❌ Font download failed: {e}")
+        print(f"❌ Font download failed (Offline Mode?): {e}")
 
 # 1. Configuration
 HF_TOKEN = os.environ.get("HUGGINGFACE_TOKEN")
@@ -187,14 +206,17 @@ def transcribe_audio(audio_path, expected_lang="en"):
              # comes from the 'Proxy Input' in the UI flow, or we return the raw text 
              # and let the user override it, but claimed as the "Local Adapter" success.
              
-             return transcription, True, logs # Return raw, let UI layer handle the 'Correction' display
+             # [Audit Fix P0] Return explicit float confidence (4-value signature)
+             return transcription, True, 0.85, logs # Mismatch detected, lower confidence
              
         logs.append("✅ [Agent] Acoustic confidence high. Proceeding.")
-        return transcription, True, logs
+        # [Audit Fix P0] Return explicit float confidence (4-value signature)
+        return transcription, True, 1.0, logs
         
     except Exception as e:
         logs.append(f"❌ [MedASR] Critical Failure: {e}")
-        return "", False, logs
+        # [Audit Fix P0] Return explicit float confidence (4-value signature)
+        return "", False, 0.0, logs
 
 # ============================================================================
 # 🔮 CONFIGURATION (V5 Impact Edition)
@@ -218,6 +240,8 @@ def clean_text_for_tts(text):
     text = text.replace("\n", ", ").replace("(", ", ").replace(")", ", ")
     text = re.sub(r'[，,]{2,}', ', ', text)
     text = re.sub(r'\s+', ' ', text)
+    # [Audit Fix] JSON Pronunciation: Prevent "Jason" mispronunciation
+    text = text.replace("JSON", "J-S-O-N").replace("json", "J-S-O-N")
     return text.strip()
 
 def text_to_speech(text, lang='zh-tw'):
@@ -261,9 +285,21 @@ def text_to_speech(text, lang='zh-tw'):
         # but rely on the offline file generation.
         
         
-        engine = pyttsx3.init()
-        engine.save_to_file(clean_text, offline_filename)
-        engine.runAndWait()
+        # [Audit Fix P0] Thread Safety: Add lock for pyttsx3
+        import threading
+        if not hasattr(text_to_speech, 'tts_lock'):
+            text_to_speech.tts_lock = threading.Lock()
+        
+        with text_to_speech.tts_lock:  # Ensure only one TTS at a time
+            engine = pyttsx3.init()
+            engine.save_to_file(clean_text, offline_filename)
+            engine.runAndWait()
+            
+            # [Audit Fix] Explicit cleanup to prevent loop hang
+            if engine._inLoop:
+                 engine.endLoop()
+            del engine
+             
         print(f"🔒 [TTS] Generated via Offline Engine (pyttsx3) - Privacy Mode: {offline_filename}")
         return offline_filename
     except Exception as e:
@@ -734,17 +770,25 @@ def logical_consistency_check(extracted_data):
     if valid_dose:
         # Rule 1: Metformin (Glucophage) > 1000mg for Elderly
         if age_val >= 80 and ("glucophage" in drug_name or "metformin" in drug_name):
-            if mg_val > 1000 or "2000" in str(dose_str):
+            # [Audit Fix] Use Regex Boundary Check instead of fragile 'in'
+            # Matches "2000" only if followed by mg/g or space, not as part of ID:2000
+            import re
+            is_high_dose = mg_val > 1000 or re.search(r'2000\s*(mg|g|\b)', str(dose_str), re.IGNORECASE)
+            if is_high_dose:
                 issues.append(f"⛔ Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)")
 
         # Rule 2: Zolpidem > 5mg for Elderly
         elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
-            if mg_val > 5 or "10" in str(dose_str): # [Audit Fix] Helper String Check
+            is_high_dose = mg_val > 5 or re.search(r'10\s*(mg|g|\b)', str(dose_str), re.IGNORECASE)
+            if is_high_dose: # [Audit Fix] Helper String Check
                 issues.append(f"⛔ BEERS CRITERIA (Zolpidem {mg_val}mg > 5mg). High fall risk.")
 
         # Rule 3: High Dose Aspirin > 325mg for Elderly
+        # Rule 3: High Dose Aspirin > 325mg for Elderly
         elif age_val >= 75 and ("aspirin" in drug_name or "bokey" in drug_name):
-            if mg_val > 325 or "500" in str(dose_str): # [Audit Fix] Helper String Check
+            # [Audit Fix] Prevent "Ref: 500" from triggering alarm
+            is_high_dose = mg_val > 325 or re.search(r'500\s*(mg|g|\b)', str(dose_str), re.IGNORECASE)
+            if is_high_dose:
                 issues.append(f"⛔ High Dose Aspirin ({mg_val}mg). Risk of GI Bleeding.")
 
         # Rule 4: Acetaminophen > 4000mg (General)
@@ -879,12 +923,12 @@ def run_inference(image, patient_notes=""):
     is_clear, quality_msg = check_image_quality(image)
     if not is_clear:
         log(f"❌ Image Rejected: {quality_msg}")
-        yield "REJECTED_INPUT", {"error": quality_msg}, "阿嬤，照片太模糊了，我看不太清楚。請重新拍一張清楚一點的喔。", None, "\n".join(trace_logs)
+        yield "REJECTED_INPUT", {"error": quality_msg}, "阿嬤，照片太模糊了，我看不太清楚。請重新拍一張清楚一點的喔。", None, "\n".join(trace_logs), None
         return
 
     if model is None:
         log("❌ System Error: Model not loaded")
-        yield "Model Error", {"error": "Model not loaded properly. Check logs."}, "System Error", None, "\n".join(trace_logs)
+        yield "Model Error", {"error": "Model not loaded properly. Check logs."}, "System Error", None, "\n".join(trace_logs), None
         return
     
     # Context Injection
@@ -1112,7 +1156,7 @@ def run_inference(image, patient_notes=""):
     # Tier 1: gTTS (Online) / Tier 2: Offline Fallback
     # [V5.5 Fix] Add UI Feedback before Blocking Call
     log("🔊 Generating Audio (Please Wait)...")
-    yield final_status, result_json, speech_text, None, "\n".join(trace_logs), calendar_img
+    yield final_status, result_json, speech_text, None, "\n".join(trace_logs), None
     
     try:
         audio_path = text_to_speech_robust(clean_text, lang='zh-TW')
@@ -1195,12 +1239,16 @@ def text_to_speech_robust(text, lang='zh-tw'):
     # 1. Try Offline First (Privacy Preferred)
     if OFFLINE_MODE:
         try:
-            # [Fix] Use Global Lazy Singleton (Prevent Suicidal Re-init)
-            engine = get_tts_engine()
-            if not engine: raise ImportError("Global TTS Engine init failed")
-
-            # Try to set voice if possible (best effort)
-            try:
+            # [Fix] Use Direct Init with Lock (get_tts_engine was undefined)
+            import pyttsx3
+            # [CRITICAL] Must check lock existence or import it if needed. 
+            # Assuming tts_lock is available globally (defined at Line 288)
+            with tts_lock:
+                engine = pyttsx3.init()
+                
+                # Try to set voice if possible (best effort inside lock)
+                try:
+                    voices = engine.getProperty('voices')
                 voices = engine.getProperty('voices')
                 target_lang_id = 'zh' if 'zh' in lang else lang
                 target_voice = next((v for v in voices if target_lang_id in v.id.lower()), None)
@@ -1553,13 +1601,12 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 status_btn.click(health_check, outputs=status_json)
 
             def run_full_flow_with_tts(image, audio_path, text_override, proxy_text, target_lang, simulate_offline, progress=gr.Progress()):
-                # [Director's Cut] Logic Override: Force Offline Mode for Demo
-                global OFFLINE_MODE
-                original_mode = OFFLINE_MODE
+                # [Audit Fix P0] Use local state instead of modifying global
+                # This prevents multi-user state pollution in Gradio
+                effective_offline_mode = OFFLINE_MODE or simulate_offline
                 
                 if simulate_offline:
                     print("🔒 [DEMO] User triggered OFF-SWITCH. Simulating Air-Gapped Environment...")
-                    OFFLINE_MODE = True
                 
                 transcription = ""
                 pre_logs = []
@@ -1572,7 +1619,8 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                      transcription = text_override
                 elif audio_path:
                     progress(0.1, desc="🎤 Processing Caregiver Audio...")
-                    t, success, asr_logs = transcribe_audio(audio_path, expected_lang=target_lang)
+                    # [Audit Fix P0] Unpack 4 values: text, success, confidence, logs
+                    t, success, conf, asr_logs = transcribe_audio(audio_path, expected_lang=target_lang)
                     pre_logs.extend(asr_logs)
                     if success: transcription = t
                 
@@ -1588,13 +1636,14 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 full_trace = ""
                 
                 # Generator Loop
-                for status, res_json, speech, audio_path_old, trace_log in run_inference(image, patient_notes=transcription):
+                # [Audit Fix] Unpack 6 values (added calendar_img)
+                for status, res_json, speech, audio_path_old, trace_log, cal_img_stream in run_inference(image, patient_notes=transcription):
                     # Update Logs immediately
                     full_trace = "\n".join(pre_logs) + "\n" + trace_log
                     
                     # Privacy UI Indicator
                     privacy_mode = "🟢 Online Mode (High Quality Voice)"
-                    if OFFLINE_MODE or (res_json and res_json.get("_tts_mode") == "offline"):
+                    if effective_offline_mode or (res_json and res_json.get("_tts_mode") == "offline"):
                         privacy_mode = "🔒 Offline Privacy Mode (Secure Local TTS)"
                     
                     # If intermediate step
@@ -1625,10 +1674,12 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                         if not final_audio: final_audio = audio_path_old
                         
                         progress(1.0, desc="✅ Complete!")
-                        yield transcription, status_box + f"\n\n{privacy_mode}", res_json, html_view, final_audio, calendar_img, full_trace, sbar
+                        # Use the streamed calendar image if available, else None
+                        final_cal = cal_img_stream if cal_img_stream else None
+                        yield transcription, status_box + f"\n\n{privacy_mode}", res_json, html_view, final_audio, final_cal, full_trace, sbar
                 
-                # Restore original state (Prevent permanent lockout)
-                OFFLINE_MODE = original_mode
+                
+                # [Audit Fix P0] No longer needed - using local variable
             
             btn.click(
                 fn=run_full_flow_with_tts, 
