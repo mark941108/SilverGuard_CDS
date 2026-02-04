@@ -2205,9 +2205,10 @@ def agentic_inference(model, processor, img_path, patient_notes="", verbose=True
                     print(f"   🔄 STRATEGY SHIFT: Lowering temperature 0.6 → {temperature} for focused reasoning")
             
             with torch.no_grad():
+                # [V19 Optimization] Increased token limit for Chain-of-Thought
                 outputs = model.generate(
                     **inputs, 
-                    max_new_tokens=512,  # V6.1: 減少到 512，JSON 不需要 1024
+                    max_new_tokens=1024,  # V6.1: Increased for deep reasoning
                     do_sample=True, 
                     temperature=temperature,  # 🔥 Dynamic adjustment
                     top_p=0.9,
@@ -2350,7 +2351,19 @@ def agentic_inference(model, processor, img_path, patient_notes="", verbose=True
             if not is_safe:
                 if verbose:
                     print(f"\n   🛑 [Attempt {current_try}] CRITIQUE FAILED: {critique_feedback}")
-                    print("   🔄 Agent State: Reflecting and Regenerating...")
+                
+                 # [V19 UPDATE] Halt on Unknown Drug (Infinite Loop Prevention)
+                if "not found in database" in critique_feedback or "UNKNOWN_DRUG" in critique_feedback:
+                    if verbose: print("   ⚠️ Unknown Drug detected. Stopping retries to prevent hallucination.")
+                    # Force HUMAN_REVIEW status
+                    parsed_json["safety_analysis"]["status"] = "HUMAN_REVIEW_NEEDED"
+                    parsed_json["safety_analysis"]["reasoning"] = f"⚠️ [Safety Protocol] Unknown Drug Detected. Automated dispensing disabled. Human verification required. ({critique_feedback})"
+                    result["vlm_output"]["parsed"] = parsed_json # Commit forced change
+                    result["final_status"] = "HUMAN_REVIEW_NEEDED"
+                    # Break loop immediately (Treat as Success-in-Safety)
+                    break 
+
+                if verbose: print("   🔄 Agent State: Reflecting and Regenerating...")
                 
                 # [Step 3] THE REFINER: Reflection & Correction
                 # Feed the critique back directly into the prompt (Self-Correction)

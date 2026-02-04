@@ -102,6 +102,8 @@ if "Please_Replace" in ADAPTER_MODEL or not ADAPTER_MODEL:
     raise ValueError("ADAPTER_MODEL_ID environment variable must be set before deployment.")
 
 # Offline Mode Toggle (For Air-Gapped / Privacy-First deployment)
+# [Privacy By Design] Default to TRUE to ensure no data leaves the device by default.
+# Only enable Online Mode if internet access is explicitly authorized.
 OFFLINE_MODE = os.environ.get("OFFLINE_MODE", "True").lower() == "true"
 if OFFLINE_MODE:
     print("🔒 OFFLINE_MODE Active: External APIs (OpenFDA, Google TTS) disabled.")
@@ -1086,9 +1088,9 @@ def run_inference(image, patient_notes=""):
             yield "PROCESSING", {}, "", None, "\n".join(trace_logs) # Yield updated log
             
             with torch.inference_mode():
-                # V7.5 Improvement: Reduce max tokens for speed
+                # [V19 Optimization] Increased token limit for Chain-of-Thought (System 2)
                 generate_ids = model.generate(
-                    **inputs, max_new_tokens=256, do_sample=True, temperature=current_temp, top_p=0.9,
+                    **inputs, max_new_tokens=1024, do_sample=True, temperature=current_temp, top_p=0.9,
                 )
             
             generated_tokens = generate_ids[:, input_len:]
@@ -1145,7 +1147,7 @@ def run_inference(image, patient_notes=""):
                              # Force outcome to Human Review
                              if "safety_analysis" not in result_json: result_json["safety_analysis"] = {}
                              result_json["safety_analysis"]["status"] = "HUMAN_REVIEW_NEEDED"
-                             result_json["safety_analysis"]["reasoning"] = f"⚠️ System cannot identify drug: {critic_msg}"
+                             result_json["safety_analysis"]["reasoning"] = f"⚠️ [Safety Protocol] Unknown Drug Detected. Automated dispensing disabled. Human verification required. ({critic_msg})"
                              # logic_passed remains True to break loop
                         else:
                              logic_passed = False
