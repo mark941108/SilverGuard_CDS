@@ -1182,9 +1182,32 @@ def run_inference(image, patient_notes=""):
                     result_json["safety_analysis"]["reasoning"] = f"⚠️ Validation failed after retries: {'; '.join(issues_list)}"
                     log("   🛑 Max Retries Exceeded. Flagging Human Review.")
                     break
-            else:
-                log("   ✅ Logic Check Passed!")
-                break # Success
+            # [V8.1 NEW] 🔄 POST-HOC RAG VERIFICATION (The "Double Check" Logic)
+            # If we haven't used RAG yet (rag_context is empty) but we have a drug name,
+            # we should query RAG now. If RAG reveals high-risk info, we Trigger a Retry.
+            if not rag_context and current_try < MAX_RETRIES:
+                 # Extract drug from CURRENT attempt
+                 extracted_drug = result_json.get("extracted_data", {}).get("drug", {}).get("name", "")
+                 if extracted_drug:
+                     # Use local helper directly availability check
+                     current_rag_local = LocalRAG()
+                     if current_rag_local:
+                         log(f"   🕵️ [Post-Hoc Verification] Checking RAG for '{extracted_drug}'...")
+                         knowledge, dist = current_rag_local.query(extracted_drug)
+                         if knowledge and dist < 0.5: # User stricter threshold for forcing retry
+                             log(f"   💡 New Knowledge Found! Triggering Retry with Context.")
+                             # Force Retry
+                             rag_context = (
+                                f"\n\n[📚 RAG KNOWLEDGE BASE]:\n{knowledge}\n"
+                                f"(⚠️ SYSTEM 2 OVERRIDE: Re-evaluate logic using this official guideline.)"
+                             )
+                             current_try += 1
+                             correction_context = f"\n\n[System]: External Knowledge Found. Please re-verify against this: {knowledge}"
+                             continue  # FORCE RETRY (Trigger Strategy Shift Log)
+
+            # Success Break
+            log("   ✅ Logic Check Passed!")
+            break # Success
         except Exception as e:
             log(f"❌ Inference Error: {e}")
             current_try += 1
