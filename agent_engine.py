@@ -2483,7 +2483,19 @@ def agentic_inference(model, processor, img_path, patient_notes="", verbose=True
                 # [V5.8 FIX] Ensure confidence dictionary has valid values even on parse failure
                 result["confidence"]["status"] = "LOW_CONFIDENCE"
                 result["confidence"]["message"] = "JSON Parsing Failed (Unreliable Generation)"
+                
+                # [Optimization] Clean up memory
+                del outputs
+                import gc
+                gc.collect()
+                torch.cuda.empty_cache()
                 break
+
+        # [Optimization] Clean up memory at end of each retry
+        del outputs
+        import gc
+        gc.collect()
+        torch.cuda.empty_cache()
 
     # [Audit Fix] CRITICAL FLOW CONTROL
     # Ensure that if the loop finishes without hitting "COMPLETE", we handle it gracefully

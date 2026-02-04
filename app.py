@@ -1249,12 +1249,12 @@ def text_to_speech_robust(text, lang='zh-tw'):
                 # Try to set voice if possible (best effort inside lock)
                 try:
                     voices = engine.getProperty('voices')
-                voices = engine.getProperty('voices')
-                target_lang_id = 'zh' if 'zh' in lang else lang
-                target_voice = next((v for v in voices if target_lang_id in v.id.lower()), None)
-                if target_voice: engine.setProperty('voice', target_voice.id)
-            except:
-                pass
+                    target_lang_id = 'zh' if 'zh' in lang else lang
+                    target_voice = next((v for v in voices if target_lang_id in v.id.lower()), None)
+                    if target_voice:
+                        engine.setProperty('voice', target_voice.id)
+                except Exception as e:
+                    print(f"⚠️ Voice selection failed: {e}")
             
             engine.save_to_file(text, filename)
             engine.runAndWait()

@@ -1,45 +1,30 @@
-# AI Pharmacist Guardian - Dependencies
-# For Kaggle V5 Training Pipeline
+# Core AI/ML
+torch>=2.1.2
+transformers>=4.38.0
+peft>=0.8.2
+bitsandbytes>=0.42.0
+accelerate>=0.27.0
+sentence-transformers>=2.3.1
+faiss-cpu>=1.7.4
 
-# Core ML (Enforce recent versions for Gemma 3 architecture)
-transformers>=4.51.0
-accelerate>=1.3.0
-bitsandbytes>=0.45.0
-peft>=0.14.0
-datasets
-huggingface_hub>=0.29.0
+# Vision & Image Processing
+Pillow>=10.2.0
+opencv-python-headless>=4.9.0
+albumentations>=1.3.1
+pytesseract>=0.3.10
 
-# RAG Knowledge Base (S-Tier Upgrade)
-sentence-transformers
-faiss-cpu
+# Audio (TTS/ASR)
+pyttsx3>=2.90
+gTTS>=2.5.1
+librosa>=0.10.1
+soundfile>=0.12.1
 
-# Vision
-pillow>=10.4.0  # Ensure font support for calendar generation
-albumentations
-opencv-python-headless
+# Web/App Framework
+gradio>=4.19.1
+nest_asyncio>=1.6.0
 
-# Data Generation
-qrcode[pil]
-
-# Demo & UI
-gradio>=5.15.0  # Golden Matrix: Latest stable for Pydantic 2 Fix
-fastapi>=0.115.0
-pydantic>=2.10.0
-matplotlib
-seaborn
-scikit-learn
-
-# Utilities (Explicitly listed for robustness)
-torch>=2.6.0  # Gemma 3 architecture support
-padding-oracle
-numpy
-requests
-
-# TTS (SilverGuard Voice)
-gTTS>=2.5.0
-pyttsx3==2.90
-soundfile
-librosa
-scipy
-spaces
-pydub
+# Utilities
+numpy>=1.26.4
+pandas>=2.2.0
+tqdm>=4.66.1
+python-dotenv>=1.0.1
