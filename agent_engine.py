@@ -1665,10 +1665,9 @@ def check_hard_safety_rules(extracted_data):
         
         # Rule 1: Metformin (Glucophage) > 1000mg for Elderly
         if age_val >= 80 and ("glucophage" in drug_name or "metformin" in drug_name):
-            # [Audit Fix] Regex matching for 2000mg to be safe
-            import re
-            is_high_dose = mg_val > 1000 or re.search(r'2000\s*(mg|g|mcg|毫克|公克)', str(dose_str), re.IGNORECASE)
-            if is_high_dose:
+            # [Audit Fix V8.3] Logic Hardening: Rely purely on normalized value
+            # Removed fragile regex check for "2000" to prevent "Max dose 2000mg" false positives
+            if mg_val > 1000:
                 return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
 
         # Rule 2: Zolpidem > 5mg for Elderly
@@ -1950,9 +1949,9 @@ def mock_openfda_interaction(drug_list):
     
     # Demo logic: If user asks about 'Warfarin' and 'Aspirin' appears in history
     if "warfarin" in normalized and "aspirin" in normalized:
-        return True, "CRITICAL: Increased bleeding risk (Warfarin + Aspirin)"
+        return True, "[SIMULATED] CRITICAL: Increased bleeding risk (Warfarin + Aspirin)"
         
-    return False, "No critical interactions found in local cache."
+    return False, "[SIMULATED] No critical interactions found in local cache."
 
 # ============================================================================
 # 🛡️ AGENTIC SAFETY CRITIC (Reflection Pattern)
@@ -2876,8 +2875,10 @@ def create_gradio_demo():
         if image is None:
             return "❌ No image uploaded", "{}"
         
-        # Save temp image
-        temp_path = "./temp_upload.png"
+        # Save temp image (Race Condition Fix)
+        # Use uuid to ensure thread safety in multi-user environments
+        import uuid
+        temp_path = f"./temp_upload_{uuid.uuid4().hex[:8]}.png"
         image.save(temp_path)
         
         # Run agentic pipeline
