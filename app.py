@@ -21,9 +21,56 @@ import pyttsx3 # V7.5 FIX: Missing Import
 from datetime import datetime  # For calendar timestamp
 import sys
 # [Audit Fix P2] Path Safety: Ensure local modules found regardless of CWD
+# [Audit Fix P2] Path Safety: Ensure local modules found regardless of CWD
 sys.path.append('.') # Ensure local modules are found
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # Add script directory
-import medgemma_data # Local Drug Database (Offline Source of Truth)
+# [Audit Fix P3] Safe Import Order (Prevent Startup Crash)
+try:
+    import medgemma_data # Local Drug Database (Offline Source of Truth)
+    print("✅ [Init] medgemma_data loaded.")
+except ImportError:
+    print("⚠️ [Init] medgemma_data missing (Will rely on checking later or fallback)")
+
+import threading
+# [Audit Fix P2] Global Thread Lock for PyTTSx3
+TTS_LOCK = threading.Lock()
+
+# [Audit Fix P2] Safe Translations Config (Moved to Header)
+SAFE_TRANSLATIONS = {
+    "zh-TW": {
+        "label": "🇹🇼 台灣 (繁體中文)",
+        "HIGH_RISK": "⚠️ 系統偵測異常！請先確認",
+        "WARNING": "⚠️ 警告！建議再次確認及諮詢",
+        "PASS": "✅ 檢測安全 (僅供參考)",
+        "CONSULT": "建議立即諮詢藥師 (0800-000-123)",
+        "TTS_LANG": "zh-tw"
+    },
+    "id": {
+        "label": "🇮🇩 Indonesia (Bahasa)",
+        "HIGH_RISK": "⛔ MOHON TANYA APOTEKER", # Softened from STOP
+        "WARNING": "⚠️ PERINGATAN! CEK DOSIS.",
+        "PASS": "✅ AMAN (REFERENSI)",
+        "CONSULT": "TANYA APOTEKER SEGERA.",
+        "TTS_LANG": "id"
+    },
+    "vi": {
+        "label": "🇻🇳 Việt Nam (Tiếng Việt)",
+        "HIGH_RISK": "⛔ HỎI NGAY DƯỢC SĨ", # Softened from STOP
+        "WARNING": "⚠️ CẢNH BÁO! KIỂM TRA LIỀU LƯỢNG.",
+        "PASS": "✅ AN TOÀN (THAM KHẢO)",
+        "CONSULT": "HỎI NGAY DƯỢC SĨ.",
+        "TTS_LANG": "vi"
+    },
+    # [Audit Fix P3] Added English Configuration
+    "en": {
+        "label": "🇺🇸 English",
+        "HIGH_RISK": "⛔ CONSULT PHARMACIST", 
+        "WARNING": "⚠️ WARNING! CHECK DOSAGE.",
+        "PASS": "✅ SAFE (REFERENCE ONLY)",
+        "CONSULT": "CONSULT PHARMACIST IMMEDIATELY.",
+        "TTS_LANG": "en"
+    }
+}
 
 # [Audit Fix] TTS Engine Wrapper
 # pyttsx3 is not thread-safe. We must handle init carefully or use separate process.
@@ -248,62 +295,56 @@ def clean_text_for_tts(text):
 
 def text_to_speech(text, lang='zh-tw'):
     """
-    Hybrid Privacy Architecture:
-    1. Try Online Neural TTS (gTTS) for best quality (if allowed).
-    2. Fallback to Offline SAPI5/eSpeak (pyttsx3) if OFFLINE_MODE or Network Fail.
+    [Audit Fix P2] Unified Robust TTS Engine (Hybrid Online/Offline)
+    Tier 1: Online (gTTS) - FAST & HUMAN-LIKE
+    Tier 2: Offline (pyttsx3) - PRIVACY & FALLBACK
     """
+    if not text: return None
+    import uuid
     import tempfile
     
-    # Define a default filename to prevent UnboundLocalError
-    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-        offline_filename = f.name
+    # [Safety] Truncate text to avoid API ban / timeout
+    if len(text) > 300: 
+        text = text[:297] + "..."
         
-    # ✅ STEP 1: Clean Text
     clean_text = clean_text_for_tts(text)
-
-    # Strategy 1: Online Neural TTS (Privacy Trade-off for Quality)
-    if not OFFLINE_MODE:
+    filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
+    
+    # Strategy 1: Online Neural TTS
+    if not OFFLINE_MODE or "demo" in str(OFFLINE_MODE).lower():
         try:
             from gtts import gTTS
-            tts = gTTS(text=clean_text, lang=lang, slow=False) # Optimized: slow=False
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-                online_filename = f.name
-            tts.save(online_filename)
+            lang_map = {'zh': 'zh-TW', 'zh-TW': 'zh-TW', 'en': 'en', 'id': 'id', 'vi': 'vi'}
+            tts = gTTS(text=clean_text, lang=lang_map.get(lang, 'zh-TW'))
+            tts.save(filename)
             print(f"🔊 [TTS] Generated via Online API (gTTS) - {lang}")
-            return online_filename
+            return filename
         except Exception as e:
             print(f"⚠️ [TTS] Online generation failed. Switching to Offline Fallback.")
-    
+
     # Strategy 2: Offline Privacy-Preserving TTS
     try:
-        # V8.1 Sync: Run strictly synchronous here?
-        # Actually for HF Space, 'engine.runAndWait()' blocks the thread.
-        # But since we are inside a blocking function called by 'run_full_flow_with_tts' (which is just a wrapper),
-        # this is acceptable. The real fix in V5.py was 'await asyncio.to_thread', but we can't easily make this async here
-        # without refactoring the whole Gradio generator.
-        # So we keep it as is, but acknowledge the limitation.
-        # Or... we can try safe-thread invocation?
-        # Let's simple keep plain blocking for now as it's cleaner for simple App, 
-        # but rely on the offline file generation.
-        
-        
-        # [Audit Fix P0] Thread Safety: Add lock for pyttsx3
-        import threading
-        if not hasattr(text_to_speech, 'tts_lock'):
-            text_to_speech.tts_lock = threading.Lock()
-        
-        with text_to_speech.tts_lock:  # Ensure only one TTS at a time
+        import pyttsx3
+        # [Audit Fix P2] Use Global Lock
+        with TTS_LOCK:
             engine = pyttsx3.init()
-            engine.save_to_file(clean_text, offline_filename)
+            try:
+                voices = engine.getProperty('voices')
+                target_lang_id = 'zh' if 'zh' in lang else lang
+                target_voice = next((v for v in voices if target_lang_id in v.id.lower()), None)
+                if target_voice: engine.setProperty('voice', target_voice.id)
+            except: pass
+            
+            engine.save_to_file(clean_text, filename)
             engine.runAndWait()
             
-            # [Audit Fix] Explicit cleanup to prevent loop hang
-            if engine._inLoop:
+            # Explicit cleanup
+            if hasattr(engine, '_inLoop') and engine._inLoop:
                  engine.endLoop()
             del engine
-             
-        print(f"🔒 [TTS] Generated via Offline Engine (pyttsx3) - Privacy Mode: {offline_filename}")
-        return offline_filename
+            
+        print(f"🔒 [TTS] Generated via Offline Engine (pyttsx3) - Privacy Mode: {filename}")
+        return filename
     except Exception as e:
         print(f"❌ [TTS] All engines failed: {e}")
         return None
@@ -346,7 +387,7 @@ def check_image_quality(image, blur_threshold=BLUR_THRESHOLD):
             return False, f"Image too blurry (score: {laplacian_var:.1f} < {blur_threshold})"
         return True, "Quality OK"
     except Exception as e:
-        return True, f"Blur check skipped: {e}"
+        return False, f"Blur check failed (System Error): {e}"
 
 def check_is_prescription(response_text):
     """OOD Detection - Verify prescription content"""
@@ -528,8 +569,8 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
 
     draw.text((50, HEIGHT-60), "SilverGuard AI 關心您 ❤️ 僅供參考，請遵照醫師處方", fill=COLORS["text_muted"], font=font_caption)
     
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_path = f"/tmp/medication_calendar_{ts}.png"
+    import uuid
+    output_path = f"/tmp/medication_calendar_{uuid.uuid4().hex}.png"
     img.save(output_path, quality=95)
     
     print(f"✅ Calendar generated: {output_path}")
@@ -717,28 +758,94 @@ def run_inference(image, patient_notes=""):
 
 
 
+# [Audit Fix P3] Removed duplicate retrieve_drug_info definition.
+# The authoritative version is at Line 586.
+
+def calculate_confidence(model, outputs, processor):
+    """
+    Entropy-aware Confidence Calculation
+    """
+    try:
+        transition_scores = model.compute_transition_scores(
+            outputs.sequences, outputs.scores, normalize_logits=True
+        )
+        probs = torch.exp(transition_scores)
+        min_prob = probs.min().item()
+        mean_prob = probs.mean().item()
+        alpha = 0.75
+        return (mean_prob * alpha) + (min_prob * (1 - alpha))
+    except:
+        return 0.0
+
+def get_confidence_status(confidence, predicted_status="UNKNOWN", custom_threshold=None):
+    """
+    Dynamic Thresholding
+    """
+    if custom_threshold is not None:
+        threshold = custom_threshold
+    else:
+        threshold = 0.50 if predicted_status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"] else 0.75
+        
+    if confidence >= threshold:
+        return "HIGH_CONFIDENCE", f"✅ Conf: {confidence:.1%} (Th: {threshold})"
+    return "LOW_CONFIDENCE", f"⚠️ Unsure ({confidence:.1%}) -> ESCALATE"
+
 def normalize_dose_to_mg(dose_str):
     """
     🧪 Helper: Normalize raw dosage string to milligrams (mg)
     Handles: "500 mg", "0.5 g", "1000 mcg"
+    [V19 Update] Handles Ranges ("1-2 tabs") and Compounds ("500/50mg")
+    Returns: (float_value_in_mg, is_valid_conversion)
     """
     import re
     if not dose_str: return 0.0, False
+    
     try:
-        s = str(dose_str).lower().replace(" ", "")
-        # V8.8 Audit Fix: Added 'ug' support and Chinese units
-        match = re.search(r'(\d+(?:\.\d+)?)\s*(mg|g|mcg|ug|ml|毫克|公克)', s, re.IGNORECASE)
-        if not match: return 0.0, False
+        # [V19 Robustness] Handle Parsing Failures Safely
+        # Returning None signals "Unknown Dose" -> Risk High
+        
+        # 1. Handle Ranges (e.g., "1-2 tablets", "5-10mg") -> Take Conservative High
+        if "-" in str(dose_str):
+            range_match = re.search(r'(\d+)\s*-\s*(\d+)', str(dose_str))
+            if range_match:
+                # Take the higher value for safety check (Conservative Safety)
+                dose_str = range_match.group(2) + " " + re.sub(r'[\d\s-]', '', str(dose_str))
+                
+        # 2. Handle Compounds (e.g., "500/50 mg") -> Take First Component (Primary)
+        if "/" in str(dose_str):
+            parts = str(dose_str).split('/')
+            dose_str = parts[0] # Assume first number is main active ingredient
+            # If unit is at end "500/50mg", append it back if missing
+            if not re.search(r'[a-zA-Z]', dose_str):
+                 unit_match = re.search(r'[a-zA-Z]+', str(parts[-1]))
+                 if unit_match: dose_str += unit_match.group(0)
 
+        # [Audit Fix] Handle commas (1,000) and spaces robustly
+        s = str(dose_str).lower().replace(",", "").replace(" ", "")
+        
+        # Regex to find number + unit
+        # [Audit Fix] Supports Chinese Units (毫克/公克)
+        match = re.search(r'([\d\.]+)(mg|g|mcg|ug|ml|毫克|公克)', s)
+        if not match:
+             # Fallback: strictly require unit
+             # [Audit Fix] Support decimals in fallback
+             nums = re.findall(r'\d*\.?\d+', s)
+             if nums: return float(nums[0]), False # Raw number, unsure unit
+             return None, False # 🔴 FAIL-SAFE: Return None instead of 0.0
+             
         value = float(match.group(1))
         unit = match.group(2)
         
-        if unit in ['g', '公克']: return value * 1000.0, True
-        elif unit in ['mcg', 'ug']: return value / 1000.0, True
-        elif unit == '毫克': return value, True # mg
-        else: return value, True
+        if unit in ['g', '公克']:
+            return value * 1000.0, True
+        elif unit in ['mcg', 'ug']:
+            return value / 1000.0, True
+        elif unit == '毫克': # mg
+            return value, True
+        else: # mg
+            return value, True
     except:
-        return 0.0, False
+        return None, False # 🔴 FAIL-SAFE
 
 def logical_consistency_check(extracted_data):
     """
@@ -1014,11 +1121,12 @@ def run_inference(image, patient_notes=""):
                     if not stack and start_index >= 0: matches.append(response_text[start_index:i+1])
         if not matches: return {"raw_output": response_text, "error": "No JSON found"}
         for json_str in reversed(matches):
-            try: return json.loads(json_str.replace("True", "true").replace("False", "false").replace("None", "null"))
+            try: return json.loads(json_str) 
             except: pass
-            try: return ast.literal_eval(json_str.replace("true", "True").replace("false", "False").replace("null", "None"))
+            # [Audit Fix] Safe AST eval handles Python bools (True/False/None)
+            try: return ast.literal_eval(json_str)
             except: pass
-            try: return json.loads(json_str.replace("'", '"').replace("True", "true").replace("False", "false").replace("None", "null"))
+            try: return json.loads(json_str.replace("'", '"'))
             except: pass
         return {"raw_output": response_text[:200], "error": "Parsing failed"}
 
@@ -1033,13 +1141,17 @@ def run_inference(image, patient_notes=""):
                 return k, 0.1 # High confidence simulation
             return None, 1.0
     
+    # [Audit Fix] Persist RAG context across retries
+    rag_context = "" 
+    # [Audit Fix P2] Init response to prevent UnboundLocalError
+    response = ""
     while current_try <= MAX_RETRIES:
         try:
             log(f"🔄 [Step {current_try+1}] Agent Inference Attempt...")
-            yield "PROCESSING", {}, "", None, "\n".join(trace_logs) # Yield partial log
+            yield "PROCESSING", {}, "", None, "\n".join(trace_logs), None # Yield partial log
             
             # --- [OMNI-NEXUS PATCH] RAG Injection Logic ---
-            rag_context = "" 
+            # rag_context = "" # [Audit Fix] Moved outside loop
             current_rag = LocalRAG() # Uses local helper
 
             if current_try > 0:
@@ -1085,18 +1197,52 @@ def run_inference(image, patient_notes=""):
             else:
                  log(f">>> 🎨 Strategy: Creative Reasoning (Temp {current_temp})")
             
-            yield "PROCESSING", {}, "", None, "\n".join(trace_logs) # Yield updated log
+            yield "PROCESSING", {}, "", None, "\n".join(trace_logs), None # Yield updated log
             
             with torch.inference_mode():
                 # [V19 Optimization] Increased token limit for Chain-of-Thought (System 2)
-                generate_ids = model.generate(
-                    **inputs, max_new_tokens=1024, do_sample=True, temperature=current_temp, top_p=0.9,
+                # [Audit Fix] Enable Scores for Confidence Calculation
+                outputs = model.generate(
+                    **inputs, 
+                    max_new_tokens=1024, 
+                    do_sample=True, 
+                    temperature=current_temp, 
+                    top_p=0.9,
+                    return_dict_in_generate=True,
+                    output_scores=True
                 )
             
-            generated_tokens = generate_ids[:, input_len:]
-            response = processor.batch_decode(generated_tokens, skip_special_tokens=True)[0]
+            # Decode Logic
+            # outputs.sequences[0] contains full sequence. Slice it.
+            generated_tokens = outputs.sequences[0][input_len:]
+            response = processor.decode(generated_tokens, skip_special_tokens=True)
             result_json = parse_model_output(response)
-            result_json["agentic_retries"] = current_try # [Audit Fix] Enable UI Self-Correction Badge
+            result_json["agentic_retries"] = current_try 
+            
+            # [V19 Feature] Proactive Confidence-Based Wayfinding (Mahvar et al. 2025)
+            # Calculate Confidence Score
+            try:
+                confidence_score = calculate_confidence(model, outputs, processor)
+                result_json["confidence_score"] = confidence_score # Store for UI
+                log(f"   📊 Confidence Score: {confidence_score:.1%} (Threshold: 70%)")
+                
+                # Trigger Wayfinding if low confidence but "dose" was extracted
+                extracted_dose = result_json.get("extracted_data", {}).get("drug", {}).get("dose", "")
+                if confidence_score < 0.70 and extracted_dose and result_json.get("safety_analysis", {}).get("status") != "NEED_INFO":
+                    # Only trigger if NOT already invalid/rejected logic
+                     if "mg" in str(extracted_dose).lower() or re.search(r'\d', str(extracted_dose)):
+                        log(f"   ⚠️ Low Confidence ({confidence_score:.1%}) on extracted dose '{extracted_dose}'. Triggering Wayfinding.")
+                        result_json["safety_analysis"]["status"] = "NEED_INFO"
+                        result_json["internal_state"] = result_json.get("internal_state", {})
+                        result_json["internal_state"]["missing_slots"] = ["dose (uncertain)"]
+                        
+                        # Generate Question
+                        result_json["wayfinding"] = {
+                            "question": f"我不確定藥袋上的劑量是 {extracted_dose} 嗎？因為影像有點模糊。",
+                            "options": [f"是，是 {extracted_dose}", "不是", "看不清楚"]
+                        }
+            except Exception as e:
+                log(f"   ⚠️ Confidence Calc Failed: {e}")
             
             # --- [WAYFINDING] Active Context-Seeking Trigger ---
             # If the model explicitly asks for info (System 2 Gap Detection), we stop reasoning and ask.
@@ -1154,7 +1300,7 @@ def run_inference(image, patient_notes=""):
                              logic_msg = f"Critic Rejection: {critic_msg}"
                              log(f"   🛡️ Safety Critic Intercepted: {critic_msg}")
 
-                yield "PROCESSING", {}, "", None, "\n".join(trace_logs)
+                yield "PROCESSING", {}, "", None, "\n".join(trace_logs), None
                 if not logic_passed:
                     issues_list.append(logic_msg)
                     log(f"   ⚠️ Validation Failed: {logic_msg}")
@@ -1226,7 +1372,7 @@ def run_inference(image, patient_notes=""):
     yield final_status, result_json, speech_text, None, "\n".join(trace_logs), None
     
     try:
-        audio_path = text_to_speech_robust(clean_text, lang='zh-TW')
+        audio_path = text_to_speech(clean_text, lang='zh-TW')
     except Exception as e:
         log(f"⚠️ TTS Generation Failed: {e}")
         audio_path = None
@@ -1290,151 +1436,14 @@ def get_font(size):
     return ImageFont.load_default()
 
 # --- 🔊 Robust TTS Engine (Offline -> Online Fallback) ---
-def text_to_speech_robust(text, lang='zh-tw'):
-    """
-    Tier 1: Offline (pyttsx3) - FAST & PRIVACY-FIRST
-    Tier 2: Online (gTTS) - FALLBACK (If audio driver missing)
-    """
-    # [Safety] Truncate text to avoid API ban / timeout (Audit Fix)
-    if len(text) > 200: 
-        print(f"✂️ Text truncated for TTS ({len(text)} -> 200 chars)")
-        text = text[:197] + "..."
-    import uuid
-    # Use UUID for unique filename preventing race conditions (Concurrency Safe)
-    filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
-    
-    # 1. Try Offline First (Privacy Preferred)
-    if OFFLINE_MODE:
-        try:
-            # [Fix] Use Direct Init with Lock (get_tts_engine was undefined)
-            import pyttsx3
-            # [CRITICAL] Must check lock existence or import it if needed. 
-            # Assuming tts_lock is available globally (defined at Line 288)
-            with tts_lock:
-                engine = pyttsx3.init()
-                
-                # Try to set voice if possible (best effort inside lock)
-                try:
-                    voices = engine.getProperty('voices')
-                    target_lang_id = 'zh' if 'zh' in lang else lang
-                    target_voice = next((v for v in voices if target_lang_id in v.id.lower()), None)
-                    if target_voice:
-                        engine.setProperty('voice', target_voice.id)
-                except Exception as e:
-                    print(f"⚠️ Voice selection failed: {e}")
-            
-            engine.save_to_file(text, filename)
-            engine.runAndWait()
-            return filename
-        except Exception as e:
-            print(f"⚠️ Offline TTS Failed (Driver Issue?): {e}")
-            if OFFLINE_MODE: 
-                print("🔄 Switching to Online TTS Fallback...")
+# [Audit Fix P2] Deprecated: text_to_speech_robust consolidated into text_to_speech above
+# Removed to prevent redundancy and Scope Error with tts_lock
 
-    # 2. Online Fallback (gTTS)
-    try:
-        from gtts import gTTS
-        # Map simple codes to gTTS standard
-        lang_map = {'zh': 'zh-TW', 'zh-TW': 'zh-TW', 'en': 'en', 'id': 'id', 'vi': 'vi'}
-        tts = gTTS(text=text, lang=lang_map.get(lang, 'zh-TW'))
-        tts.save(filename)
-        return filename
-    except Exception as e:
-        print(f"❌ Critical TTS Failure: {e}")
-        return None
-
-def submit_clarification(user_option, current_json):
-    """
-    Handle the user's response to the Wayfinding question.
-    Re-run Guardrails (g-AMIE Pattern) to ensure safety.
-    """
-    if not current_json: 
-        return gr.update(visible=False), "⚠️ Error: No Context", {}, "", None, None, ""
-    
-    # 1. Update Context (State-Aware Update)
-    updated_json = current_json.copy()
-    missing = updated_json.get("internal_state", {}).get("missing_slots", [])
-    
-    # Heuristic Slot Filling
-    if "dosage" in str(missing) or "dose" in str(missing):
-        updated_json["extracted_data"]["drug"]["dose"] = user_option
-    elif "freq" in str(missing) or "time" in str(missing):
-        updated_json["extracted_data"]["usage"] = user_option
-    else:
-        # Fallback append
-        if "usage" not in updated_json["extracted_data"]: 
-            updated_json["extracted_data"]["usage"] = ""
-        updated_json["extracted_data"]["usage"] += f" ({user_option})"
-        
-    print(f"🔄 [Wayfinding] Context Updated via UI: {user_option}")
-
-    # 2. Re-Run Safety Logic (Post-Clarification Guardrails)
-    logic_passed, logic_msg, logic_logs = logical_consistency_check(updated_json["extracted_data"])
-    critic_passed, critic_msg = safety_critic_tool(updated_json)
-    
-    status = "PASS"
-    reasoning = "✅ User verified information. Safety checks passed."
-    
-    issues = []
-    if not logic_passed: issues.append(logic_msg)
-    if not critic_passed: issues.append(critic_msg)
-    
-    if issues:
-        status = "WARNING"
-        reasoning = f"⚠️ Safety Issue found after clarification: {'; '.join(issues)}"
-        if any(x in str(issues) for x in ["⛔", "HIGH_RISK", "Overdose"]):
-            status = "HIGH_RISK"
-            
-    updated_json["safety_analysis"]["status"] = status
-    updated_json["safety_analysis"]["reasoning"] = reasoning
-    
-    # 3. Regenerate Outputs
-    html, audio = silverguard_ui(updated_json)
-    try:
-        cal_path = create_medication_calendar(updated_json)
-        cal_img = Image.open(cal_path)
-    except:
-        cal_img = None
-        
-    # Return format matching the UI outputs
-    return (
-        gr.update(visible=False), # Hide Wayfinding Group
-        status,                   # Status Header
-        updated_json,             # JSON Output
-        html,                     # SilverGuard HTML
-        audio,                    # Audio Output
-        cal_img,                  # Calendar Image
-        "\n".join(logic_logs)     # Trace Output
-    )
+# [Audit Fix P3] Removed duplicate submit_clarification definition. 
+# The authoritative version is at lines 1518 (previous turn) / 1448 (now).
 
 
-# --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
-SAFE_TRANSLATIONS = {
-    "zh-TW": {
-        "label": "🇹🇼 台灣 (繁體中文)",
-        "HIGH_RISK": "⚠️ 系統偵測異常！請先確認",
-        "WARNING": "⚠️ 警告！建議再次確認及諮詢",
-        "PASS": "✅ 檢測安全 (僅供參考)",
-        "CONSULT": "建議立即諮詢藥師 (0800-000-123)",
-        "TTS_LANG": "zh-tw"
-    },
-    "id": {
-        "label": "🇮🇩 Indonesia (Bahasa)",
-        "HIGH_RISK": "⛔ MOHON TANYA APOTEKER", # Softened from STOP
-        "WARNING": "⚠️ PERINGATAN! CEK DOSIS.",
-        "PASS": "✅ AMAN (REFERENSI)",
-        "CONSULT": "TANYA APOTEKER SEGERA.",
-        "TTS_LANG": "id"
-    },
-    "vi": {
-        "label": "🇻🇳 Việt Nam (Tiếng Việt)",
-        "HIGH_RISK": "⛔ HỎI NGAY DƯỢC SĨ", # Softened from STOP
-        "WARNING": "⚠️ CẢNH BÁO! KIỂM TRA LIỀU LƯỢNG.",
-        "PASS": "✅ AN TOÀN (THAM KHẢO)",
-        "CONSULT": "HỎI NGAY DƯỢC SĨ.",
-        "TTS_LANG": "vi"
-    }
-}
+# [Audit Fix P2] SAFE_TRANSLATIONS moved to top. Redundant block removed.
 
 # ============================================================================
 # 🚦 WAYFINDING TURN-2 HANDLER
@@ -1549,8 +1558,20 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
     
     # Extract Data for Template
     extracted = case_data.get('extracted_data', {})
-    drug_info = extracted.get('drug', {}) if isinstance(extracted, dict) else {}
-    drug_name = drug_info.get('name', 'Obat') if isinstance(drug_info, dict) else 'Obat'
+    drug_info_raw = extracted.get('drug', {}) if isinstance(extracted, dict) else {}
+    
+    # [UX Polish] Smart Name Selection for TTS
+    # If target is NOT Chinese, try to find the English Generic Name to avoid mixed-lang TTS issues
+    # e.g. "庫魯化" (Difficult for ID TTS) -> "Metformin" (Universal)
+    drug_name = drug_info_raw.get('name', 'Obat') # Default
+    if target_lang != "zh-TW":
+        # Try to resolve generic name from DB
+        db_info = retrieve_drug_info(drug_name)
+        if db_info.get("found"):
+             drug_name = db_info.get("generic", drug_name)
+        elif drug_info_raw.get('name_en'):
+             # Fallback to extracted English name if available
+             drug_name = drug_info_raw.get('name_en')
     
     agent_msg = case_data.get("silverguard_message", "")
     
@@ -1580,13 +1601,14 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         # [V8.6] Headless TTS Wrapper for Stability
         if not OFFLINE_MODE:
              # Try Online TTS (Better Quality)
-             audio_path = text_to_speech_robust(tts_text, lang=lang_pack["TTS_LANG"])
+             audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
         else:
              # Force Offline TTS (pyttsx3)
              # Note: Offline TTS might struggle with mixed language (Bahasa + English drug names)
              # But it's better than silence.
              print("🔒 Offline TTS Fallback Active")
-             audio_path = text_to_speech_robust(tts_text, lang=lang_pack["TTS_LANG"]) 
+             print("🔒 Offline TTS Fallback Active")
+             audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"]) 
     except Exception as e:
         print(f"⚠️ TTS Error: {e}")
         audio_path = None
@@ -1737,6 +1759,8 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                             gr.Markdown("**Quick Scenarios (One-Tap):**")
                             voice_ex1 = gr.Button("🔊 'Allergic to Aspirin'")
                             voice_ex2 = gr.Button("🔊 'Kidney Failure History'")
+                            # [Strategy] Indonesian Scenario for 'Cross-Lingual Broker' Demo
+                            voice_ex3 = gr.Button("🇮🇩 'Nenek jatuh (Bleeding)'")
                     
                     # Proxy Text Input (Solution 1)
                     proxy_text_input = gr.Textbox(label="📝 Manual Note (Pharmacist/Family)", placeholder="e.g., Patient getting dizzy after medication...")
@@ -1918,7 +1942,11 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
                 
                 # [Audit Fix P0] No longer needed - using local variable
             
+            # [V1.1 Polish] Visual Feedback for "Thinking" State
             btn.click(
+                fn=lambda: "🤖 SilverGuard is analyzing... (System 1 & 2 Active)",
+                outputs=status_output
+            ).then(
                 fn=run_full_flow_with_tts, 
                 inputs=[input_img, voice_input, transcription_display, proxy_text_input, caregiver_lang_dropdown, privacy_toggle], 
                 outputs=[transcription_display, status_output, json_output, silver_html, audio_output, calendar_output, trace_output, sbar_output, wayfinding_group, wayfinding_msg, wayfinding_options, interaction_state]
@@ -1933,6 +1961,8 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
 
             voice_ex1.click(lambda: "Patient is allergic to Aspirin.", outputs=transcription_display)
             voice_ex2.click(lambda: "Patient has history of kidney failure (eGFR < 30).", outputs=transcription_display)
+            # [Strategy] Simulate MedASR capturing Indonesian + implicit translation
+            voice_ex3.click(lambda: "Nenek jatuh dan berdarah setelah minum obat (Grandma fell and bleeding)", outputs=transcription_display)
             
             # Feedback
             gr.Markdown("---")

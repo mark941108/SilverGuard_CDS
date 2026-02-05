@@ -1,27 +1,30 @@
-# Core AI/ML
-torch>=2.1.2
-transformers>=4.38.0
-peft>=0.8.2
-bitsandbytes>=0.42.0
-accelerate>=0.27.0
-sentence-transformers>=2.3.1
-faiss-cpu>=1.7.4
+# 🏥 SilverGuard Core Dependencies (V12.13 Impact Edition)
+# Aligned with KAGGLE_BOOTSTRAP.py
+
+# Core AI/ML (Gemma 3 Support)
+# Note: +cu118 versions require --index-url https://download.pytorch.org/whl/cu118
+torch>=2.6.0
+torchvision>=0.21.0
+torchaudio>=2.6.0
+transformers>=4.51.0
+accelerate>=1.3.0
+bitsandbytes>=0.45.0
+peft>=0.14.0
 
 # Vision & Image Processing
-Pillow>=10.2.0
-opencv-python-headless>=4.9.0
-albumentations>=1.3.1
-pytesseract>=0.3.10
+pillow>=10.4.0
+albumentations
+opencv-python-headless
+qrcode[pil]
 
-# Audio (TTS/ASR)
-pyttsx3>=2.90
-gTTS>=2.5.1
-librosa>=0.10.1
-soundfile>=0.12.1
+# Audio & TTS
+gTTS
+pyttsx3
 
-# Web/App Framework
-gradio>=4.19.1
-nest_asyncio>=1.6.0
+# Web/App Framework (Gradio 5 + Pydantic 2)
+gradio>=5.15.0
+fastapi>=0.115.0
+pydantic>=2.10.0
 
 # Utilities
 numpy>=1.26.4

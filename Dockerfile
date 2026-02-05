@@ -1,17 +1,24 @@
-# Base Image: PyTorch with CUDA 12.1 (Official) - Ensures GPU compatibility
-FROM pytorch/pytorch:2.1.2-cuda12.1-cudnn8-runtime
+# Base Image: PyTorch 2.5.1 with CUDA 11.8 (Closest official to 2.6.0+cu118)
+# We use 2.5.1 as absolute latest 2.6 official container might not be pushed yet to dockerhub
+# But realistically for "V12 Platinum" we align as close as possible.
+# Let's use nvidia/cuda base and install py2.6 manually or use slightly older torch base.
+# Actually, KAGGLE_BOOTSTRAP installs 2.6.0 via pip. Best to use a solid Python 3.10/3.11 base with CUDA.
+# However, to keep it simple, we will stick to a standard pytorch base and upgrade inside if needed,
+# or just use the official image that supports our needs.
+# Pytorch 2.5.1 is robust. Let's use that as base and let pip upgrade to 2.6.0 if requirements.txt demands it.
+FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-runtime
 
 # Set working directory
 WORKDIR /app
 
-# Switch to root to install packages (the base image might default to non-root)
+# Switch to root to install packages
 USER root
 
-# Install system dependencies
-# - espeak-ng: [CRITICAL] Required for offline TTS (pyttsx3)
-# - libsndfile1: Required for torchaudio/librosa
-# - fontconfig: Manage system fonts
-# - wget: For downloading fonts
+# Install system dependencies (Aligned with KAGGLE_BOOTSTRAP.py)
+# - espeak-ng: Required for pyttsx3 (Offline TTS)
+# - libsndfile1: Required for torchaudio
+# - ffmpeg: Audio processing
+# - fonts-noto-cjk: [CRITICAL] Core Chinese fonts for SilverGuard UI
 RUN apt-get update && apt-get install -y \
     git \
     wget \
@@ -21,14 +28,11 @@ RUN apt-get update && apt-get install -y \
     fontconfig \
     libtesseract-dev \
     tesseract-ocr \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
-# [Font Fix] Install Google Noto Sans TC (Traditional Chinese)
-# This ensures matplotlib and PIL can render Chinese characters correctly without tofu blocks.
-RUN mkdir -p /usr/share/fonts/opentype/noto && \
-    wget -q https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC-Regular.ttf -O /usr/share/fonts/opentype/noto/NotoSansTC-Regular.ttf && \
-    wget -q https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC-Bold.ttf -O /usr/share/fonts/opentype/noto/NotoSansTC-Bold.ttf && \
-    fc-cache -fv
+# [Font Cache Update]
+RUN fc-cache -fv
 
 # Create a non-root user for security (SilverGuard Principle)
 RUN useradd -m -u 1000 silverguard_user
@@ -38,7 +42,8 @@ ENV HOME=/home/silverguard_user \
 
 # Copy requirements and install python dependencies
 COPY --chown=silverguard_user:silverguard_user requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Combine pip install to minimize layers and force index-url for cu118 if needed
+RUN pip install --no-cache-dir -r requirements.txt --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
 
 # Copy the entire project code
 COPY --chown=silverguard_user:silverguard_user . .
@@ -46,11 +51,11 @@ COPY --chown=silverguard_user:silverguard_user . .
 # Set Environment Variables
 ENV OFFLINE_MODE=False \
     CUDA_VISIBLE_DEVICES=0 \
-    MPLCONFIGDIR=/tmp/matplotlib
+    MPLCONFIGDIR=/tmp/matplotlib \
+    GRADIO_SERVER_NAME="0.0.0.0"
 
 # Expose Gradio Port
 EXPOSE 7860
 
 # Default command: Launch Main App
-# Using 'app.py' as it is the main entry point verified in README
 CMD ["python", "app.py"]
