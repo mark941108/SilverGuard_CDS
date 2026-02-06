@@ -4400,6 +4400,10 @@ check_drug_interaction = offline_safety_knowledge_graph
 
 # 3. Gradio Interface
 def launch_agentic_app():
+    # [CRITICAL FIX] Thread Safety: Add TTS Lock to prevent Segmentation Fault
+    import threading
+    TTS_LOCK = threading.Lock()
+    
     if 'model' not in globals():
         print("❌ Please run Cell 3 (Training) first!")
         return
@@ -4662,10 +4666,12 @@ def launch_agentic_app():
                         try:
                             # 2. Fallback to 100% Offline Engine
                             # V8.1 Fix: Run blocking pyttsx3 in thread to prevent UI freeze
+                            # [CRITICAL FIX] Add TTS_LOCK to prevent thread race conditions
                             def offline_tts_task():
-                                engine = pyttsx3.init()
-                                engine.save_to_file(text, output_file)
-                                engine.runAndWait()
+                                with TTS_LOCK:  # 🔒 Thread-safe pyttsx3 access
+                                    engine = pyttsx3.init()
+                                    engine.save_to_file(text, output_file)
+                                    engine.runAndWait()
                             
                             print("   ⚠️ Switching to Offline Fallback (pyttsx3) in separate thread...")
                             await asyncio.to_thread(offline_tts_task)

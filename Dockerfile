@@ -54,7 +54,7 @@ RUN pip install --no-cache-dir -r requirements.txt --index-url https://download.
 COPY --chown=silverguard_user:silverguard_user . .
 
 # Set Environment Variables
-ENV OFFLINE_MODE=False \
+ENV OFFLINE_MODE=True \
     CUDA_VISIBLE_DEVICES=0 \
     MPLCONFIGDIR=/tmp/matplotlib \
     GRADIO_SERVER_NAME="0.0.0.0"

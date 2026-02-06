@@ -1471,8 +1471,8 @@ def run_inference(image, patient_notes="", target_lang="zh-TW", force_offline=Fa
                 
                 audio_path_wayfinding = None
                 if ENABLE_TTS:
-                    # Specific Prompt for TTS
-                    audio_path_wayfinding = text_to_speech(question_text, lang="zh-tw")
+                    # [CRITICAL FIX] Privacy Leak: Pass force_offline to respect privacy toggle
+                    audio_path_wayfinding = text_to_speech(question_text, lang="zh-tw", force_offline=force_offline)
                 
                 trace_logs.append(f"❓ [Wayfinding] Asking User: {question_text}")
                 
@@ -1579,7 +1579,8 @@ def run_inference(image, patient_notes="", target_lang="zh-TW", force_offline=Fa
     yield final_status, result_json, speech_text, None, "\n".join(trace_logs), None
     
     try:
-        audio_path = text_to_speech(clean_text, lang='zh-TW')
+        # [CRITICAL FIX] Privacy Leak: Pass force_offline to respect privacy toggle
+        audio_path = text_to_speech(clean_text, lang='zh-TW', force_offline=force_offline)
     except Exception as e:
         log(f"⚠️ TTS Generation Failed: {e}")
         audio_path = None
