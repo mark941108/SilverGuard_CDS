@@ -168,7 +168,7 @@ try:
     base_model = AutoModelForImageTextToText.from_pretrained(
         BASE_MODEL, 
         quantization_config=bnb_config,
-        device_map="auto",
+        # device_map="auto", # [ZeroGPU] Removed to prevent premature GPU allocation
         token=HF_TOKEN
     )
 
@@ -879,24 +879,22 @@ def logical_consistency_check(extracted_data):
     if valid_dose:
         # Rule 1: Metformin (Glucophage) > 1000mg for Elderly
         if age_val >= 80 and ("glucophage" in drug_name or "metformin" in drug_name):
-            # [Audit Fix] Use Regex Boundary Check instead of fragile 'in'
-            # Matches "2000" only if followed by mg/g or space, not as part of ID:2000
+            # [Audit Fix V8.3] Logic Hardening: Rely purely on normalized value (Synced with agent_engine.py)
             import re
-            is_high_dose = mg_val > 1000 or re.search(r'2000\s*(mg|g|\b)', str(dose_str), re.IGNORECASE)
+            is_high_dose = mg_val > 1000
             if is_high_dose:
                 issues.append(f"⛔ Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)")
 
         # Rule 2: Zolpidem > 5mg for Elderly
         elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
-            is_high_dose = mg_val > 5 or re.search(r'10\s*(mg|g|\b)', str(dose_str), re.IGNORECASE)
+            is_high_dose = mg_val > 5
             if is_high_dose: # [Audit Fix] Helper String Check
                 issues.append(f"⛔ BEERS CRITERIA (Zolpidem {mg_val}mg > 5mg). High fall risk.")
 
         # Rule 3: High Dose Aspirin > 325mg for Elderly
-        # Rule 3: High Dose Aspirin > 325mg for Elderly
         elif age_val >= 75 and ("aspirin" in drug_name or "bokey" in drug_name):
             # [Audit Fix] Prevent "Ref: 500" from triggering alarm
-            is_high_dose = mg_val > 325 or re.search(r'500\s*(mg|g|\b)', str(dose_str), re.IGNORECASE)
+            is_high_dose = mg_val > 325 
             if is_high_dose:
                 issues.append(f"⛔ High Dose Aspirin ({mg_val}mg). Risk of GI Bleeding.")
 
@@ -1040,6 +1038,14 @@ def run_inference(image, patient_notes=""):
         yield "Model Error", {"error": "Model not loaded properly. Check logs."}, "System Error", None, "\n".join(trace_logs), None
         return
     
+    # [ZeroGPU] Dynamic Device Placement
+    # Move model to CUDA only during inference transaction
+    try:
+        model.to("cuda")
+        log("⚡ [ZeroGPU] Model moved to CUDA successfully.")
+    except Exception as e:
+        log(f"⚠️ GPU Move Failed: {e}")
+        
     # Context Injection
     patient_context = ""
     if patient_notes and patient_notes.strip():

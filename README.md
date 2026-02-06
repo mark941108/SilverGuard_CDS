@@ -1,3 +1,16 @@
+---
+title: SilverGuard V1
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: 4.44.1
+app_file: app.py
+pinned: false
+license: mit
+gpu: true
+short_description: Agentic Medication Safety (MedGemma)
+---
 <!-- 🖼️ HERO IMAGE -->
 ![SilverGuard CDS](assets/hero_image.jpg)
 
@@ -121,7 +134,10 @@ A **privacy-first, edge-deployed AI assistant** that:
 git clone https://github.com/mark941108/SilverGuard.git
 cd SilverGuard
 
-# Install dependencies
+# Install system dependencies (Required for Offline TTS)
+sudo apt-get update && sudo apt-get install -y libespeak1 ffmpeg
+
+# Install Python dependencies
 pip install -r requirements.txt
 
 # Run full pipeline (data gen → training → demo)
@@ -1248,7 +1264,7 @@ To ensure "Anti-Fragility," we subjected the system to **Adversarial Attacks**:
 
 | Attack Scenario | Technique | System Defense | Result |
 | :--- | :--- | :--- | :--- |
-| **The "Lying" Context** | Voice audio contradicts visual evidence (e.g., Audio: "Ulcers", Image: "Aspirin") | **Multimodal Conflict Logic** | ✅ **BLOCKED** (Agent prioritizes safety warning) |
+| **The "Lying" Context** | Voice audio contradicts visual evidence (e.g., Audio: "Ulcers", Image: "Aspirin") | **Sandwich Defense (Multimodal Conflict Logic)** | ✅ **BLOCKED** (Agent prioritizes safety warning) |
 | **LASA Trap** | Look-Alike Sound-Alike drug names (Hydroxyzine vs Hydralazine) | **Confidence & Dose Check** | ⚠️ **MITIGATED** (Flags inconsistency) |
 | **Boundary Attack** | Edge case ages (e.g., 65-year-old threshold) | **Standardized Rules** | ✅ **HANDLED** (Logic upgraded to AGS Beers Standard >= 65) |
 | **Infinite Retry Loop** | Maliciously ambiguous input to force loops | **Circuit Breaker** | ✅ **BLOCKED** (Max Retries = 2 + Human Review Fallback) |

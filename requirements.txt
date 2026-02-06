@@ -1,6 +1,9 @@
 # 🏥 SilverGuard Core Dependencies (V12.13 Impact Edition)
 # Aligned with KAGGLE_BOOTSTRAP.py
 
+# ZeroGPU Requirement
+spaces
+
 # Core AI/ML (Gemma 3 Support)
 # Note: +cu118 versions require --index-url https://download.pytorch.org/whl/cu118
 torch>=2.6.0
@@ -22,7 +25,7 @@ gTTS
 pyttsx3
 
 # Web/App Framework (Gradio 5 + Pydantic 2)
-gradio>=5.15.0
+gradio==4.44.1
 fastapi>=0.115.0
 pydantic>=2.10.0
 
