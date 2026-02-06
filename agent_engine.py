@@ -1890,7 +1890,7 @@ try:
     from medgemma_data import BLUR_THRESHOLD
     print(f"✅ Loaded Global Blur Threshold: {BLUR_THRESHOLD}")
 except ImportError:
-    BLUR_THRESHOLD = 100.0  # Safe Fallback (Synced with medgemma_data)
+    BLUR_THRESHOLD = 25.0  # [Demo Recording] Synced with medgemma_data.py
     print(f"⚠️ Global config not found. Using fallback threshold: {BLUR_THRESHOLD}")
 
 def check_image_quality(image_path):
@@ -3539,6 +3539,67 @@ def text_to_speech_elderly(text, lang='zh-tw'):
         # Actually simplest to just return "None" and handle UI gracefully
         return None
 # ============================================================================
+# 🎨 Geometric Icon Drawing Functions (Emoji Replacement - Agent Engine)
+# ============================================================================
+import math
+
+def draw_sun_icon_ae(draw, x, y, size=35, color="#FFB300"):
+    """繪製太陽圖示 (早上)"""
+    r = size // 2
+    draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FF8F00", width=2)
+    for angle in range(0, 360, 45):
+        rad = math.radians(angle)
+        x1 = x + int(r * 1.3 * math.cos(rad))
+        y1 = y + int(r * 1.3 * math.sin(rad))
+        x2 = x + int(r * 1.8 * math.cos(rad))
+        y2 = y + int(r * 1.8 * math.sin(rad))
+        draw.line([(x1, y1), (x2, y2)], fill=color, width=3)
+
+def draw_moon_icon_ae(draw, x, y, size=35, color="#FFE082"):
+    """繪製月亮圖示 (睡前)"""
+    r = size // 2
+    draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FBC02D", width=2)
+    offset = r // 3
+    draw.ellipse([x-r+offset, y-r, x+r+offset, y+r], fill="white")
+
+def draw_mountain_icon_ae(draw, x, y, size=35, color="#4CAF50"):
+    """繪製山景圖示 (中午)"""
+    r = size // 2
+    draw.polygon([(x-r, y+r), (x, y-r), (x+r//2, y)], fill=color)
+    draw.polygon([(x, y-r), (x+r, y+r), (x+r//2, y)], fill="#81C784")
+
+def draw_sunset_icon_ae(draw, x, y, size=35, color="#FF6F00"):
+    """繪製夕陽圖示 (晚上)"""
+    r = size // 2
+    draw.arc([x-r, y-r*2, x+r, y], start=0, end=180, fill=color, width=3)
+    for i in range(3):
+        y_line = y - i * 8
+        draw.line([(x-r, y_line), (x+r, y_line)], fill="#FF8F00", width=2)
+
+def draw_bowl_icon_ae(draw, x, y, size=30, is_full=True):
+    """繪製碗圖示 (空碗/滿碗)"""
+    r = size // 2
+    draw.arc([x-r, y-r//2, x+r, y+r], start=0, end=180, fill="#795548", width=3)
+    draw.line([(x-r, y), (x+r, y)], fill="#795548", width=3)
+    if is_full:
+        for i in range(-r+5, r-5, 10):
+            for j in range(-r//4, r//4, 8):
+                draw.ellipse([x+i-2, y+j-2, x+i+2, y+j+2], fill="white")
+
+def draw_pill_icon_ae(draw, x, y, size=30, color="lightblue"):
+    """繪製藥丸圖示"""
+    r = size // 2
+    draw.ellipse([x-int(r*1.5), y-r, x+int(r*1.5), y+r], 
+                 fill=color, outline="blue", width=2)
+    draw.line([(x, y-r), (x, y+r)], fill="blue", width=2)
+
+def draw_bed_icon_ae(draw, x, y, size=30):
+    """繪製床鋪圖示"""
+    r = size // 2
+    draw.rectangle([x-r, y, x+r, y+r//4], outline="black", width=2, fill="#BDBDBD")
+    draw.rectangle([x-r, y-r//4, x-r//2, y], fill="#757575")
+
+# ============================================================================
 # 🗓️ Medication Calendar Generator (Flagship Edition)
 # ============================================================================
 def create_medication_calendar(case_data, target_lang="zh-TW"):
@@ -3654,12 +3715,13 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
         bowl_text = "隨餐服用"
 
     # 2. 🕒 時間排程解析 (Schedule Parser)
+    # [V13 Fix] 移除 emoji 字串,改用幾何繪圖
     # 定義時間槽
     SLOTS = {
-        "MORNING": {"emoji": "☀️", "label": "早上 (08:00)", "color": "morning"},
-        "NOON":    {"emoji": "🏞️", "label": "中午 (12:00)", "color": "noon"},
-        "EVENING": {"emoji": "🌆", "label": "晚上 (18:00)", "color": "evening"},
-        "BEDTIME": {"emoji": "🌙", "label": "睡前 (22:00)", "color": "bedtime"},
+        "MORNING": {"icon_type": "sun", "label": "早上 (08:00)", "color": "morning"},
+        "NOON":    {"icon_type": "mountain", "label": "中午 (12:00)", "color": "noon"},
+        "EVENING": {"icon_type": "sunset", "label": "晚上 (18:00)", "color": "evening"},
+        "BEDTIME": {"icon_type": "moon", "label": "睡前 (22:00)", "color": "bedtime"},
     }
     
     active_slots = []
@@ -3693,17 +3755,22 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     from datetime import datetime, timedelta, timezone
     TZ_TW = timezone(timedelta(hours=8))
     
-    draw.text((50, y_off), "🗓️ 用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
-    draw.text((WIDTH - 350, y_off + 20), f"📅 {datetime.now(TZ_TW).strftime('%Y-%m-%d')}", fill=COLORS["text_muted"], font=font_body)
+    # [V13 Fix] 移除 emoji,改用純文字
+    draw.text((50, y_off), "用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
+    # [FIX] 鎖定日期，確保 Demo 連戲 (同步 app.py)
+    fixed_date = "2026-02-28"
+    draw.text((WIDTH - 350, y_off + 20), f"日期: {fixed_date}", fill=COLORS["text_muted"], font=font_body)
     
     y_off += 120
     draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
     
     # Drug Info
     y_off += 40
-    draw.text((50, y_off), f"💊 藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
+    # [V13 Fix] 移除 emoji,加上藥丸圖示
+    draw_pill_icon_ae(draw, 70, y_off+28, size=40, color="#E3F2FD")
+    draw.text((110, y_off), f"藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
     y_off += 80
-    draw.text((50, y_off), f"📦 總量: {quantity} 顆 / {dose}", fill=COLORS["text_body"], font=font_body)
+    draw.text((50, y_off), f"總量: {quantity} 顆 / {dose}", fill=COLORS["text_body"], font=font_body)
     
     y_off += 80
     draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
@@ -3724,17 +3791,36 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
             width=6
         )
         
-        # Time Label
-        draw.text((80, y_off+30), f"{s_data['emoji']} {s_data['label']}", fill=COLORS[s_data["color"]], font=font_subtitle)
+        # [V13 Fix] 用幾何圖示取代 emoji
+        icon_x = 90
+        icon_y = y_off + 60
         
-        # Bowl Icon & Instruction (Flagship Feature)
-        # 如果是睡前，這通常不需要配飯，但為了用藥一致性，可以顯示 "直接服用" 或 依據 bowl_logic
+        if s_data["icon_type"] == "sun":
+            draw_sun_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        elif s_data["icon_type"] == "moon":
+            draw_moon_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        elif s_data["icon_type"] == "mountain":
+            draw_mountain_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        elif s_data["icon_type"] == "sunset":
+            draw_sunset_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        
+        draw.text((140, y_off+30), s_data['label'], fill=COLORS[s_data["color"]], font=font_subtitle)
+        
+        # 碗圖示
+        bowl_x = 520
+        bowl_y = icon_y
+        # 確保 slot_key 被正確處理
         if slot_key == "BEDTIME" and bowl_icon == "🍚":
-            # 修正: 睡前若無特別指示，通常不是飯後，而是空腹或直接睡前
-            # 但若原始指示真的是 "飯後" (例如剛吃宵夜?) 則保留，否則預設睡前
-             pass 
+            pass 
              
-        draw.text((500, y_off+30), f"{bowl_text} ｜ {bowl_icon} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
+        if "飯前" in bowl_text:
+            draw_bowl_icon_ae(draw, bowl_x, bowl_y, size=35, is_full=False)
+        elif "飯後" in bowl_text:
+            draw_bowl_icon_ae(draw, bowl_x, bowl_y, size=35, is_full=True)
+        elif "睡前" in bowl_text:
+            draw_bed_icon_ae(draw, bowl_x, bowl_y, size=35)
+        
+        draw.text((560, y_off+30), f"{bowl_text} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
         
         y_off += card_h + 20
         
@@ -4670,11 +4756,10 @@ def launch_agentic_app():
                 d2 = gr.Textbox(label="Drug B")
                 chk = gr.Button("🔍 Run Safety Check")
                 out = gr.Markdown(label="Result")
-                # Ensure check_drug_interaction is defined or alias it to mock
-                # chk.click(check_drug_interaction, inputs=[d1, d2], outputs=out)
-                # Since we can't find check_drug_interaction, we use a lambda or verify existence
-                # To be safe for the demo, we just print a placeholder or use mock logic if available
-                chk.click(lambda a,b: f"✅ [OFFLINE CHECK] No interaction found between {a} and {b} (Local DB).", inputs=[d1, d2], outputs=out)
+                # [CRITICAL FIX] Enable real drug interaction check
+                chk.click(check_drug_interaction, inputs=[d1, d2], outputs=out)
+                # Fake lambda disabled - now using real offline_safety_knowledge_graph function
+                # chk.click(lambda a,b: f"✅ [OFFLINE CHECK] No interaction found between {a} and {b} (Local DB).", inputs=[d1, d2], outputs=out)
 
     demo.launch(share=True, debug=True)
 

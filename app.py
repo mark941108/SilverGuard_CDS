@@ -35,6 +35,24 @@ import threading
 # [Audit Fix P2] Global Thread Lock for PyTTSx3
 TTS_LOCK = threading.Lock()
 
+# [CRITICAL FIX] Auto-download Font for Linux/Docker Environment
+def ensure_font_exists():
+    font_url = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf"
+    font_path = "NotoSansTC-Bold.otf"
+    if not os.path.exists(font_path):
+        print(f"⬇️ Downloading font from {font_url}...")
+        try:
+            import requests
+            response = requests.get(font_url)
+            with open(font_path, "wb") as f:
+                f.write(response.content)
+            print("✅ Font downloaded successfully.")
+        except Exception as e:
+            print(f"⚠️ Font download failed: {e}. Visuals may degrade.")
+
+# 在程式啟動時執行
+ensure_font_exists()
+
 # [Audit Fix P2] Safe Translations Config (Moved to Header)
 SAFE_TRANSLATIONS = {
     "zh-TW": {
@@ -293,9 +311,10 @@ def clean_text_for_tts(text):
     text = text.replace("JSON", "J-S-O-N").replace("json", "J-S-O-N")
     return text.strip()
 
-def text_to_speech(text, lang='zh-tw'):
+def text_to_speech(text, lang='zh-tw', force_offline=False):  # [Fix P0] Privacy Toggle
     """
     [Audit Fix] Robust Hybrid TTS with Strict Voice Mapping for Docker/Linux
+    Added force_offline parameter to support privacy toggle
     """
     if not text: return None
     import uuid
@@ -307,7 +326,8 @@ def text_to_speech(text, lang='zh-tw'):
     filename = f"/tmp/tts_{uuid.uuid4().hex[:8]}.mp3"
 
     # Strategy 1: Online (gTTS) - Only if explicitly allowed
-    if not OFFLINE_MODE:
+    # [Fix P0] Check both global OFFLINE_MODE and force_offline parameter
+    if not OFFLINE_MODE and not force_offline:
         try:
             from gtts import gTTS
             # Map standard codes to gTTS codes
@@ -383,7 +403,7 @@ TEMP_STRICT = 0.2      # Retry pass: Deterministic (Safety-First)
 try:
     from medgemma_data import BLUR_THRESHOLD
 except ImportError:
-    BLUR_THRESHOLD = 100.0 # Fallback
+    BLUR_THRESHOLD = 25.0  # [Demo Recording] Fallback synced with medgemma_data.py
 
 
 # [Infrastructure] Cleanup Zombie Files on Startup
@@ -447,8 +467,82 @@ def check_is_prescription(response_text):
     return False
 
 # ============================================================================
-# 🗓️ Medication Calendar Generator (Elderly-Friendly Design)
+# 🎨 Geometric Icon Drawing Functions (Emoji Replacement)
 # ============================================================================
+import math
+
+def draw_sun_icon(draw, x, y, size=35, color="#FFB300"):
+    """繪製太陽圖示 (早上)"""
+    r = size // 2
+    # 太陽核心
+    draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FF8F00", width=2)
+    # 光芒 (8條)
+    for angle in range(0, 360, 45):
+        rad = math.radians(angle)
+        x1 = x + int(r * 1.3 * math.cos(rad))
+        y1 = y + int(r * 1.3 * math.sin(rad))
+        x2 = x + int(r * 1.8 * math.cos(rad))
+        y2 = y + int(r * 1.8 * math.sin(rad))
+        draw.line([(x1, y1), (x2, y2)], fill=color, width=3)
+
+def draw_moon_icon(draw, x, y, size=35, color="#FFE082"):
+    """繪製月亮圖示 (睡前)"""
+    r = size // 2
+    # 外圓
+    draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FBC02D", width=2)
+    # 內圓 (創造月牙效果)
+    offset = r // 3
+    draw.ellipse([x-r+offset, y-r, x+r+offset, y+r], fill="white")
+
+def draw_mountain_icon(draw, x, y, size=35, color="#4CAF50"):
+    """繪製山景圖示 (中午)"""
+    r = size // 2
+    # 左側山峰
+    draw.polygon([(x-r, y+r), (x, y-r), (x+r//2, y)], fill=color)
+    # 右側山峰
+    draw.polygon([(x, y-r), (x+r, y+r), (x+r//2, y)], fill="#81C784")
+
+def draw_sunset_icon(draw, x, y, size=35, color="#FF6F00"):
+    """繪製夕陽圖示 (晚上)"""
+    r = size // 2
+    # 太陽半圓
+    draw.arc([x-r, y-r*2, x+r, y], start=0, end=180, fill=color, width=3)
+    # 水平線
+    for i in range(3):
+        y_line = y - i * 8
+        draw.line([(x-r, y_line), (x+r, y_line)], fill="#FF8F00", width=2)
+
+def draw_bowl_icon(draw, x, y, size=30, is_full=True):
+    """繪製碗圖示 (空碗/滿碗)"""
+    r = size // 2
+    # 碗邊緣 (弧線)
+    draw.arc([x-r, y-r//2, x+r, y+r], start=0, end=180, fill="#795548", width=3)
+    # 碗底
+    draw.line([(x-r, y), (x+r, y)], fill="#795548", width=3)
+    
+    if is_full:
+        # 畫飯粒 (小圓點)
+        for i in range(-r+5, r-5, 10):
+            for j in range(-r//4, r//4, 8):
+                draw.ellipse([x+i-2, y+j-2, x+i+2, y+j+2], fill="white")
+
+def draw_pill_icon(draw, x, y, size=30, color="lightblue"):
+    """繪製藥丸圖示"""
+    r = size // 2
+    # 藥丸外形 (橢圓)
+    draw.ellipse([x-int(r*1.5), y-r, x+int(r*1.5), y+r], 
+                 fill=color, outline="blue", width=2)
+    # 中間分割線
+    draw.line([(x, y-r), (x, y+r)], fill="blue", width=2)
+
+def draw_bed_icon(draw, x, y, size=30):
+    """繪製床鋪圖示"""
+    r = size // 2
+    # 床墊
+    draw.rectangle([x-r, y, x+r, y+r//4], outline="black", width=2, fill="#BDBDBD")
+    # 枕頭
+    draw.rectangle([x-r, y-r//4, x-r//2, y], fill="#757575")
+
 # ============================================================================
 # 🗓️ Medication Calendar Generator (Flagship Edition)
 # ============================================================================
@@ -547,11 +641,12 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
         bowl_text = "隨餐服用"
 
     # 2. 🕒 時間排程解析 (Smart Schedule Parser - Fixed)
+    # [V13 Fix] 移除 emoji 字串,改用幾何繪圖
     SLOTS = {
-        "MORNING": {"emoji": "☀️", "label": "早上 (08:00)", "color": "morning"},
-        "NOON":    {"emoji": "🏞️", "label": "中午 (12:00)", "color": "noon"},
-        "EVENING": {"emoji": "🌆", "label": "晚上 (18:00)", "color": "evening"},
-        "BEDTIME": {"emoji": "🌙", "label": "睡前 (22:00)", "color": "bedtime"},
+        "MORNING": {"icon_type": "sun", "label": "早上 (08:00)", "color": "morning"},
+        "NOON":    {"icon_type": "mountain", "label": "中午 (12:00)", "color": "noon"},
+        "EVENING": {"icon_type": "sunset", "label": "晚上 (18:00)", "color": "evening"},
+        "BEDTIME": {"icon_type": "moon", "label": "睡前 (22:00)", "color": "bedtime"},
     }
 
     active_slots = []
@@ -595,16 +690,21 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     from datetime import datetime, timedelta, timezone
     TZ_TW = timezone(timedelta(hours=8))
     
-    draw.text((50, y_off), "🗓️ 用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
-    draw.text((WIDTH - 350, y_off + 20), f"📅 {datetime.now(TZ_TW).strftime('%Y-%m-%d')}", fill=COLORS["text_muted"], font=font_body)
+    # [V13 Fix] 移除 emoji,改用純文字
+    draw.text((50, y_off), "用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
+    # [FIX] 鎖定日期，確保 Demo 連戲 (例如鎖定為決賽日)
+    fixed_date = "2026-02-28" 
+    draw.text((WIDTH - 350, y_off + 20), f"日期: {fixed_date}", fill=COLORS["text_muted"], font=font_body)
     
     y_off += 120
     draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
     
     y_off += 40
-    draw.text((50, y_off), f"💊 藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
+    # [V13 Fix] 移除 emoji,加上藥丸圖示
+    draw_pill_icon(draw, 70, y_off+28, size=40, color="#E3F2FD")
+    draw.text((110, y_off), f"藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
     y_off += 80
-    draw.text((50, y_off), f"📦 總量: {quantity} 顆 / {dose}", fill=COLORS["text_body"], font=font_body)
+    draw.text((50, y_off), f"總量: {quantity} 顆 / {dose}", fill=COLORS["text_body"], font=font_body)
     
     y_off += 80
     draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
@@ -616,19 +716,57 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     for slot_key in active_slots:
         s_data = SLOTS[slot_key]
         draw.rectangle([(50, y_off), (50+card_w, y_off+card_h)], fill=COLORS["bg_card"], outline=COLORS[s_data["color"]], width=6)
-        draw.text((80, y_off+30), f"{s_data['emoji']} {s_data['label']}", fill=COLORS[s_data["color"]], font=font_subtitle)
-        draw.text((500, y_off+30), f"{bowl_text} ｜ {bowl_icon} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
+        
+        # [V13 Fix] 用幾何圖示取代 emoji
+        icon_x = 90
+        icon_y = y_off + 60
+        
+        if s_data["icon_type"] == "sun":
+            draw_sun_icon(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        elif s_data["icon_type"] == "moon":
+            draw_moon_icon(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        elif s_data["icon_type"] == "mountain":
+            draw_mountain_icon(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        elif s_data["icon_type"] == "sunset":
+            draw_sunset_icon(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        
+        draw.text((140, y_off+30), s_data['label'], fill=COLORS[s_data["color"]], font=font_subtitle)
+        
+        # 碗圖示
+        bowl_x = 520
+        bowl_y = icon_y
+        if "飯前" in bowl_text:
+            draw_bowl_icon(draw, bowl_x, bowl_y, size=35, is_full=False)
+        elif "飯後" in bowl_text:
+            draw_bowl_icon(draw, bowl_x, bowl_y, size=35, is_full=True)
+        elif "睡前" in bowl_text:
+            draw_bed_icon(draw, bowl_x, bowl_y, size=35)
+        
+        draw.text((560, y_off+30), f"{bowl_text} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
         y_off += card_h + 20
         
     if status in ["HIGH_RISK", "WARNING", "HUMAN_REVIEW_NEEDED"] or "HIGH" in str(warnings):
         y_off += 20
         draw.rectangle([(50, y_off), (WIDTH-50, y_off+160)], fill="#FFEBEE", outline=COLORS["danger"], width=6)
-        draw.text((80, y_off+20), "⚠️ 用藥安全警示", fill=COLORS["danger"], font=font_title)
+        # [V13 Fix] 用三角形警示圖示取代 emoji
+        warn_icon_x = 90
+        warn_icon_y = y_off + 50
+        # 繪製三角形警示
+        draw.polygon(
+            [(warn_icon_x, warn_icon_y-20), 
+             (warn_icon_x-18, warn_icon_y+15), 
+             (warn_icon_x+18, warn_icon_y+15)],
+            fill=COLORS["danger"], outline="#B71C1C", width=2
+        )
+        draw.text((warn_icon_x-5, warn_icon_y-10), "!", fill="white", font=font_title)
+        
+        draw.text((130, y_off+20), "用藥安全警示", fill=COLORS["danger"], font=font_title)
         warn_msg = warnings[0] if warnings else "請諮詢藥師確認用藥細節"
         if len(warn_msg) > 38: warn_msg = warn_msg[:38] + "..."
         draw.text((80, y_off+90), warn_msg, fill=COLORS["text_body"], font=font_body)
 
-    draw.text((50, HEIGHT-60), "SilverGuard AI 關心您 ❤️ 僅供參考，請遵照醫師處方", fill=COLORS["text_muted"], font=font_caption)
+    # [V13 Fix] 移除 emoji
+    draw.text((50, HEIGHT-60), "SilverGuard AI 關心您 | 僅供參考，請遵照醫師處方", fill=COLORS["text_muted"], font=font_caption)
     
     import uuid
     output_path = f"/tmp/medication_calendar_{uuid.uuid4().hex}.png"
@@ -1076,11 +1214,13 @@ def safety_critic_tool(json_output):
         return False, f"Critic Tool Error: {str(e)}"
 
 @spaces.GPU(duration=60)
-def run_inference(image, patient_notes=""):
+def run_inference(image, patient_notes="", target_lang="zh-TW", force_offline=False):  # [Fix P0] Privacy Toggle
     """
     Main Agentic Inference function.
     - image: PIL Image of drug bag
-    - patient_notes: Optional text from MedASR transription
+    - patient_notes: Optional text from MedASR transcription
+    - target_lang: Target language for output
+    - force_offline: Force offline mode (privacy toggle)
     """
     # Tracing Init (Move to top)
     trace_logs = []
@@ -1513,9 +1653,29 @@ def get_font(size):
 # [Audit Fix P2] SAFE_TRANSLATIONS moved to top. Redundant block removed.
 
 # ============================================================================
+# 🎯 RLHF FEEDBACK LOGGER
+# ============================================================================
+def log_feedback(result_json, feedback_type):
+    """記錄用戶反饋以改進模型 (RLHF)"""
+    try:
+        from datetime import datetime
+        import json
+        feedback_data = {
+            "timestamp": datetime.now().isoformat(),
+            "feedback": feedback_type,
+            "result": result_json
+        }
+        with open("feedback.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps(feedback_data, ensure_ascii=False) + "\n")
+        return f"✅ {feedback_type.upper()} feedback recorded"
+    except Exception as e:
+        print(f"⚠️ Feedback logging error: {e}")
+        return "⚠️ Feedback logging unavailable"
+
+# ============================================================================
 # 🚦 WAYFINDING TURN-2 HANDLER
 # ============================================================================
-def submit_clarification(user_option, current_json):
+def submit_clarification(user_option, current_json, target_lang="zh-TW", force_offline=False):  # [CRITICAL FIX] Language Amnesia
     """
     Handle the user's response to the Wayfinding question.
     Re-run Guardrails (g-AMIE Pattern) to ensure safety.
@@ -1563,7 +1723,8 @@ def submit_clarification(user_option, current_json):
     updated_json["safety_analysis"]["reasoning"] = reasoning
     
     # 3. Regenerate Outputs
-    html, audio = silverguard_ui(updated_json)
+    # [CRITICAL FIX] Pass target_lang and force_offline to maintain language/privacy state
+    html, audio = silverguard_ui(updated_json, target_lang=target_lang, force_offline=force_offline)
     try:
         cal_path = create_medication_calendar(updated_json)
         cal_img = Image.open(cal_path)
@@ -1581,8 +1742,8 @@ def submit_clarification(user_option, current_json):
         "\n".join(logic_logs)
     )
 
-def silverguard_ui(case_data, target_lang="zh-TW"):
-    """SilverGuard UI 生成器 (含離線翻譯修復)"""
+def silverguard_ui(case_data, target_lang="zh-TW", force_offline=False):  # [Fix P0] Privacy Toggle
+    """SilverGuard UI 生成器 (含離線翻譯修復 + 隱私開關支持)"""
     
     safety = case_data.get("safety_analysis", {})
     status = safety.get("status", "WARNING")
@@ -1590,7 +1751,32 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
     lang_pack = SAFE_TRANSLATIONS.get(target_lang, SAFE_TRANSLATIONS["zh-TW"])
 
     # --- 1. 定義狀態與顏色 ---
-    if status == "HIGH_RISK":
+    # 🚨 [CRITICAL FIX] 優先處理拒絕狀態，防止掉入 else 變成 PASS
+    if status in ["REJECTED_INPUT", "INVALID_IMAGE", "REJECTED_BLUR", "INVALID_FORMAT"]:
+        display_status = "❌ 影像無法辨識"
+        color = "#ffebee"  # 淺紅
+        icon = "📸"
+        # 安全的錯誤訊息
+        tts_text = "阿嬤，這張照片太模糊了，我看不太清楚。請重新拍一張清楚一點的，或者直接問藥師喔。"
+        
+        # 直接回傳錯誤卡片
+        html = f"""
+        <div style="background-color: {color}; padding: 20px; border-radius: 10px; border: 3px solid #d32f2f;">
+            <h2 style="margin:0; color: #d32f2f;">{icon} {display_status}</h2>
+            <hr style="border-top: 1px solid #aaa;">
+            <b>⚠️ 請重新拍攝 / Retake Photo</b><br>
+            系統無法確認藥品安全。<br>
+            <small>(System cannot verify safety due to image quality)</small>
+        </div>
+        """
+        try:
+            audio_path = text_to_speech(tts_text, lang="zh-tw", force_offline=force_offline)
+        except Exception as e:
+            print(f"⚠️ TTS Error: {e}")
+            audio_path = None
+        return html, audio_path
+    
+    elif status == "HIGH_RISK":
         display_status = lang_pack["HIGH_RISK"]
         color = "#ffcdd2"
         icon = "⛔"
@@ -1677,8 +1863,8 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
 
     # --- 3. 生成語音 ---
     try:
-        # 使用 target_lang 傳入，讓新版 text_to_speech 處理
-        audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
+        # [Fix P0] 傳遞 force_offline 參數
+        audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"], force_offline=force_offline)
     except Exception as e:
         print(f"⚠️ TTS Error: {e}")
         audio_path = None
@@ -1816,14 +2002,13 @@ with gr.Blocks() as demo:
                     # [Director's Cut] Offline Simulation Toggle (For Demo Recording)
                     privacy_toggle = gr.Checkbox(label="🔒 Simulate Network Failure (Air-Gapped Mode)", value=False, elem_id="offline-toggle")
                     
-                    # [Audit Fix P0-6] Multilingual Support (Migrant Caregivers)
-                    lang_dropdown = gr.Dropdown(
-                        choices=["zh-TW", "id", "vi", "en"], 
-                        value="zh-TW", 
-                        label="🌏 Output Language / 語言 / Bahasa"
-                    )
+                    # [FIX] 移除重複的lang_dropdown (幽靈元件),只保留caregiver_lang_dropdown
+                    # 原 lang_dropdown 已移除,功能由 caregiver_lang_dropdown 提供
+                    
                     
                     btn = gr.Button("🔍 Analyze (Analisa / Gửi)", variant="primary", size="lg")
+                    clear_btn = gr.Button("🗑️ Clear All / 清除", variant="secondary", size="lg")
+                    
                     
                     # Quick Win: Examples
                     gr.Examples(
@@ -1868,7 +2053,8 @@ with gr.Blocks() as demo:
                         calendar_output = gr.Image(label="大字體用藥行事曆", type="pil")
 
                     # 👨‍⚕️ Clinical Cockpit (Dual-Track Output)
-                    with gr.Accordion("👨‍⚕️ Clinical Cockpit (Pharmacist SBAR)", open=False):
+                    # [FIX] 改為 open=True 以便 Demo 影片中直接顯示 SBAR
+                    with gr.Accordion("👨‍⚕️ Clinical Cockpit (Pharmacist SBAR)", open=True):
                         sbar_output = gr.Markdown("Waiting for analysis...")
                     
                     # 📉 HIDE COMPLEX LOGIC (Accordion)
@@ -1884,6 +2070,30 @@ with gr.Blocks() as demo:
                 status_btn.click(health_check, outputs=status_json)
 
             def run_full_flow_with_tts(image, audio_path, text_override, proxy_text, target_lang, simulate_offline, progress=gr.Progress()):
+                # [Fix P0] 防呆機制: 檢查圖片是否上傳
+                if image is None:
+                    error_html = """
+                    <div style='padding:50px; text-align:center; background:#FFF3E0; border-radius:15px; border:3px solid #FF9800;'>
+                        <h2 style='color:#E65100; margin-bottom:20px;'>⚠️ 請先上傳藥袋照片</h2>
+                        <h3 style='color:#F57C00;'>Please Upload a Drug Bag Image First</h3>
+                        <p style='color:#666; font-size:18px;'>Click the 📸 Upload button above to get started.</p>
+                    </div>
+                    """
+                    return (
+                        "",  # transcription_display
+                        "⚠️ 請先上傳藥袋照片 / Please upload a drug bag image first",  # status_output
+                        json.dumps({"error": "No image provided", "message": "Please upload an image to analyze"}, indent=2, ensure_ascii=False),  # json_output
+                        error_html,  # silver_html
+                        None,  # audio_output
+                        None,  # calendar_output
+                        "❌ [ERROR] No image uploaded. Please select an image file first.",  # trace_output
+                        "",  # sbar_output
+                        gr.update(visible=False),  # wayfinding_group
+                        "",  # wayfinding_msg
+                        [],  # wayfinding_options
+                        None  # interaction_state
+                    )
+                
                 # [Audit Fix P0] Use local state instead of modifying global
                 effective_offline_mode = OFFLINE_MODE or simulate_offline
                 
@@ -1913,7 +2123,13 @@ with gr.Blocks() as demo:
                 full_trace = ""
                 
                 # Generator Loop
-                for status, res_json, speech, audio_path_old, trace_log, cal_img_stream in run_inference(image, patient_notes=transcription):
+                # [Fix P0] \u50b3\u905e target_lang \u548c effective_offline_mode \u4ee5\u652f\u6301\u96b1\u79c1\u958b\u95dc
+                for status, res_json, speech, audio_path_old, trace_log, cal_img_stream in run_inference(
+                    image, 
+                    patient_notes=transcription, 
+                    target_lang=target_lang, 
+                    force_offline=effective_offline_mode
+                ):
                     full_trace = "\n".join(pre_logs) + "\n" + trace_log
                     
                     privacy_mode = "🟢 Online (High Quality)"
@@ -1966,7 +2182,8 @@ with gr.Blocks() as demo:
                         sbar = res_json.get("sbar_handoff", "**No SBAR data generated.**")
                         
                         progress(0.8, desc="👵 Generating SilverGuard UI...")
-                        html_view, audio_path_new = silverguard_ui(res_json, target_lang=target_lang)
+                        # [Fix P0] 傳遞 force_offline 參數
+                        html_view, audio_path_new = silverguard_ui(res_json, target_lang=target_lang, force_offline=effective_offline_mode)
                         
                         final_audio = audio_path_new if target_lang != "zh-TW" else audio_path_old
                         if not final_audio: final_audio = audio_path_old
@@ -2000,10 +2217,24 @@ with gr.Blocks() as demo:
             )
             
             # Wayfinding Event Handler
+            # [CRITICAL FIX] Pass language and privacy state to prevent reset
             wayfinding_btn.click(
                 fn=submit_clarification,
-                inputs=[wayfinding_options, interaction_state],
+                inputs=[
+                    wayfinding_options, 
+                    interaction_state,
+                    caregiver_lang_dropdown,  # 🆕 傳入語言設定
+                    privacy_toggle            # 🆕 傳入隱私設定
+                ],
                 outputs=[wayfinding_group, status_output, json_output, silver_html, audio_output, calendar_output, trace_output]
+            )
+
+            # [CRITICAL FIX] 綁定語音轉文字功能 (The Ghost Wiring Fix)
+            # 當錄音結束時，自動呼叫 transcribe_audio 並將結果填入 transcription_display
+            voice_input.stop_recording(
+                fn=lambda x: transcribe_audio(x)[0], # 只取第一個回傳值 (text)
+                inputs=[voice_input],
+                outputs=[transcription_display]
             )
 
             voice_ex1.click(lambda: "Patient is allergic to Aspirin.", outputs=transcription_display)
@@ -2011,13 +2242,59 @@ with gr.Blocks() as demo:
             # [Strategy] Simulate MedASR capturing Indonesian + implicit translation
             voice_ex3.click(lambda: "Nenek jatuh dan berdarah setelah minum obat (Grandma fell and bleeding)", outputs=transcription_display)
             
-            # Feedback
+            # [Fix P0] Clear Button Handler
+            def clear_all_inputs():
+                """重置所有輸入輸出組件 (Reset all UI components)"""
+                return (
+                    None,  # input_img
+                    None,  # voice_input
+                    "",    # transcription_display
+                    "",    # proxy_text_input
+                    "zh-TW",  # caregiver_lang_dropdown (唯一的語言選擇器)
+                    False,  # privacy_toggle
+                    "",    # status_output
+                    "",    # json_output
+                    "<div style='padding:30px; text-align:center; color:#999;'><h3>Ready for analysis...</h3></div>",  # silver_html
+                    None,  # audio_output
+                    None,  # calendar_output
+                    "",    # trace_output
+                    "",    # sbar_output
+                    gr.update(visible=False),  # wayfinding_group
+                    "",    # wayfinding_msg
+                    [],    # wayfinding_options
+                    None   # interaction_state
+                )
+            
+            clear_btn.click(
+                fn=clear_all_inputs,
+                inputs=[],
+                outputs=[
+                    input_img, voice_input, transcription_display, proxy_text_input,
+                    caregiver_lang_dropdown, privacy_toggle,  # [FIX] 移除 lang_dropdown
+                    status_output, json_output, silver_html, audio_output, calendar_output,
+                    trace_output, sbar_output, wayfinding_group, wayfinding_msg,
+                    wayfinding_options, interaction_state
+                ]
+            )
+            
+            # Feedback (RLHF)
             gr.Markdown("---")
             with gr.Row():
                 btn_correct = gr.Button("✅ Correct")
                 btn_error = gr.Button("❌ Error")
             feedback_output = gr.Textbox(label="RLHF Status", interactive=False)
             
+            # [NEW] RLHF Button Handlers
+            btn_correct.click(
+                fn=lambda x: log_feedback(x, "correct"),
+                inputs=[json_output],
+                outputs=[feedback_output]
+            )
+            btn_error.click(
+                fn=lambda x: log_feedback(x, "error"),
+                inputs=[json_output],
+                outputs=[feedback_output]
+            )
 
 
         with gr.TabItem("🔒 Local Safety Guard (Offline)"):

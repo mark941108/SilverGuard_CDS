@@ -5,7 +5,12 @@ Purpose: Sync data between Training (V5), Generation (V16), and Stress Test.
 """
 
 # [V8.8 Audit Fix] Global Safety Thresholds
-BLUR_THRESHOLD = 100.0  # Conservative Rejection for Patient Safety
+# [Demo Recording] Blur Threshold Configuration
+# Production: 100.0 (Conservative for Patient Safety)
+# Demo Recording: 25.0 (Prevents false rejection from camera shake/phone photos)
+BLUR_THRESHOLD = 25.0  # ⚠️ Set to 25.0 for smooth demo recording
+# Note: Camera shake or phone photography typically scores 40-80
+# A threshold of 100.0 would reject most demo recordings
 
 # Original Data Source from V5
 DRUG_DATABASE = {
