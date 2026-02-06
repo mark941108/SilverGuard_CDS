@@ -42,7 +42,7 @@ SAFE_TRANSLATIONS = {
         "HIGH_RISK": "⚠️ 系統偵測異常！請先確認",
         "WARNING": "⚠️ 警告！建議再次確認及諮詢",
         "PASS": "✅ 檢測安全 (僅供參考)",
-        "CONSULT": "建議立即諮詢藥師 (0800-000-123)",
+        "CONSULT": "建議立即諮詢藥師 (0800-633-436)",
         "TTS_LANG": "zh-tw"
     },
     "id": {
@@ -295,56 +295,76 @@ def clean_text_for_tts(text):
 
 def text_to_speech(text, lang='zh-tw'):
     """
-    [Audit Fix P2] Unified Robust TTS Engine (Hybrid Online/Offline)
-    Tier 1: Online (gTTS) - FAST & HUMAN-LIKE
-    Tier 2: Offline (pyttsx3) - PRIVACY & FALLBACK
+    [Audit Fix] Robust Hybrid TTS with Strict Voice Mapping for Docker/Linux
     """
     if not text: return None
     import uuid
     import tempfile
     
-    # [Safety] Truncate text to avoid API ban / timeout
-    if len(text) > 300: 
-        text = text[:297] + "..."
-        
+    # Truncate for safety
+    if len(text) > 300: text = text[:297] + "..."
     clean_text = clean_text_for_tts(text)
-    filename = f"tts_{uuid.uuid4().hex[:8]}.mp3"
-    
-    # Strategy 1: Online Neural TTS
-    if not OFFLINE_MODE or "demo" in str(OFFLINE_MODE).lower():
+    filename = f"/tmp/tts_{uuid.uuid4().hex[:8]}.mp3"
+
+    # Strategy 1: Online (gTTS) - Only if explicitly allowed
+    if not OFFLINE_MODE:
         try:
             from gtts import gTTS
-            lang_map = {'zh': 'zh-TW', 'zh-TW': 'zh-TW', 'en': 'en', 'id': 'id', 'vi': 'vi'}
-            tts = gTTS(text=clean_text, lang=lang_map.get(lang, 'zh-TW'))
+            # Map standard codes to gTTS codes
+            gtts_map = {'zh': 'zh-TW', 'zh-TW': 'zh-TW', 'en': 'en', 'id': 'id', 'vi': 'vi'}
+            tts = gTTS(text=clean_text, lang=gtts_map.get(lang, 'zh-TW'))
             tts.save(filename)
             print(f"🔊 [TTS] Generated via Online API (gTTS) - {lang}")
             return filename
         except Exception as e:
-            print(f"⚠️ [TTS] Online generation failed. Switching to Offline Fallback.")
+            print(f"⚠️ [TTS] Online generation failed ({e}). Switching to Offline.")
 
-    # Strategy 2: Offline Privacy-Preserving TTS
+    # Strategy 2: Offline (pyttsx3) - STRICT VOICE MAPPING
     try:
         import pyttsx3
-        # [Audit Fix P2] Use Global Lock
         with TTS_LOCK:
             engine = pyttsx3.init()
-            try:
-                voices = engine.getProperty('voices')
-                target_lang_id = 'zh' if 'zh' in lang else lang
-                target_voice = next((v for v in voices if target_lang_id in v.id.lower()), None)
-                if target_voice: engine.setProperty('voice', target_voice.id)
-            except: pass
             
+            # --- 關鍵修復：Linux/Espeak 專用映射 ---
+            # Espeak 的 Voice ID 通常不是標準 ISO code，需要模糊比對
+            voices = engine.getProperty('voices')
+            target_voice_id = None
+            
+            # 定義語言關鍵字映射 (Priority keywords)
+            lang_keywords = {
+                'zh': ['chinese', 'mandarin', 'zh'],
+                'zh-tw': ['chinese', 'mandarin', 'zh'],
+                'en': ['english', 'en-us', 'en'],
+                'id': ['indonesian', 'indonesia', 'id'], # 關鍵：印尼語
+                'vi': ['vietnam', 'vietnamese', 'vi']    # 關鍵：越南語
+            }
+            
+            search_terms = lang_keywords.get(lang.lower(), [lang])
+            
+            # 尋找匹配的聲音
+            for term in search_terms:
+                for v in voices:
+                    if term in v.name.lower() or term in v.id.lower():
+                        target_voice_id = v.id
+                        break
+                if target_voice_id: break
+            
+            if target_voice_id:
+                engine.setProperty('voice', target_voice_id)
+                print(f"🔒 [TTS] Voice set to: {target_voice_id}")
+            else:
+                print(f"⚠️ [TTS] Target voice for '{lang}' not found. Using default.")
+            # -------------------------------------------
+
             engine.save_to_file(clean_text, filename)
             engine.runAndWait()
             
-            # Explicit cleanup
             if hasattr(engine, '_inLoop') and engine._inLoop:
-                 engine.endLoop()
-            del engine
+                engine.endLoop()
+                del engine
+                
+            return filename
             
-        print(f"🔒 [TTS] Generated via Offline Engine (pyttsx3) - Privacy Mode: {filename}")
-        return filename
     except Exception as e:
         print(f"❌ [TTS] All engines failed: {e}")
         return None
@@ -365,6 +385,32 @@ try:
 except ImportError:
     BLUR_THRESHOLD = 100.0 # Fallback
 
+
+# [Infrastructure] Cleanup Zombie Files on Startup
+def cleanup_temp_files():
+    import glob
+    import time
+    
+    # 定義要清理的模式
+    patterns = ["/tmp/tts_*.mp3", "/tmp/medication_calendar_*.png", "*.mp3", "*.png"]
+    count = 0
+    
+    for pattern in patterns:
+        # 在 Docker/Linux 環境通常是 /tmp，但在本地可能是當前目錄
+        files = glob.glob(pattern)
+        for f in files:
+            try:
+                # 只刪除超過 1 小時的舊檔案 (避免刪到正在用的)
+                if os.path.getmtime(f) < time.time() - 3600:
+                    os.remove(f)
+                    count += 1
+            except:
+                pass
+    if count > 0:
+        print(f"🧹 [System] Cleaned up {count} stale temporary files.")
+
+# 執行清理
+cleanup_temp_files()
 
 def check_image_quality(image, blur_threshold=BLUR_THRESHOLD):
     """Input Validation Gate - Reject blurry images"""
@@ -500,33 +546,48 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
         bowl_icon = "🍱" 
         bowl_text = "隨餐服用"
 
-    # 2. 🕒 時間排程解析 (Schedule Parser)
+    # 2. 🕒 時間排程解析 (Smart Schedule Parser - Fixed)
     SLOTS = {
         "MORNING": {"emoji": "☀️", "label": "早上 (08:00)", "color": "morning"},
         "NOON":    {"emoji": "🏞️", "label": "中午 (12:00)", "color": "noon"},
         "EVENING": {"emoji": "🌆", "label": "晚上 (18:00)", "color": "evening"},
         "BEDTIME": {"emoji": "🌙", "label": "睡前 (22:00)", "color": "bedtime"},
     }
-    
+
     active_slots = []
-    
-    if any(k in u_str for k in ["QID", "四次"]):
+    u_str = str(unique_usage).upper()
+
+    # 優先級 1: 明確頻率代碼 (Cover all slots)
+    if any(k in u_str for k in ["QID", "四次", "Q6H"]):
         active_slots = ["MORNING", "NOON", "EVENING", "BEDTIME"]
-    elif any(k in u_str for k in ["TID", "三餐", "三次"]):
+    elif any(k in u_str for k in ["TID", "三餐", "三次", "Q8H"]):
         active_slots = ["MORNING", "NOON", "EVENING"]
-    elif any(k in u_str for k in ["BID", "早晚", "兩次"]):
+    elif any(k in u_str for k in ["BID", "早晚", "兩次", "Q12H"]):
         active_slots = ["MORNING", "EVENING"]
     elif any(k in u_str for k in ["HS", "睡前"]):
-        active_slots = ["BEDTIME"]
+        # 修正互斥問題：如果是 QD + HS 或者是單純 HS
+        if "QD" in u_str or "一次" in u_str:
+             active_slots = ["BEDTIME"]
+        else:
+             active_slots = ["BEDTIME"] # Default for pure HS
     elif any(k in u_str for k in ["QD", "每日一次", "一天一次"]):
+        # QD 預設早上，除非有其他指示
         active_slots = ["MORNING"]
-    else:
+    
+    # 優先級 2: 關鍵字補丁 (Keyword Patching)
+    # 如果上面的邏輯漏掉了特定時段 (例如 "早、睡前各一次")，這裡進行補強
+    if not active_slots: # 只有在沒匹配到標準代碼時才用關鍵字猜測
         if "早" in u_str: active_slots.append("MORNING")
         if "午" in u_str: active_slots.append("NOON")
         if "晚" in u_str: active_slots.append("EVENING")
         if "睡" in u_str: active_slots.append("BEDTIME")
-        
+    
+    # [Fix] 確保不為空
     if not active_slots: active_slots = ["MORNING"]
+    
+    # [Fix] 去重並排序 (按照時間順序)
+    slot_order = ["MORNING", "NOON", "EVENING", "BEDTIME"]
+    active_slots = sorted(list(set(active_slots)), key=lambda x: slot_order.index(x))
     
     # ============ 視覺繪製 ============
     y_off = 40
@@ -1521,24 +1582,14 @@ def submit_clarification(user_option, current_json):
     )
 
 def silverguard_ui(case_data, target_lang="zh-TW"):
-    """SilverGuard UI 生成器 (多語系版)"""
+    """SilverGuard UI 生成器 (含離線翻譯修復)"""
+    
     safety = case_data.get("safety_analysis", {})
     status = safety.get("status", "WARNING")
-    
+    # [Fix] Handle missing Safe Translations gracefully
     lang_pack = SAFE_TRANSLATIONS.get(target_lang, SAFE_TRANSLATIONS["zh-TW"])
-    
-    # [Hotfix] 針對外語使用者的安全降級顯示 (Migrant Caregiver UX Fix)
-    if target_lang != "zh-TW" and status in ["HIGH_RISK", "WARNING"]:
-        # 外語模式下，不顯示中文的詳細推理，改顯示通用的英文/當地語言警告
-        fallback_reason = {
-            "id": "Alasan: Dosis atau penggunaan tidak standar. (Reason: Non-standard dosage/usage.)",
-            "vi": "Lý do: Liều lượng hoặc cách sử dụng không chuẩn. (Reason: Non-standard dosage/usage.)",
-            "en": "Reason: Dosage issue or missing data. Please show this screen to a pharmacist."
-        }
-        # 覆蓋原本的中文 Reasoning
-        # Use simple dictionary get with default fallback
-        safety['reasoning'] = fallback_reason.get(target_lang, "Reason: Potential safety issue detected.")
-    
+
+    # --- 1. 定義狀態與顏色 ---
     if status == "HIGH_RISK":
         display_status = lang_pack["HIGH_RISK"]
         color = "#ffcdd2"
@@ -1547,7 +1598,6 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         display_status = lang_pack["WARNING"]
         color = "#fff9c4"
         icon = "⚠️"
-    # [Audit Fix] Explicitly Handle MISSING_DATA
     elif status in ["MISSING_DATA", "UNKNOWN"]:
         display_status = "⚠️ MISSING DATA"
         color = "#fff9c4"
@@ -1556,106 +1606,97 @@ def silverguard_ui(case_data, target_lang="zh-TW"):
         display_status = lang_pack["PASS"]
         color = "#c8e6c9"
         icon = "✅"
-        
-    # [V8.5 Fix] "True" Multilingual Support (No longer superficial)
-    # Strategy:
-    # 1. Chinese (zh-TW): Use Agent's generated "Warm Nudge" (silverguard_message)
-    # 2. Foreign (ID/VI): Use "Template Construction" (Safe Fallback) since we can't translate LLM Chinese output offline.
-    
-    # Extract Data for Template
+
+    # --- 2. 構建多語言 TTS 腳本 (關鍵修復) ---
     extracted = case_data.get('extracted_data', {})
-    drug_info_raw = extracted.get('drug', {}) if isinstance(extracted, dict) else {}
+    drug_info = extracted.get('drug', {}) if isinstance(extracted, dict) else {}
     
-    # [UX Polish] Smart Name Selection for TTS
-    # If target is NOT Chinese, try to find the English Generic Name to avoid mixed-lang TTS issues
-    # e.g. "庫魯化" (Difficult for ID TTS) -> "Metformin" (Universal)
-    drug_name = drug_info_raw.get('name', 'Obat') # Default
-    if target_lang != "zh-TW":
-        # Try to resolve generic name from DB
-        db_info = retrieve_drug_info(drug_name)
-        if db_info.get("found"):
-             drug_name = db_info.get("generic", drug_name)
-        elif drug_info_raw.get('name_en'):
-             # Fallback to extracted English name if available
-             drug_name = drug_info_raw.get('name_en')
+    # 嘗試獲取英文藥名 (避免 TTS 唸中文藥名)
+    drug_name = drug_info.get('name_en', drug_info.get('name', 'Drug'))
     
-    agent_msg = case_data.get("silverguard_message", "")
-    
-    if target_lang == "zh-TW" and agent_msg:
-        # Use the Agent's warm persona
-        tts_text = agent_msg
-    elif target_lang == "id":
-        # Template: "High Risk! Metformin 2000mg varies from standard. Ask Pharmacist."
-        if status == "HIGH_RISK":
-            tts_text = f"Bahaya! Dosis {drug_name} terlalu tinggi. Mohon tanya apoteker. {lang_pack['CONSULT']}"
-        elif status == "WARNING":
-             tts_text = f"Peringatan untuk {drug_name}. Cek ulang dosis. {lang_pack['CONSULT']}"
-        else:
-             tts_text = f"Obat {drug_name} aman. {lang_pack['PASS']}"
-    elif target_lang == "vi":
-        if status == "HIGH_RISK":
-             tts_text = f"Nguy hiểm! Liều {drug_name} quá cao. Hỏi dược sĩ ngay. {lang_pack['CONSULT']}"
-        elif status == "WARNING":
-             tts_text = f"Cảnh báo thuốc {drug_name}. Kiểm tra lại liều. {lang_pack['CONSULT']}"
-        else:
-             tts_text = f"Thuốc {drug_name} an toàn. {lang_pack['PASS']}"
-    else:
-        # Emergency Fallback (Static)
-        tts_text = f"{display_status}. {lang_pack['CONSULT']}."
+    # [Fix Problem A] 簡單的用法翻譯字典
+    usage_map = {
+        "id": {
+            "每日一次": "satu kali sehari",
+            "每日1次": "satu kali sehari",
+            "每日兩次": "dua kali sehari",
+            "每日2次": "dua kali sehari",
+            "每日三次": "tiga kali sehari",
+            "每日3次": "tiga kali sehari",
+            "飯後": "sesudah makan",
+            "飯前": "sebelum makan",
+            "睡前": "sebelum tidur"
+        },
+        "vi": {
+            "每日一次": "một lần một ngày",
+            "每日1次": "một lần một ngày",
+            "每日兩次": "hai lần một ngày",
+            "每日2次": "hai lần một ngày",
+            "每日三次": "ba lần một ngày",
+            "每日3次": "ba lần một ngày",
+            "飯後": "sau khi ăn",
+            "飯前": "trước khi ăn",
+            "睡前": "trước khi đi ngủ"
+        },
+        "en": {
+            "每日一次": "once daily",
+            "每日1次": "once daily",
+            "每日兩次": "twice daily",
+            "每日2次": "twice daily",
+            "每日三次": "3 times daily",
+            "每日3次": "3 times daily",
+            "飯後": "after meals",
+            "飯前": "before meals",
+            "睡前": "at bedtime"
+        }
+    }
+
+    # 針對中文模式，使用 Agent 生成的溫暖語句
+    if target_lang == "zh-TW":
+        tts_text = case_data.get("silverguard_message", f"阿公，這是{drug_name}，請照指示服用。")
         
-    try:
-        # [V8.6] Headless TTS Wrapper for Stability
-        if not OFFLINE_MODE:
-             # Try Online TTS (Better Quality)
-             audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
+    else:
+        # 針對外語模式，使用模板 + 翻譯字典
+        # 獲取中文用法
+        raw_usage = str(extracted.get('usage', ''))
+        
+        # 進行簡單替換翻譯
+        translated_usage = raw_usage
+        if target_lang in usage_map:
+            for zh_term, trans_term in usage_map[target_lang].items():
+                translated_usage = translated_usage.replace(zh_term, trans_term)
+        
+        # 構建模版
+        if status == "HIGH_RISK":
+            tts_text = f"{lang_pack['HIGH_RISK']}! {drug_name}. {lang_pack['CONSULT']}"
+        elif status == "WARNING":
+            tts_text = f"{lang_pack['WARNING']} {drug_name}. {lang_pack['CONSULT']}"
         else:
-             # Force Offline TTS (pyttsx3)
-             # Note: Offline TTS might struggle with mixed language (Bahasa + English drug names)
-             # But it's better than silence.
-             print("🔒 Offline TTS Fallback Active")
-             print("🔒 Offline TTS Fallback Active")
-             audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"]) 
+            # 朗讀翻譯後的用法
+            tts_text = f"{lang_pack['PASS']}. {drug_name}. {translated_usage}."
+
+    # --- 3. 生成語音 ---
+    try:
+        # 使用 target_lang 傳入，讓新版 text_to_speech 處理
+        audio_path = text_to_speech(tts_text, lang=lang_pack["TTS_LANG"])
     except Exception as e:
         print(f"⚠️ TTS Error: {e}")
         audio_path = None
-    
-    # Safe extraction with fallbacks
-    extracted = case_data.get('extracted_data', {})
-    drug_info = extracted.get('drug', {}) if isinstance(extracted, dict) else {}
-    drug_name = drug_info.get('name', 'Unknown') if isinstance(drug_info, dict) else 'Unknown'
-    
-    # Logic for Wayfinding
-    doc_q = case_data.get("doctor_question", "")
+
+    # --- 4. 生成 HTML 卡片 ---
     wayfinding_html = ""
-    if doc_q:
-        wayfinding_html = f"""
-        <div style="margin-top: 15px; padding: 15px; background-color: #e3f2fd; border-left: 5px solid #2196f3; border-radius: 5px;">
-            <b style="color: #1565c0; font-size: 18px;">💡 AI Suggestion: Ask your doctor</b>
-            <p style="margin: 5px 0 0 0; font-size: 20px; color: #333;"><i>"{doc_q}"</i></p>
-        </div>
-        """
+    if case_data.get("doctor_question"):
+        wayfinding_html = f"<br><b>💡 Ask Doctor:</b> {case_data['doctor_question']}"
 
     html = f"""
-    <div style="background-color: {color}; padding: 20px; border-radius: 15px; border: 3px solid #333;">
-        <h1 style="color: #333; margin:20px 0 20px 0; font-size: 32px;">{icon} {display_status}</h1>
-        <p style="font-size: 24px; color: #555; margin-top: 10px;">{lang_pack['CONSULT']}</p>
-        
-        <!-- CPA Liability Defense: Fail-Safe Mechanism -->
-        <div style="text-align: center; margin: 20px 0;">
-            <a href="tel:0800-000-123" style="background-color: #d32f2f; color: white; padding: 15px 30px; 
-                      font-size: 24px; text-decoration: none; border-radius: 50px; font-weight: bold; 
-                      display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
-               📞 Call Pharmacist (撥打諮詢專線)
-            </a>
-            <p style="color: #666; font-size: 16px; margin-top: 10px;">(Free 24hr Support)</p>
-        </div>
-
-        <hr>
-        <div style="font-size: 18px; color: #666;">
-            <b>💊 Drug:</b> {drug_name}<br>
-            <b>📋 Reason:</b> {safety.get('reasoning', 'No data')}
-        </div>
+    <div style="background-color: {color}; padding: 15px; border-radius: 10px; border: 2px solid {color};">
+        <h2 style="margin:0;">{icon} {display_status}</h2>
+        <hr style="border-top: 1px solid #aaa;">
+        <b>💊 Drug:</b> {drug_name}<br>
+        <b>📋 Note:</b> {safety.get('reasoning', 'No data')}
         {wayfinding_html}
+        <br><br>
+        <small>{lang_pack['CONSULT']}</small>
     </div>
     """
 
@@ -1720,7 +1761,7 @@ def health_check():
     }
     return status
 
-with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
+with gr.Blocks() as demo:
     gr.Markdown("# 🏥 SilverGuard: Intelligent Medication Safety System")
     gr.Markdown("**Release v1.0 | Powered by MedGemma**")
     
@@ -1989,4 +2030,12 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
             chk_btn.click(check_drug_interaction, inputs=[d_a, d_b], outputs=res)
 
 if __name__ == "__main__":
-    demo.launch()
+    print("🚀 Starting Gradio Server on port 7860...")
+    demo.launch(
+        server_name="0.0.0.0",  # 關鍵：允許外部連線
+        server_port=7860,       # 關鍵：指定 HF Space 的標準端口
+        theme=gr.themes.Soft(),
+        css=custom_css,
+        ssr_mode=False,
+        show_error=True
+    )

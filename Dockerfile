@@ -34,6 +34,9 @@ RUN apt-get update && apt-get install -y \
 # [Font Cache Update]
 RUN fc-cache -fv
 
+# [Permission Fix] Ensure /app is writable for calendar/temp files
+RUN chmod 777 /app
+
 # Create a non-root user for security (SilverGuard Principle)
 RUN useradd -m -u 1000 silverguard_user
 USER silverguard_user

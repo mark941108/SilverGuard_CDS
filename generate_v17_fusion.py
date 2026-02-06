@@ -16,7 +16,12 @@ try:
     import medgemma_data
     DATA_SYNC_AVAILABLE = True
 except ImportError:
-    print("⚠️ medgemma_data.py not found. Using local fallback.")
+    # [Debug Fix] Make it LOUD so you don't generate stale data by accident
+    print("\n" + "!"*50)
+    print("⚠️ WARNING: medgemma_data.py NOT FOUND!")
+    print("⚠️ Falling back to internal hardcoded data.")
+    print("⚠️ Training data might be OUTDATED.")
+    print("!"*50 + "\n")
     DATA_SYNC_AVAILABLE = False
 
 
@@ -423,6 +428,11 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
     # ==========================
     off_x, off_y = get_jitter_offset(5)
     
+    # ==========================
+    # BLOCK B: Smart Tech (QR) (Top Right)
+    # ==========================
+    off_x, off_y = get_jitter_offset(5)
+    
     # Anchor Point for QR Block
     qr_anchor_x = 650 + off_x
     qr_anchor_y = 25 + off_y
@@ -436,7 +446,8 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
                    fill="white", outline=None) 
     
     # Generate QR Data
-    raw_name = "測試阿公"
+    # [V26.1 Fix] Use kwargs if provided, otherwise default fallback
+    raw_name = kwargs.get("patient_name", "測試阿公")
     masked_name, is_masked = mask_privacy_info(raw_name, ratio=1.0) 
     metadata["masked_name"] = is_masked
     
@@ -463,7 +474,9 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
     off_x, off_y = get_jitter_offset(5)
     px, py = 50 + off_x, 220 + off_y
     
-    draw.text((px, py), f"姓名: {masked_name} (85歲)", fill="black", font=get_font(36, bold=True))
+    # [V26.1 Fix] Use kwargs for age
+    p_age = kwargs.get("patient_age", 85)
+    draw.text((px, py), f"姓名: {masked_name} ({p_age}歲)", fill="black", font=get_font(36, bold=True))
     
     today_str = datetime.now().strftime("%Y/%m/%d")
     draw.text((px+400, py+50), f"總量: 28 顆 (7天份)   日期: {today_str}", fill="black", font=get_font(24, bold=True))
@@ -593,7 +606,12 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
 
     # --- G. Post-Processing ---
     img = add_creases(img, intensity=0.5)
-    img = apply_optical_stress(img, severity=1)
+    
+    # [V26.1 Fix] Use kwargs to control optical stress (sim2real_intensity)
+    # Default to 1 (High stress) if not specified, but respect lower values
+    blur_severity = kwargs.get("sim2real_intensity", 1.0)
+    img = apply_optical_stress(img, severity=blur_severity)
+    
     img = apply_plastic_glare(img, intensity=0.6) 
     img = draw_watermark(img)
     
@@ -607,6 +625,25 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
     print(f"✅ Generated V26: {filename}")
 
 if __name__ == "__main__":
+    
+    # [Debug Fix] Auto-download Font for Training Environment
+    def ensure_font_exists():
+        font_path = "NotoSansTC-Bold.otf"
+        if not os.path.exists(font_path):
+            print("⬇️ Downloading font for data generation...")
+            # Use urllib to avoid requests dependency issues in minimal envs
+            url = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf"
+            import urllib.request
+            try:
+                urllib.request.urlretrieve(url, font_path)
+                print("✅ Font downloaded.")
+            except Exception as e:
+                print(f"⚠️ Font download failed: {e}. Text rendering may fail.")
+        return font_path
+
+    # Ensure font exists before proceeding
+    ensure_font_exists()
+    
     download_fonts() 
     
     # [Audit Fix P2] Validate Font Availability BEFORE Generation
