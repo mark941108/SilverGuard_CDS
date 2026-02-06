@@ -45,12 +45,7 @@ COPY --chown=silverguard_user:silverguard_user requirements.txt .
 # Combine pip install to minimize layers and force index-url for cu118 if needed
 RUN pip install --no-cache-dir -r requirements.txt --index-url https://download.pytorch.org/whl/cu118 --extra-index-url https://pypi.org/simple
 
-# [CRITICAL HOTFIX] Gradio 4.44.1 Compatibility Patch
-# Issue: Gradio 4.44.1 uses 'HfFolder' which was removed in huggingface_hub v0.25+
-# Fix: Replace HfFolder.get_token() with get_token() from huggingface_hub
-RUN sed -i 's/from huggingface_hub import HfFolder, whoami/from huggingface_hub import get_token, whoami/g' /usr/local/lib/python3.10/site-packages/gradio/oauth.py && \
-    sed -i 's/HfFolder.get_token()/get_token()/g' /usr/local/lib/python3.10/site-packages/gradio/oauth.py && \
-    sed -i 's/HfFolder.save_token/save_token/g' /usr/local/lib/python3.10/site-packages/gradio/oauth.py || true
+
 
 # Copy the entire project code
 COPY --chown=silverguard_user:silverguard_user . .
