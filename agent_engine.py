@@ -167,6 +167,29 @@ This system runs on a single T4 GPU, enabling deployment in:
 # [FIX] 加入 libespeak1 以支援 pyttsx3 (Linux 環境必須)
 import os
 
+# [CRITICAL FIX] Kaggle Chinese Font Downloader
+# Without this, all Chinese text becomes squares (□□□) in Kaggle environment
+def ensure_font_exists():
+    """
+    Auto-download NotoSansTC-Bold.otf for Chinese text rendering.
+    Critical for Kaggle deployment where fonts are not pre-installed.
+    """
+    font_url = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf"
+    font_path = "NotoSansTC-Bold.otf"
+    if not os.path.exists(font_path):
+        print(f"⬇️ [Kaggle] Downloading Chinese font from {font_url}...")
+        try:
+            import requests
+            response = requests.get(font_url)
+            with open(font_path, "wb") as f:
+                f.write(response.content)
+            print("✅ Font downloaded successfully. Chinese text will render correctly.")
+        except Exception as e:
+            print(f"⚠️ Font download failed: {e}. Calendar visuals may show squares instead of Chinese text.")
+
+# Execute font check on startup
+ensure_font_exists()
+
 # [FIX] 加入 libespeak1 以支援 pyttsx3 (Linux 環境必須)
 os.system("apt-get update && apt-get install -y libespeak1")
 

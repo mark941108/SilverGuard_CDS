@@ -155,7 +155,7 @@ subprocess.run(
     shell=True, check=True
 )
 
-# 2. UI 介面 (關鍵：降級至 Gradio 4.44.1 以解決 Pydantic 衝突)
+# 2. UI 介面 (關鍵：升級至 Gradio 5+ 以支援最新 UI 功能與穩定性)
 subprocess.run(
     'pip install -U "gradio>=5.15.0" "fastapi>=0.115.0" "pydantic>=2.10.0"', 
     shell=True, check=True

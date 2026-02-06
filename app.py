@@ -944,11 +944,6 @@ def json_to_elderly_speech(result_json):
     except:
         return "系統忙碌中，請稍後再試。"
 
-@spaces.GPU(duration=60)
-def run_inference(image, patient_notes=""):
-    # ... (see below)
-    pass
-
 # ============================================================================
 # 🛠️ HELPER FUNCTIONS (Restored & Hardened)
 # ============================================================================
