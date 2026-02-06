@@ -956,7 +956,7 @@ Leapfrogging to "Phase 4" Architecture (Post-Competition):
 - **Phase 2 - Multi-Bag Sessions**: Context memory for Drug-Drug Interaction (DDI) checking.
 - **Phase 3 - Dynamic RAG**: Integration with vector database (ChromaDB) to scale drug knowledge beyond the 12-drug POC.
 - **Phase 4 - Constitutional AI**: "Dual-Stream Verification" to prevent visual prompt injection attacks.
-- **Phase 5 - Android AICore**: Convert model to **Gemini Nano format** for native on-device inference on Pixel 9+, enabling 100% offline operation on smartphones.
+- **Phase 5 - On-Device Deployment**: Deploy via **MediaPipe LLM Inference API** on high-end Android (Pixel 9 Pro, Galaxy S24 Ultra) with aggressive 4-bit quantization, OR **Edge Gateways** (NVIDIA Jetson Orin) for clinic deployment. *Note: MedGemma 4B exceeds standard AICore 3.25B limit; future research includes distilling to Gemini Nano 3B for native AICore compatibility.*
 - **Accessibility**: Support for 10+ dialects via MedASR-Large.
 
 ### 🌱 Green AI: The Energy Perspective
