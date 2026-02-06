@@ -21,8 +21,10 @@ opencv-python-headless
 qrcode[pil]
 
 # Audio & TTS
+# Audio & TTS
 gTTS
 pyttsx3
+pyaudioop # Python 3.13 Compatibility
 
 # Web/App Framework (Gradio 5 + Pydantic 2)
 gradio==4.44.1
