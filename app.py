@@ -1727,7 +1727,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css=custom_css) as demo:
     # [UX Polish] Hero Image (with Fallback)
     hero_path = get_safe_asset_path("hero_image.jpg")
     if hero_path:
-        gr.Image(hero_path, show_label=False, show_download_button=False, container=False, height=200)
+        gr.Image(hero_path, show_label=False, container=False, height=200)
     
     # Disclaimer Header (Enhanced Visibility)
     gr.HTML("""
