@@ -163,7 +163,7 @@ subprocess.run(
 
 # 3. 視覺與音訊工具
 subprocess.run(
-    'pip install -U "pillow>=10.4.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "pyaudioop" "qrcode[pil]"', 
+    'pip install -U "pillow>=10.4.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]"', 
     shell=True, check=True
 )
 
