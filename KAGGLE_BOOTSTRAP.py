@@ -256,21 +256,34 @@ print("🧠 PHASE 3: Launching SilverGuard V8 Training Pipeline")
 print("=" * 80)
 
 # 設定環境變數，讓 V8 使用 V17 數據
-# [FIX] 改為檢查圖片目錄而非 JSON（JSON 可能由其他腳本生成）
-v17_image_dir = "./assets/lasa_dataset_v17_compliance"
-# 檢查目錄存在且包含足夠的圖片（至少 100 張代表生成成功）
-if os.path.exists(v17_image_dir) and os.path.isdir(v17_image_dir):
-    image_count = len([f for f in os.listdir(v17_image_dir) if f.endswith('.png')])
-    if image_count > 100:
-        os.environ["MEDGEMMA_USE_V17_DATA"] = "1"
-        os.environ["MEDGEMMA_V17_DIR"] = v17_image_dir
-        print(f"✅ V8 will use V17 Hyper-Realistic Dataset ({image_count} images)")
-    else:
-        os.environ["MEDGEMMA_USE_V17_DATA"] = "0"
-        print(f"⚠️ V8 will use internal V5 generator (V17 dir has only {image_count} images)")
-else:
+# [FIX V2] 檢查多個可能的路徑 (絕對路徑 + 相對路徑)
+# 原因: V17 生成在 /kaggle/working/assets/，但檢測時可能在 /kaggle/working/SilverGuard/
+v17_candidates = [
+    "/kaggle/working/assets/lasa_dataset_v17_compliance",  # 絕對路徑 (生成位置)
+    "./assets/lasa_dataset_v17_compliance",  # 相對路徑 (在 SilverGuard/ 內)
+    "../assets/lasa_dataset_v17_compliance"  # 上層目錄 (fallback)
+]
+
+v17_found = False
+for v17_image_dir in v17_candidates:
+    if os.path.exists(v17_image_dir) and os.path.isdir(v17_image_dir):
+        try:
+            image_count = len([f for f in os.listdir(v17_image_dir) if f.endswith('.png')])
+            if image_count > 100:
+                os.environ["MEDGEMMA_USE_V17_DATA"] = "1"
+                os.environ["MEDGEMMA_V17_DIR"] = os.path.abspath(v17_image_dir)  # 使用絕對路徑
+                print(f"✅ V8 will use V17 Hyper-Realistic Dataset ({image_count} images from {v17_image_dir})")
+                v17_found = True
+                break
+            else:
+                print(f"⚠️ Found V17 dir at {v17_image_dir} but only {image_count} images (need >100)")
+        except Exception as e:
+            print(f"⚠️ Error checking {v17_image_dir}: {e}")
+            continue
+
+if not v17_found:
     os.environ["MEDGEMMA_USE_V17_DATA"] = "0"
-    print("⚠️ V8 will use internal V5 generator (V17 dir not found)")
+    print("⚠️ V8 will use internal V5 generator (V17 dir not found in any location)")
 
 # 執行主程式 (註解說明：請在 Notebook 的下一個 Cell 手動執行 !python agent_engine.py，避免 Bootstrap 卡死)
 # subprocess.run(["python", "agent_engine.py"], check=True)
