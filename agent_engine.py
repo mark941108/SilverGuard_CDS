@@ -2060,8 +2060,25 @@ def agentic_inference(model, processor, img_path, patient_notes="", verbose=True
     # HAI-DEF Architecture Implementation (Google Health AI Developer Foundations)
     Implements: Input Gate → VLM Reasoning → Confidence Check → Grounding → Output
     """
-    # [CRITICAL FIX] Initialize result dictionary to prevent NameError at line 2078
-    result = {}
+    # [MASTER FIX] Full defensive initialization to prevent ALL KeyError crashes
+    result = {
+        "image": os.path.basename(img_path),
+        "pipeline_status": "RUNNING",
+        "input_gate": {},       # Prevents crash at line 2079+
+        "vlm_output": {},       # Prevents crash at line 2250+ (JSON parsing)
+        "confidence": {         # ✅ FIX: Prevents KeyError: 'confidence' at line 2335
+            "score": 0.0,
+            "status": "UNKNOWN", 
+            "message": ""
+        },
+        "grounding": {          # Prevents crash at line 2350+
+            "passed": False, 
+            "message": "Not run"
+        },
+        "final_status": "UNKNOWN",
+        "agentic_retries": 0,
+        "fhir_output": {}       # Prevents FHIR conversion crash at line 2450+
+    }
     
 
     

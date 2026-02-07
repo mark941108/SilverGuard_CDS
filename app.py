@@ -176,7 +176,9 @@ if OFFLINE_MODE:
 print(f"⏳ Loading MedGemma Adapter: {ADAPTER_MODEL}...")
 
 # 2. Model Loading
+# 2. Model Loading
 try:
+    print(f"⏳ Loading Base Model: {BASE_MODEL}...")
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
@@ -186,16 +188,22 @@ try:
     base_model = AutoModelForImageTextToText.from_pretrained(
         BASE_MODEL, 
         quantization_config=bnb_config,
-        # device_map="auto", # [ZeroGPU] Removed to prevent premature GPU allocation
+        device_map="auto", # [Local/ZeroGPU] Enable automatic device placement
         token=HF_TOKEN
     )
-
-    model = PeftModel.from_pretrained(base_model, ADAPTER_MODEL, token=HF_TOKEN)
     processor = AutoProcessor.from_pretrained(BASE_MODEL, token=HF_TOKEN)
-    print("✅ MedGemma Loaded Successfully!")
+
+    try:
+        print(f"⏳ Loading Adapter: {ADAPTER_MODEL}...")
+        model = PeftModel.from_pretrained(base_model, ADAPTER_MODEL, token=HF_TOKEN)
+        print("✅ MedGemma Adapter Loaded Successfully!")
+    except Exception as e:
+        print(f"⚠️ Adapter loading failed (Normal for local demo): {e}")
+        print("⚠️ Falling back to Base Model (Non-Fine-Tuned). Results may be less accurate.")
+        model = base_model
+
 except Exception as e:
-    print(f"❌ Error loading MedGemma: {e}")
-    base_model = None
+    print(f"❌ CRITICAL ERROR loading Model: {e}")
     model = None
     processor = None
 
@@ -2065,6 +2073,51 @@ with gr.Blocks() as demo:
                 status_json = gr.JSON(label="Diagnostic Report")
                 status_btn.click(health_check, outputs=status_json)
 
+                        # ============================================================================
+            # 🔄 AGENTIC GENERATOR WRAPPER (The Bridge)
+            # ============================================================================
+            def run_inference(image, patient_notes="", target_lang="zh-TW", force_offline=False):
+                """
+                Generator wrapper for agent_engine.agentic_inference to support Gradio's streaming UI.
+                """
+                # 1. Ensure Model is Loaded (Global Scope Fix)
+                global model, base_model, processor
+                working_model = model if model is not None else base_model
+                
+                if working_model is None:
+                    yield "❌ System Error: Model not loaded", {}, "", None, "Critical Error: No model available. Please check startup logs.", None
+                    return
+            
+                yield "🔄 Initializing Agent...", {}, "", None, "Agent Starting...", None
+                
+                try:
+                    # Import internally to ensure availability
+                    from agent_engine import agentic_inference
+                    
+                    # 2. Prepare Image Path
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                        image.save(tmp.name)
+                        img_path = tmp.name
+                        
+                    yield "🧠 Analyzing Image...", {}, "", None, f"Processing {img_path}...", None
+                    
+                    # 3. Call Agent (Synchronous)
+                    # Using working_model (Fallback compatible)
+                    result = agentic_inference(working_model, processor, img_path, patient_notes=patient_notes, verbose=True)
+                    
+                    # 4. Parse Result
+                    final_status = result.get("final_status", "UNKNOWN")
+                    trace_log = str(result.get("vlm_output", {}).get("raw", "No raw output"))
+                    
+                    # 5. Yield Result
+                    # (Audio/Calendar generation happens in run_full_flow_with_tts)
+                    yield final_status, result, "", None, trace_log, None
+            
+                except Exception as e:
+                    print(f"❌ Inference Error: {e}")
+                    yield f"❌ Error: {e}", {}, "", None, str(e), None
+            
             def run_full_flow_with_tts(image, audio_path, text_override, proxy_text, target_lang, simulate_offline, progress=gr.Progress()):
                 # [Fix P0] 防呆機制: 檢查圖片是否上傳
                 if image is None:
