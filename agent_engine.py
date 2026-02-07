@@ -1609,8 +1609,6 @@ def get_confidence_status(confidence, predicted_status="UNKNOWN", custom_thresho
     else:
         return "LOW_CONFIDENCE", f"⚠️ Unsure ({confidence:.1%}) -> ESCALATE"
 
-    except:
-        return 0.0, False
 
 def normalize_dose_to_mg(dose_str):
     """
