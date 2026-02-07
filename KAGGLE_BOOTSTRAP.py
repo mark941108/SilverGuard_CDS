@@ -150,8 +150,10 @@ subprocess.run("pip install --no-cache-dir torch==2.6.0+cu118 torchvision==0.21.
 print("   ⬇️ 安裝關鍵 AI 依賴 (PyTorch + Transformers + Gradio)...")
 
 # 1. 核心 AI 引擎 (強制升級 Transformers 以支援 Gemma 3)
+# [CRITICAL FIX] 移除 torch 升級 - torch 必須保持在 2.6.0+cu118 以配合 torchvision 0.21.0
+# torchvision 0.21.0 requires torch==2.6.0 (exact version, not >=2.6.0)
 subprocess.run(
-    'pip install -U "torch>=2.6.0" "transformers>=4.51.0" "accelerate>=1.3.0" "bitsandbytes>=0.45.0" "peft>=0.14.0"', 
+    'pip install -U "transformers>=4.51.0" "accelerate>=1.3.0" "bitsandbytes>=0.45.0" "peft>=0.14.0"', 
     shell=True, check=True
 )
 
@@ -253,15 +255,22 @@ print("\n" + "=" * 80)
 print("🧠 PHASE 3: Launching SilverGuard V8 Training Pipeline")
 print("=" * 80)
 
-# 設定環境變數，讓 V8 使用 V16 數據
 # 設定環境變數，讓 V8 使用 V17 數據
-if os.path.exists(v17_train_json):
-    os.environ["MEDGEMMA_USE_V17_DATA"] = "1"
-    os.environ["MEDGEMMA_V17_DIR"] = "./assets/lasa_dataset_v17_compliance"
-    print("✅ V8 will use V17 Hyper-Realistic Dataset")
+# [FIX] 改為檢查圖片目錄而非 JSON（JSON 可能由其他腳本生成）
+v17_image_dir = "./assets/lasa_dataset_v17_compliance"
+# 檢查目錄存在且包含足夠的圖片（至少 100 張代表生成成功）
+if os.path.exists(v17_image_dir) and os.path.isdir(v17_image_dir):
+    image_count = len([f for f in os.listdir(v17_image_dir) if f.endswith('.png')])
+    if image_count > 100:
+        os.environ["MEDGEMMA_USE_V17_DATA"] = "1"
+        os.environ["MEDGEMMA_V17_DIR"] = v17_image_dir
+        print(f"✅ V8 will use V17 Hyper-Realistic Dataset ({image_count} images)")
+    else:
+        os.environ["MEDGEMMA_USE_V17_DATA"] = "0"
+        print(f"⚠️ V8 will use internal V5 generator (V17 dir has only {image_count} images)")
 else:
     os.environ["MEDGEMMA_USE_V17_DATA"] = "0"
-    print("⚠️ V8 will use internal V5 generator (fallback)")
+    print("⚠️ V8 will use internal V5 generator (V17 dir not found)")
 
 # 執行主程式 (註解說明：請在 Notebook 的下一個 Cell 手動執行 !python agent_engine.py，避免 Bootstrap 卡死)
 # subprocess.run(["python", "agent_engine.py"], check=True)
