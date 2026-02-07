@@ -2060,7 +2060,8 @@ def agentic_inference(model, processor, img_path, patient_notes="", verbose=True
     # HAI-DEF Architecture Implementation (Google Health AI Developer Foundations)
     Implements: Input Gate → VLM Reasoning → Confidence Check → Grounding → Output
     """
-    # ... (skipping unchanged parts) ...
+    # [CRITICAL FIX] Initialize result dictionary to prevent NameError at line 2078
+    result = {}
     
 
     
