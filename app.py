@@ -259,7 +259,7 @@ def get_medasr_pipeline():
             "automatic-speech-recognition",
             model="google/medasr",
             token=HF_TOKEN,
-            device=0, # [Optimized] Use GPU for ASR
+            device="cpu", # [Safety Fix] Force CPU to prevent VRAM OOM with MedGemma
             torch_dtype=torch.float32
         )
     return MEDASR_PIPELINE

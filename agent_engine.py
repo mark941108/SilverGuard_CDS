@@ -1806,7 +1806,17 @@ if __name__ == "__main__":
                     if mg_val > 325:
                         return True, "HIGH_RISK", f"⛔ HARD RULE: High Dose Aspirin ({mg_val}mg). Risk of GI Bleeding."
                     
-                # Rule 4: Acetaminophen > 4000mg (General)
+                # Rule 4: Lipitor (Atorvastatin) > 80mg (Safety Limit)
+                elif "lipitor" in drug_name or "atorvastatin" in drug_name:
+                    if mg_val > 80:
+                        return True, "HIGH_RISK", f"⛔ HARD RULE: Atorvastatin Safety Limit ({mg_val}mg > 80mg)."
+
+                # Rule 5: Diovan (Valsartan) > 320mg (Safety Limit)
+                elif "diovan" in drug_name or "valsartan" in drug_name:
+                     if mg_val > 320:
+                        return True, "HIGH_RISK", f"⛔ HARD RULE: Valsartan Safety Limit ({mg_val}mg > 320mg)."
+
+                # Rule 6: Acetaminophen > 4000mg (General)
                 elif "panadol" in drug_name or "acetaminophen" in drug_name:
                     if mg_val > 4000:
                         return True, "HIGH_RISK", f"⛔ HARD RULE: Acetaminophen Overdose ({mg_val}mg > 4000mg)."
