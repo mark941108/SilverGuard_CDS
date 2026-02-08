@@ -2098,6 +2098,9 @@ def submit_clarification(user_option, current_json, target_lang="zh-TW", force_o
     updated_json["safety_analysis"]["reasoning"] = reasoning
 
     # [FIX] Safe SBAR Generation (Pre-computation)
+    # [Safety Feature] Deterministic SBAR Template:
+    # During human override (Turn 2), we use a hardcoded template instead of LLM generation
+    # to prevent hallucination and ensure the user's correction is 100% reflected.
     drug_name = updated_json.get("extracted_data", {}).get("drug", {}).get("name", "Unknown")
     
     # 1. Default Safe SBAR (Initialize HERE to prevent UnboundLocalError)
@@ -2411,7 +2414,13 @@ with gr.Blocks() as demo:
                     
                     with gr.Row():
                         # Real Microphone Input (Visual Impact)
-                        voice_input = gr.Audio(sources=["microphone"], type="filepath", label="🎙️ Record Voice Note")
+                        # [Audit Fix] 🚨 Language Trap: Explicit Instruction
+                gr.Markdown(
+                    "### 🎤 Voice Input (語音輸入)\n"
+                    "**Note:** For best results, please speak **English medical keywords** (e.g., 'Stomach Pain', 'High Blood Pressure').\n"
+                    "*Model is optimized for medical English terminology.*"
+                )
+                voice_input = gr.Audio(source="microphone", type="filepath", label="Record Voice Note (錄音)")
                         
                         # Quick Scenarios
                         with gr.Column():

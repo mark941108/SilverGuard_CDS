@@ -4512,13 +4512,16 @@ if __name__ == "__main__":
                 print(f"⏳ Loading MedASR: {MEDASR_MODEL}...")
                 # [FIX] 🚨 ASR Slow (CPU Hardcoded): 動態選擇設備
                 # 如果有 GPU 且 VRAM 足夠，優先使用 GPU 加速 ASR
-                device_for_asr = "cuda" if torch.cuda.is_available() else "cpu"
-                print(f"   🎤 MedASR Device: {device_for_asr}")
+                # [Audit Fix] 🚨 VRAM Safety: Force CPU for ASR
+                # Running MedASR (Conformer) + MedGemma (4B) on single T4 (16GB) is risky.
+                # ASR on CPU takes ~2-3s longer but guarantees no OOM crash.
+                device_for_asr = "cpu" 
+                print(f"   🎤 MedASR Device: {device_for_asr} (Forced for Stability)")
                 
                 medasr_pipeline = pipeline(
                     "automatic-speech-recognition",
                     model=MEDASR_MODEL,
-                    device=device_for_asr,  # ✅ 修復：動態設備選擇
+                    device=device_for_asr,
                     token=True
                 )
                 print("✅ MedASR Loaded!")

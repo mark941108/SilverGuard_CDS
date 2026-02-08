@@ -83,7 +83,8 @@ Your voice is:
 
 **Pronunciation Rules:**
 - "MedGemma": Pronounce as "Med-JEM-mah" (Soft G like 'Gem').
-- "SigLIP": Pronounce as "Sig-Lip" (Soft G like 'Signal').
+- "SigLIP": Pronounce as "Sig-Lip" (全部唸出, NOT S-I-G-L-I-P).
+- "RAG": Pronounce as "Rag" (單字, NOT R-A-G letters).
 - "GPU": Pronounce as letters "G-P-U".
 - "RAG": Pronounce as "Rag" (rhymes with Bag).
 - "CDS": Pronounce as letters "C-D-S".
@@ -139,11 +140,15 @@ Switching to **Air-Gapped Mode**. Zero data leaves this device.
 Standard AI guesses. **Silver Guard** validates.
 **SigLIP** eyes see "Aspirin". **MedASR** ears hear "Bleeding".
 **CRITICAL ALERT: CONTRAINDICATION.**
-It uses **Hybrid Verification**... combining VLM reasoning with numeric pattern matching.
-(And yes, for this demo we're mocking the database, but the production code is fully vector-ready.)
+It uses **Hybrid Verification**... combining VLM reasoning with safety knowledge graphs.
+The production system integrates full vector databases for clinical guidelines.
 Look at the log... [Pause] **Strategy Shift**.
 It detected a risk, **lowered its temperature**, and re-evaluated the logic.
 It caught the error that others missed.
+
+We tested this against our **Gallery of Horrors**—synthetic images with extreme physics-based noise.
+The result? **Behavioral Stability.**
+When the input is garbage, SilverGuard uses its **Input Gate** to refuse safely, rather than hallucinating a dangerous answer.
 
 We trade latency for safety. 
 Because getting an answer three seconds late... is better than getting a wrong answer instantly.
@@ -152,7 +157,7 @@ Because getting an answer three seconds late... is better than getting a wrong a
 **🎬 Visual Cue (Tech Stack Overlay):**
 *   **0:39 ("SigLIP eyes...")**: Highlight text **"Aspirin 100mg"** on drug bag image.
 *   **0:42 ("MedASR ears...")**: Show Audio Waveform + Subtitle: **"Grandma fell and is bleeding now!"**.
-*   **0:43 ("Critical Alert")**: Show RED "❌ STOP MEDICATION - BLEEDING RISK" stamp.
+*   **0:43 ("Critical Alert")**: **切換到 Gradio 右側 Status Panel** - 背景變粉紅色 (#FFEBEE),顯示 `⛔ HIGH RISK: BLEEDING + ASPIRIN`。**註**: 不是圖片蓋章,是 UI 卡片。
 *   **0:45 ("Strategy Shift")**:特寫 (Close-up) the terminal/logs showing "STRATEGY SHIFT: Lowering Temperature -> System 2 Mode" to prove Agentic behavior.
 
 ---
@@ -166,6 +171,13 @@ Because getting an answer three seconds late... is better than getting a wrong a
 
 **【複製到 Text】(下方格子)**
 ```text
+Some might ask: Why is the interface so complex?
+Because Silver Guard uses a "Cockpit and Passenger" design.
+
+The dashboard is the "Cockpit" for the caregiver to monitor safety.
+The patient never sees this complexity.
+They only see what matters: a large-font calendar on the fridge, and a voice alert they can understand.
+
 Raw J-S-O-N is useless to a grandmother. 
 Silver Guard translates safety alerts into large-font visuals.
 
@@ -173,6 +185,8 @@ But clarity isn't just for the elderly; it's for those who care for them.
 Taiwan's two-hundred-fifty-thousand migrant caregivers now have safety alerts in their language.
 
 Visual safety alerts. Ensuring care has no language barrier.
+
+(Note: This demo uses cloud TTS for audio quality. Production supports offline TTS for strict privacy, with a trade-off in voice naturalness.)
 ```
 
 [Action: Cross-Lingual Morphing]
@@ -191,6 +205,9 @@ Text: "MOHON TANYA APOTEKER"
 ```text
 We are not replacing pharmacists. 
 We are giving them a second pair of eyes that never gets tired.
+
+Every alert requires pharmacist verification.
+Because clinical decisions always need human judgment.
 
 Powered by **Med-JEM-ma**. Built for privacy. Designed for impact.
 

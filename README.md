@@ -42,6 +42,12 @@
 
 **Meet Mrs. Chen (陳阿嬤), representing Taiwan's super-aged society**
 
+> [!WARNING]
+> **⚠️ KNOWN LIMITATIONS (Red Team Audit Feb 2026)**
+> 1.  **Language Bias**: MedASR is optimized for English medical terminology. For best results, speak keywords in English (e.g., "Stomach Pain") even if the rest is Chinese.
+> 2.  **SBAR Template**: During human-in-the-loop overrides (Wayfinding), the SBAR output uses a **deterministic template** rather than LLM generation. This is a deliberate **Safety Feature** to prevent hallucination during critical corrections.
+> 3.  **VRAM Safety**: ASR is forced to **CPU Mode** (~2s latency) on T4 GPUs to prevent OOM when running alongside MedGemma 4B.
+
 *Demographic Profile (based on Taiwan NDC Population Projections 2024):*
 - Age 82 (Taiwan became "super-aged society" in 2025: 20%+ population aged 65+)
 - Polypharmacy patient (Studies show 30-40% of elderly patients take 5+ medications concurrently)

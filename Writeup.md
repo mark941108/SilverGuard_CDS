@@ -49,53 +49,91 @@ It serves two critical functions:
 2.  **For Elderly Patients:** It acts as a "Second Pair of Eyes," using **Agentic Reasoning** to cross-check prescriptions against clinical safety rules (e.g., Beers Criteria).
 
 ```mermaid
-graph LR
-    %% --- 1. Style Definitions ---
-    classDef input fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
-    classDef brain fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
-    classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5,color:#000
-    classDef action fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
-    classDef risk fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
-    classDef db fill:#eeeeee,stroke:#616161,stroke-width:1px,shape:cylinder,color:#000
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: '#E3F2FD'
+    edgeLabelBackground: '#ffffff'
+    tertiaryColor: '#fff'
+  layout: elk
+---
+flowchart LR
+ subgraph Perception["👁️ Perception Layer (Sim2Real Defense)"]
+    direction TB
+        Img(["📸 Drug Bag Image"])
+        Audio(["🎤 Caregiver Voice"])
+        Gate{"Input Gate\n(Blur Check)"}
+        Sandwich{"Sandwich Defense\n(Prompt Injection Shield)"}
+        Refuse1(["⛔ Active Refusal"])
+        Fusion("Context Fusion")
+  end
+ subgraph Correction["🔄 Strategy Shift (Diversity)"]
+        RetryLogic["Inject Error Context\n& Lower Temp (0.6 -> 0.2)\n(Chain of Thought CoT)"]
+  end
+ subgraph AgenticLoop["🧠 Neuro-Symbolic Agent Loop (Kim et al., 2026)"]
+    direction TB
+        Strategy{"Orchestrator\n(Validation Bottleneck)"}
+        Sys1["System 1: MedGemma 1.5\n(Temp=0.6, Creative)"]
+        Sys2["System 2: Deterministic Logic\n(Regex + Python Guardrails)"]
+        DB[("Local Knowledge\nMock RAG")]
+        Correction
+  end
+ subgraph Wayfinding["🗺️ Wayfinding Protocol (Mahvar et al., 2025)"]
+        ConfCheck{"Confidence &lt; 70%?"}
+        AskUser@{ label: "❓ Ask: 'Is this 500 or 850?'" }
+  end
+ subgraph Action["🛡️ Action & Impact Layer"]
+        FinalRisk{"Risk Classifier"}
+        Alert(["🚨 TTS Alert (Bahasa/Vi/Tw)"])
+        Calendar(["📅 Visual Calendar"])
+        TTS_Engine["Hybrid TTS\n(Online gTTS / Offline pyttsx3)"]
+  end
+    Img --> Gate
+    Audio --> Sandwich
+    Gate -- Laplacian Var &lt; 100 --> Refuse1
+    Gate -- Pass --> Fusion
+    Sandwich -- Cleaned Context --> Fusion
+    Fusion --> Strategy
+    Strategy -- Attempt 1 --> Sys1
+    Sys1 --> Sys2
+    DB -.-> Sys2
+    Sys2 -- "❌ Violation Detected\n(e.g., Metformin > 1000mg)" --> RetryLogic
+    RetryLogic --> Strategy
+    Sys2 -- Logic Pass --> ConfCheck
+    ConfCheck -- Yes (Ambiguous) --> AskUser
+    AskUser -. User Feedback .-> Fusion
+    ConfCheck -- No (High Conf) --> FinalRisk
+    FinalRisk -- High Risk --> Alert
+    FinalRisk -- Safe --> Calendar
+    Alert -.-> TTS_Engine
 
-    %% --- 2. Nodes & Flow ---
-    subgraph Perception ["👁️ Perception Layer"]
-        direction TB
-        Img(["📸 Image Input"]) --> Gate{"Input Gate<br/>Blur Check"}
-        Voice(["🎤 Voice Context<br/>Caregiver Note"]) --> Context["Context Fusion"]:::input
-        Gate -- "Pass" --> Context
-        Gate -- "Blurry" --> Reject(["⛔ Active Refusal"]):::risk
-    end
-
-    subgraph Cognition ["🧠 Neuro-Symbolic Agent Loop"]
-        direction TB
-        Context --> Prompt["Dynamic Prompting"]:::brain
-        Prompt --> VLM["OPERATE: MedGemma<br/>System 1 (Intuition)"]:::brain
-        
-        VLM -- "Try 1: Creative" --> T1("Temp = 0.6"):::brain
-        VLM -- "Try 2: Strict" --> T2("Temp = 0.2"):::risk
-        
-        T1 --> Logic{"TEST: Safety Critic<br/>System 2 (Symbolic)"}:::logic
-        T2 --> Logic
-        
-        KB[("Local Drug DB<br/>Mock RAG")]:::db -.-> Logic
-        
-        Logic -- "❌ Logic Fail" --> Correction["REFINE: Error Injection<br/>Add Logic Constraint"]:::risk
-        Correction --> Prompt
-    end
-
-    subgraph Action ["🛡️ Action Layer"]
-        direction TB
-        Logic -- "✅ Pass" --> RiskClass{"Risk Classifier"}:::action
-        Logic -- "🛑 Max Retries" --> Human(["🚩 Human Review"]):::risk
-        RiskClass -- "Safe" --> UI(["✅ SilverGuard UI"]):::action
-        RiskClass -- "High Risk" --> Alert(["🚨 RED ALERT TTS"]):::risk
-    end
-
-    %% --- 3. Link Styling ---
-    linkStyle 5 stroke:#7b1fa2,stroke-width:3px
-    linkStyle 11 stroke:#c62828,stroke-width:4px,stroke-dasharray: 5 5
-  #### 4. Social Equity: Deterministic Linguistic Guardrails
+    AskUser@{ shape: stadium}
+     Img:::input
+     Audio:::input
+     Gate:::guard
+     Sandwich:::guard
+     Refuse1:::output
+     Fusion:::vlm
+     RetryLogic:::guard
+     Strategy:::vlm
+     Sys1:::vlm
+     Sys2:::logic
+     DB:::db
+     ConfCheck:::logic
+     AskUser:::output
+     Alert:::output
+     Calendar:::output
+     TTS_Engine:::db
+    classDef input fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef vlm fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,stroke-dasharray: 5 5
+    classDef guard fill:#ffebee,stroke:#c62828,stroke-width:2px
+    classDef output fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    classDef db fill:#f5f5f5,stroke:#616161,stroke-width:1px,shape:cylinder
+    linkStyle 8 stroke:#c62828,stroke-width:4px,color:red,fill:none
+    linkStyle 9 stroke:#c62828,stroke-width:4px,fill:none
+```  #### 4. Social Equity: Deterministic Linguistic Guardrails
 *   **Feature:** "Template-Based Translation Override"
 *   **Research Concept:** **"Health Equity & Safety"**
 *   **Alignment:** To prevent "Translation Hallucination" (e.g., mistranslating medical jargon), SilverGuard uses a **Deterministic Override** for migrant languages. Instead of generating risky free-text explanations in Indonesian, we map high-risk states to approved, binary safety commands (e.g., *"BAHAYA! TANYA APOTEKER"*). We intentionally sacrifice *information richness* for *instructional correctness*, ensuring that a language barrier never becomes a safety hazard.
