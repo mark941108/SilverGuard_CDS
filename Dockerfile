@@ -6,7 +6,9 @@
 # However, to keep it simple, we will stick to a standard pytorch base and upgrade inside if needed,
 # or just use the official image that supports our needs.
 # Pytorch 2.5.1 is robust. Let's use that as base and let pip upgrade to 2.6.0 if requirements.txt demands it.
-FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-runtime
+# Base Image: PyTorch 2.6.0 with CUDA 11.8 (Aligned with SilverGuard V12.15)
+# Using official pytorch runtime to minimize size and ensure compatibility
+FROM pytorch/pytorch:2.6.0-cuda11.8-cudnn9-runtime
 
 # Set working directory
 WORKDIR /app

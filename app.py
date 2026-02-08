@@ -900,7 +900,46 @@ try:
 except ImportError:
     print("⚠️ medgemma_data.py not found in HF Space! Using minimal fallback.")
     DRUG_DATABASE = {
-        "Diabetes": [{"name_en": "Glucophage", "generic": "Metformin", "dose": "500mg", "warning": "Fallback Data", "default_usage": "BID"}]
+        # --- Confusion Cluster 1: Hypertension ---
+        "Hypertension": [
+            {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after"},
+            {"code": "BC23456790", "name_en": "Concor", "name_zh": "康肯", "generic": "Bisoprolol", "dose": "5mg", "appearance": "黃色心形", "indication": "降血壓", "warning": "心跳過慢者慎用", "default_usage": "QD_breakfast_after"},
+            {"code": "BC23456799", "name_en": "Dilatrend", "name_zh": "達利全錠", "generic": "Carvedilol", "dose": "25mg", "appearance": "白色圓形 (刻痕)", "indication": "高血壓/心衰竭", "warning": "不可擅自停藥", "default_usage": "BID_meals_after"},
+            {"code": "BC23456788", "name_en": "Lasix", "name_zh": "來適泄錠", "generic": "Furosemide", "dose": "40mg", "appearance": "白色圓形", "indication": "高血壓/水腫", "warning": "服用後排尿頻繁，避免睡前服用", "default_usage": "BID_morning_noon"},
+            {"code": "BC23456801", "name_en": "Hydralazine", "name_zh": "阿普利素", "generic": "Hydralazine", "dose": "25mg", "appearance": "黃色圓形", "indication": "高血壓", "warning": "不可隨意停藥", "default_usage": "TID_meals_after"},
+            {"code": "BC23456791", "name_en": "Diovan", "name_zh": "得安穩", "generic": "Valsartan", "dose": "160mg", "appearance": "橘色橢圓形", "indication": "高血壓/心衰竭", "warning": "注意姿勢性低血壓、懷孕禁用", "default_usage": "QD_breakfast_after"},
+        ],
+        # --- Confusion Cluster 2: Diabetes ---
+        "Diabetes": [
+            {"code": "BC23456792", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用減少腸胃不適", "default_usage": "BID_meals_after"},
+            {"code": "BC23456793", "name_en": "Daonil", "name_zh": "道尼爾", "generic": "Glibenclamide", "dose": "5mg", "appearance": "白色長條形 (刻痕)", "indication": "降血糖", "warning": "低血糖風險高", "default_usage": "QD_breakfast_after"},
+            {"code": "BC23456795", "name_en": "Diamicron", "name_zh": "岱蜜克龍", "generic": "Gliclazide", "dose": "30mg", "appearance": "白色長條形", "indication": "降血糖", "warning": "飯前30分鐘服用", "default_usage": "QD_breakfast_before"},
+        ],
+        # --- Confusion Cluster 3: Gastric ---
+        "Gastric": [
+            {"code": "BC23456787", "name_en": "Losec", "name_zh": "樂酸克膠囊", "generic": "Omeprazole", "dose": "20mg", "appearance": "粉紅/紅棕色膠囊", "indication": "胃潰瘍/逆流性食道炎", "warning": "飯前服用效果最佳，不可嚼碎", "default_usage": "QD_meals_before"},
+        ],
+        # --- Confusion Cluster 4: Anticoagulant ---
+        "Anticoagulant": [
+             {"code": "BC23456786", "name_en": "Xarelto", "name_zh": "拜瑞妥膜衣錠", "generic": "Rivaroxaban", "dose": "15mg", "appearance": "紅色圓形", "indication": "預防中風/血栓", "warning": "隨餐服用。請注意出血徵兆", "default_usage": "QD_meals_with"},
+             {"code": "BC77778888", "name_en": "Warfarin", "name_zh": "可化凝", "generic": "Warfarin", "dose": "5mg", "appearance": "粉紅色圓形", "indication": "抗凝血", "warning": "需定期監測INR，避免深綠色蔬菜", "default_usage": "QD_bedtime"},
+             {"code": "BC55556666", "name_en": "Aspirin", "name_zh": "阿斯匹靈", "generic": "ASA", "dose": "100mg", "appearance": "白色圓形", "indication": "預防血栓", "warning": "胃潰瘍患者慎用", "default_usage": "QD_breakfast_after"},
+             {"code": "BC55556667", "name_en": "Plavix", "name_zh": "保栓通", "generic": "Clopidogrel", "dose": "75mg", "appearance": "粉紅色圓形", "indication": "預防血栓", "warning": "手術前需停藥", "default_usage": "QD_breakfast_after"},
+        ],
+        # --- Confusion Cluster 5: CNS ---
+        "Sedative": [
+            {"code": "BC23456794", "name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後立即就寢", "default_usage": "QD_bedtime"},
+            {"code": "BC23456802", "name_en": "Hydroxyzine", "name_zh": "安泰樂", "generic": "Hydroxyzine", "dose": "25mg", "appearance": "白色圓形", "indication": "抗過敏/焦慮", "warning": "注意嗜睡", "default_usage": "TID_meals_after"},
+        ],
+         # --- Confusion Cluster 6: Lipid ---
+        "Lipid": [
+            {"code": "BC88889999", "name_en": "Lipitor", "name_zh": "立普妥", "generic": "Atorvastatin", "dose": "20mg", "appearance": "白色橢圓形", "indication": "降血脂", "warning": "肌肉痠痛時需回診", "default_usage": "QD_bedtime"},
+            {"code": "BC88889998", "name_en": "Crestor", "name_zh": "冠脂妥", "generic": "Rosuvastatin", "dose": "10mg", "appearance": "粉紅色圓形", "indication": "降血脂", "warning": "避免與葡萄柚汁併服", "default_usage": "QD_bedtime"},
+        ],
+        # --- Confusion Cluster 7: Analgesic (Added for Rule 4 Safety) ---
+        "Analgesic": [
+            {"code": "BC55667788", "name_en": "Panadol", "name_zh": "普拿疼", "generic": "Acetaminophen", "dose": "500mg", "appearance": "白色圓形", "indication": "止痛/退燒", "warning": "每日不可超過4000mg (8顆)", "default_usage": "Q4H_prn"},
+        ],
     }
 
 def retrieve_drug_info(drug_name: str) -> dict:
@@ -1207,7 +1246,19 @@ def logical_consistency_check(extracted_data):
                 if val > 325:
                     issues.append(f"⛔ High Dose Aspirin ({val}mg). Risk of GI Bleeding.")
 
-        # Rule 4: Acetaminophen > 4000mg (General)
+        # Rule 4: Lipitor (Atorvastatin) > 80mg (Safety Limit)
+        elif "lipitor" in drug_name or "atorvastatin" in drug_name:
+            for val in mg_vals:
+                if val > 80:
+                    issues.append(f"🔴 劑量過高：Atorvastatin 安全上限為 80mg (Detected: {val}mg)")
+
+        # Rule 5: Diovan (Valsartan) > 320mg (Safety Limit)
+        elif "diovan" in drug_name or "valsartan" in drug_name:
+            for val in mg_vals:
+                if val > 320:
+                    issues.append(f"🔴 劑量過高：Valsartan 安全上限為 320mg (Detected: {val}mg)")
+             
+        # Rule 6: Acetaminophen > 4000mg (General)
         elif "panadol" in drug_name or "acetaminophen" in drug_name:
             for val in mg_vals:
                 if val > 4000:

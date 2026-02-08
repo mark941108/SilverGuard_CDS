@@ -339,16 +339,48 @@ def clean_text_for_tts(text, lang='zh-tw'):
     if "李小美" in text:
         text = text.replace("李小美", "覆核藥師")
         
-    # 3. 移除常見特殊符號（保留基本標點）
-    symbols_to_remove = [
-        '✓', '✅', '❌', '⚠️', '→', '➜', '▲', '●', '■', '□', '◆', '☑️',
-        '【', '】', '《', '》', '「', '」', '『', '』', '〈', '〉'
-    ]
-    for symbol in symbols_to_remove:
-        text = text.replace(symbol, '')
+    # [Audit Fix] Sync with app.py: Expanded safe character map
+    safe_translations = {
+        "zh-TW": {
+            "⚠️": "注意！", 
+            "⛔": "警告！",
+            "✅": "檢查通過。",
+            "🔴": "嚴重警告！",
+            "mg": "毫克",
+            "g": "公克",
+            "ml": "毫升",
+            "tab": "顆",
+            "cap": "膠囊",
+            "daily": "每天",
+            "bid": "每天兩次",
+            "tid": "每天三次",
+            "qd": "每天一次",
+            "before": "飯前",
+            "after": "飯後",
+        },
+        "en": {
+            "⚠️": "Warning!", 
+            "⛔": "Alert!",
+            "✅": "Check Passed.",
+            "🔴": "Critical Warning!",
+            "mg": "milligrams",
+            "g": "grams",
+            "ml": "milliliters",
+            "tab": "tablets",
+            "cap": "capsules",
+            "daily": "daily",
+        }
+    }
     
-    # 4. 移除多餘空格
-    text = re.sub(r'\s+', ' ', text).strip()
+    t_map = safe_translations.get(lang, safe_translations["zh-TW"])
+    
+    for k, v in t_map.items():
+        text = text.replace(k, v)
+        
+    # Remove unsupported chars
+    import re
+    # [V12.9 Fix] Keep Chinese, English, Numbers, Punctuation
+    text = re.sub(r'[^\w\s\u4e00-\u9fff.,!?;:]', '', text)
     
     cleaned_len = len(text)
     print(f"🗣️ [TTS Pre-processing] Original: {original_len} chars -> Clean: {cleaned_len} chars")
