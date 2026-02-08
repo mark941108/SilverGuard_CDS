@@ -67,8 +67,11 @@ def get_font(size):
              # Try default paths in Linux container
              return ImageFont.truetype("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", size)
     except Exception as e:
-        print(f"   ⚠️ 字體載入失敗 ({font_target}): {e}，使用預設字體 (中文將亂碼)")
-        return ImageFont.load_default()
+        # [Audit Fix] 🚨 FAIL-FAST: Never use load_default() for Chinese
+        print(f"\n❌ CRITICAL ERROR: Cannot load Chinese font ({font_target}): {e}")
+        print(f"   Generated images will have GARBLED CHINESE TEXT (□□□).")
+        print(f"   Refusing to generate garbage data. Exiting.\n")
+        raise SystemExit("Font not found. Please install NotoSans or run with internet.")
 
 # ==========================================
 # 2. 2026 進階圖示引擎 (Advanced Pictograms)
@@ -631,7 +634,28 @@ PATIENTS = [
 # ==========================================
 # 5. Database (Regulatory-Compliant Synthetic Data - SYNCED with medgemma_data.py)
 # ==========================================
-from medgemma_data import DRUG_DATABASE as MASTER_DB
+# [Audit Fix] Defensive Import: Fallback to Hardcoded DB
+try:
+    from medgemma_data import DRUG_DATABASE as MASTER_DB
+    DATA_SYNC_AVAILABLE = True
+    print("✅ [Sync] Loaded DRUG_DATABASE from medgemma_data.py")
+except ImportError:
+    print("\n" + "!"*50)
+    print("⚠️ WARNING: medgemma_data.py NOT FOUND!")
+    print("⚠️ Falling back to internal hardcoded data.")
+    print("⚠️ Training data might be OUTDATED.")
+    print("!"*50 + "\n")
+    DATA_SYNC_AVAILABLE = False
+    
+    # Minimal Fallback DB (Critical Drugs Only)
+    MASTER_DB = {
+        "Hypertension": [
+            {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after"},
+        ],
+        "Diabetes": [
+            {"code": "BC23456792", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用減少腸胃不適", "default_usage": "BID_meals_after"},
+        ]
+    }
 
 PATIENTS = [
     {"name": "王大明", "gender": "男 (M)", "id": "A123456789"},

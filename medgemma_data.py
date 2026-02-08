@@ -70,6 +70,17 @@ DRUG_DATABASE = {
         "default_usage": "QD_breakfast_after"
     },
     {
+        "code": "BC_ASPIRIN_EC",
+        "name_en": "Aspirin E.C.",
+        "name_zh": "阿斯匹靈腸溶錠",
+        "generic": "Aspirin",
+        "dose": "100mg",
+        "appearance": "白色圓形 (腸溶)",
+        "indication": "預防血栓/心肌梗塞",
+        "warning": "胃潰瘍患者慎用。若有黑便請立即停藥就醫",
+        "default_usage": "QD_breakfast_after"
+    },
+    {
         "code": "BC24135792",
         "name_en": "Plavix",
         "name_zh": "保栓通",
@@ -107,7 +118,9 @@ DRUG_ALIASES = {
     # Sedative
     "stilnox": "zolpidem", "imovane": "zopiclone", "hydralazine": "hydralazine", "hydroxyzine": "hydroxyzine",
     # Cardiac
-    "asa": "aspirin", "plavix": "clopidogrel", "aspirin": "aspirin",
+    "asa": "aspirin", "plavix": "clopidogrel", "aspirin": "aspirin", "bokey": "aspirin",
+    # Analgesic
+    "panadol": "acetaminophen", "acetaminophen": "acetaminophen",
     # Anticoagulant
     "coumadin": "warfarin", "warfarin": "warfarin", "xarelto": "rivaroxaban",
     # Lipid
@@ -144,7 +157,9 @@ def get_renderable_data():
             elif "八角" in app: shape = "circle" # Approx
             
             # Color Matching
+            # [Audit Fix] 順序重要！先檢查複合色（紅棕）再檢查單色
             if "黃" in app: color = "yellow"
+            elif "紅棕" in app: color = "brown_red"  # ✅ Xarelto 專用：紅褐色
             elif "粉紅" in app and "紅棕" in app: color = "pink_brown"
             elif "粉紅" in app: color = "pink"
             elif "紅" in app: color = "red"
@@ -176,7 +191,8 @@ def get_renderable_data():
             }
             
             # 4. Categorize (Simple Logic)
-            if d['name_en'] in ["Lasix", "Losec", "Norvasc", "Concor"]:
+            # [Audit Fix] 加入 Hydralazine/Hydroxyzine LASA Pair
+            if d['name_en'] in ["Lasix", "Losec", "Norvasc", "Concor", "Hydralazine", "Hydroxyzine"]:
                 lasa_pairs["SOUND_ALIKE_CRITICAL"].append(v16_obj)
             elif d['name_en'] in ["Dilatrend", "Xarelto", "Daonil", "Diamicron"]:
                  lasa_pairs["LOOK_ALIKE_SHAPE"].append(v16_obj)
@@ -204,3 +220,28 @@ def parse_dosage_usage(usage_tag):
     # [Audit Fix P0] Add fallback to prevent KeyError
     return map_.get(usage_tag, f"遵照醫囑服用 ({usage_tag})")
 
+
+# ---------------------------------------------------------
+# [V1.0 IMPACT UPDATE] DETERMINISTIC LINGUISTIC GUARDRAILS
+# ---------------------------------------------------------
+# To prevent "Translation Hallucination" in high-risk scenarios,
+# we use pre-approved, hardcoded safety commands for migrant languages.
+# This ensures 100% instructional correctness.
+
+ALERT_PHRASES = {
+    "BAHASA": {
+        "HIGH_RISK": "BAHAYA! JANGAN MINUM OBAT INI. HUBUNGI DOKTER SEKARANG.",  # DANGER! Do not take. Call doctor.
+        "WARNING": "PERHATIAN. PERIKSA DOSIS DENGAN DOKTER.",                    # Attention. Check dose with doctor.
+        "SAFE": "OBAT INI AMAN. MINUM SESUAI RESEP."                             # This medicine is safe. Take as prescribed.
+    },
+    "VIETNAMESE": {
+        "HIGH_RISK": "NGUY HIỂM! KHÔNG ĐƯỢC UỐNG THUỐC NÀY. GỌI BÁC SĨ NGAY.",   # DANGER! Do not take. Call doctor.
+        "WARNING": "CHÚ Ý. KIỂM TRA LẠI LIỀU LƯỢNG VỚI BÁC SĨ.",                 # Attention. Check dose with doctor.
+        "SAFE": "THUỐC NÀY AN TOÀN. UỐNG THEO TOA."                              # This medicine is safe. Take as prescribed.
+    },
+    "TAIWANESE": {
+        "HIGH_RISK": "危險！這藥不通食，趕緊打電話問醫生。",                       # Danger! Don't eat this med, call doctor.
+        "WARNING": "注意！這藥可能有問題，先問過醫生再食。",                       # Attention! Might be problem, ask doctor first.
+        "SAFE": "這藥沒問題，照醫生交代去食。"                                     # This med is okay, eat as doctor said.
+    }
+}

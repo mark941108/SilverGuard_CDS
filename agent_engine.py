@@ -279,7 +279,7 @@ import albumentations as A  # [FIX] Added missing import
 # ============================================================================
 # V12.32 P0 FIX: TTS Symbol Cleaning Function
 # ============================================================================
-def clean_text_for_tts(text):
+def clean_text_for_tts(text, lang='zh-tw'):
     """
     清理 TTS 語音輸出的特殊符號
     
@@ -290,6 +290,7 @@ def clean_text_for_tts(text):
     
     Args:
         text: 原始文字
+        lang: 目標語言 (default: zh-tw)
     
     Returns:
         清理後的文字
@@ -298,6 +299,14 @@ def clean_text_for_tts(text):
         return ""
     
     original_len = len(text)
+    
+    # 0. [Fix] Foreign Alert: Replace symbols based on language
+    if lang == 'id':
+        text = text.replace("⚠️", "Peringatan! ").replace("⛔", "Bahaya! ")
+    elif lang == 'vi':
+        text = text.replace("⚠️", "Cảnh báo! ").replace("⛔", "Nguy hiểm! ")
+    else: # Default zh-TW
+        text = text.replace("⚠️", "注意！").replace("⛔", "危險！")
     
     # 1. 移除常見 Emoji（全面列表）
     emoji_pattern = re.compile(
@@ -1622,58 +1631,54 @@ if __name__ == "__main__":
         """
         🧪 Helper: Normalize raw dosage string to milligrams (mg)
         Handles: "500 mg", "0.5 g", "1000 mcg"
-        [V19 Update] Handles Ranges ("1-2 tabs") and Compounds ("500/50mg")
-        Returns: (float_value_in_mg, is_valid_conversion)
+        [V19 Update] Handles Ranges ("1-2 tabs") and Compounds ("160/12.5mg")
+        Returns: (list_of_mg_values, is_valid_conversion)
         """
         import re
-        if not dose_str: return 0.0, False
+        if not dose_str: return [], False
     
-        try:
-            # [V19 Robustness] Handle Parsing Failures Safely
-            # Returning None signals "Unknown Dose" -> Risk High
-        
-            # 1. Handle Ranges (e.g., "1-2 tablets", "5-10mg") -> Take Conservative High
-            if "-" in str(dose_str):
-                range_match = re.search(r'(\d+)\s*-\s*(\d+)', str(dose_str))
-                if range_match:
-                    # Take the higher value for safety check (Conservative Safety)
-                    dose_str = range_match.group(2) + " " + re.sub(r'[\d\s-]', '', str(dose_str))
+        # Clean input
+        s_full = str(dose_str).lower().replace(",", "").replace(" ", "")
+    
+        # [Audit Fix] Compound Dose Support: Split by / or +
+        parts = re.split(r'[/\+]', s_full)
+        results = []
+    
+        for s in parts:
+            if not s: continue
+            try:
+                # Regex to find number + unit
+                # [Audit Fix] Supports Chinese Units (毫克/公克)
+                match = re.search(r'([\d\.]+)(mg|g|mcg|ug|ml|毫克|公克)', s)
+            
+                val = 0.0
+                if not match:
+                     # Fallback: strictly require unit or pure number if it looks like a dose
+                     # [Audit Fix] Capture decimals in fallback
+                     nums = re.findall(r'\d*\.?\d+', s)
+                     if nums: 
+                         val = float(nums[0]) # Raw number, assume mg if ambiguous but capture it
+                     else:
+                         continue # Skip unparseable parts
+                else:
+                    val = float(match.group(1))
+                    unit = match.group(2)
                 
-            # 2. Handle Compounds (e.g., "500/50 mg") -> Take First Component (Primary)
-            if "/" in str(dose_str):
-                parts = str(dose_str).split('/')
-                dose_str = parts[0] # Assume first number is main active ingredient
-                # If unit is at end "500/50mg", append it back if missing
-                if not re.search(r'[a-zA-Z]', dose_str):
-                     unit_match = re.search(r'[a-zA-Z]+', str(parts[-1]))
-                     if unit_match: dose_str += unit_match.group(0)
-
-            # [Audit Fix] Handle commas (1,000) and spaces robustly
-            s = str(dose_str).lower().replace(",", "").replace(" ", "")
+                    if unit in ['g', '公克']:
+                        val *= 1000.0
+                    elif unit in ['mcg', 'ug']:
+                        val /= 1000.0
+                    # else mg, ml, 毫克 -> keep as is
+            
+                results.append(val)
+            except:
+                continue
+            
+        if not results:
+            print(f"⚠️ [Safety] Dose Parsing Failed for: '{dose_str}'. Treating as UNKNOWN (RISK).")
+            return [], False
         
-            # Regex to find number + unit
-            # [Audit Fix] Supports Chinese Units (毫克/公克)
-            match = re.search(r'([\d\.]+)(mg|g|mcg|ug|ml|毫克|公克)', s)
-            if not match:
-                 # Fallback: strictly require unit
-                 # [Audit Fix] Capture decimals in fallback
-                 nums = re.findall(r'\d*\.?\d+', s)
-                 if nums: return float(nums[0]), False # Raw number, unsure unit
-                 return None, False # 🔴 FAIL-SAFE: Return None instead of 0.0
-             
-            value = float(match.group(1))
-            unit = match.group(2)
-        
-            if unit in ['g', '公克']:
-                return value * 1000.0, True
-            elif unit in ['mcg', 'ug']:
-                return value / 1000.0, True
-            elif unit == '毫克': # mg
-                return value, True
-            else: # mg
-                return value, True
-        except:
-            return None, False # 🔴 FAIL-SAFE
+        return results, True
 
     def check_hard_safety_rules(extracted_data):
         """
@@ -1689,31 +1694,36 @@ if __name__ == "__main__":
             # [Audit Fix] Robust name extraction (including Chinese)
             drug_name = (str(drug.get("name", "")) + " " + str(drug.get("name_zh", ""))).lower()
         
-            mg_val, _ = normalize_dose_to_mg(str(dose_str))
-            if mg_val is None: mg_val = 0
-        
-            # Rule 1: Metformin (Glucophage) > 1000mg for Elderly
-            if age_val >= 80 and ("glucophage" in drug_name or "metformin" in drug_name):
-                # [Audit Fix V8.3] Logic Hardening: Rely purely on normalized value
-                # Removed fragile regex check for "2000" to prevent "Max dose 2000mg" false positives
-                if mg_val > 1000:
-                    return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
+            mg_vals, _ = normalize_dose_to_mg(str(dose_str))
+            
+            # [Fix] Zero-Dose Loophole: Check for missing dosage in high-risk drugs
+            if not mg_vals and any(x in drug_name for x in ["metformin", "glucophage", "aspirin", "warfarin"]):
+                return True, "WARNING", f"⚠️ Missing Dosage Detected for High-Risk Drug ({drug_name}). Manual Verify."
 
-            # Rule 2: Zolpidem > 5mg for Elderly
-            elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
-                if mg_val > 5:
-                    return True, "HIGH_RISK", f"⛔ HARD RULE: BEERS CRITERIA (Zolpidem {mg_val}mg > 5mg). High fall risk."
-
-            # Rule 3: High Dose Aspirin > 325mg for Elderly
-            elif age_val >= 75 and ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
-                # [Audit Fix] Prevent "Ref: 500" from triggering alarm
-                if mg_val > 325:
-                    return True, "HIGH_RISK", f"⛔ HARD RULE: High Dose Aspirin ({mg_val}mg). Risk of GI Bleeding."
-                
-            # Rule 4: Acetaminophen > 4000mg (General)
-            elif "panadol" in drug_name or "acetaminophen" in drug_name:
-                if mg_val > 4000:
-                    return True, "HIGH_RISK", f"⛔ HARD RULE: Acetaminophen Overdose ({mg_val}mg > 4000mg)."
+            # [Audit Fix] Iterate through ALL components for Compound Drugs
+            for mg_val in mg_vals:
+                # Rule 1: Metformin (Glucophage) > 1000mg for Elderly
+                if age_val >= 80 and ("glucophage" in drug_name or "metformin" in drug_name):
+                    # [Audit Fix V8.3] Logic Hardening: Rely purely on normalized value
+                    # Removed fragile regex check for "2000" to prevent "Max dose 2000mg" false positives
+                    if mg_val > 1000:
+                        return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
+    
+                # Rule 2: Zolpidem > 5mg for Elderly
+                elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
+                    if mg_val > 5:
+                        return True, "HIGH_RISK", f"⛔ HARD RULE: BEERS CRITERIA (Zolpidem {mg_val}mg > 5mg). High fall risk."
+    
+                # Rule 3: High Dose Aspirin > 325mg for Elderly
+                elif age_val >= 75 and ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
+                    # [Audit Fix] Prevent "Ref: 500" from triggering alarm
+                    if mg_val > 325:
+                        return True, "HIGH_RISK", f"⛔ HARD RULE: High Dose Aspirin ({mg_val}mg). Risk of GI Bleeding."
+                    
+                # Rule 4: Acetaminophen > 4000mg (General)
+                elif "panadol" in drug_name or "acetaminophen" in drug_name:
+                    if mg_val > 4000:
+                        return True, "HIGH_RISK", f"⛔ HARD RULE: Acetaminophen Overdose ({mg_val}mg > 4000mg)."
                 
         except Exception as e:
             print(f"⚠️ Hard Rule Check Error: {e}")
@@ -1765,10 +1775,14 @@ if __name__ == "__main__":
                 target = DRUG_ALIASES[target]
         
             # Enhanced fuzzy match: check if ANY word in target matches db
+            # [Audit Fix] Smart Candidate Collection for Fuzzy Match
+            candidates = []
+            
             for cat, drugs in _SYNTHETIC_DATA_GEN_SOURCE.items():
                 for d in drugs:
                     db_name_en = d["name_en"].lower()
                     db_generic = d["generic"].lower()
+                    candidates.extend([db_name_en, db_generic])
                 
                     # Match if target contains db name OR db name contains target
                     if (target in db_name_en or db_name_en in target or
@@ -1776,6 +1790,14 @@ if __name__ == "__main__":
                         found_in_db = True
                         break
                 if found_in_db: break
+            
+            # [Audit Fix] Difflib Fuzzy Match (Typo Tolerance)
+            if not found_in_db:
+                import difflib
+                matches = difflib.get_close_matches(target, candidates, n=1, cutoff=0.8)
+                if matches:
+                    found_in_db = True
+                    print(f"   🔍 Fuzzy Match (Logic Check): '{target}' -> '{matches[0]}'")
         
             if not found_in_db:
                  issues.append(f"Drug not in knowledge base: {drug_name} (Unknown Drug Interception)")
@@ -1995,14 +2017,28 @@ if __name__ == "__main__":
             import medgemma_data
             db = medgemma_data.DRUG_DATABASE
             # Flat list check
+            # Flat list check
+            candidates = []
             for category in db.values():
                 for item in category:
                     if drug_name.lower() in [item['name_en'].lower(), item['name_zh'].lower(), item['generic'].lower()]:
                         return True
+                    # Collect for fuzzy match
+                    candidates.append(item['name_en'].lower())
+                    candidates.append(item['generic'].lower())
+
             # Check aliases
             if drug_name.lower() in medgemma_data.DRUG_ALIASES:
                 return True
+            candidates.extend(medgemma_data.DRUG_ALIASES.keys())
             
+            # [Audit Fix] Fuzzy Match (Synonym Blindness)
+            import difflib
+            matches = difflib.get_close_matches(drug_name.lower(), candidates, n=1, cutoff=0.8)
+            if matches:
+                print(f"   🔍 Fuzzy Match (OfflineDB): '{drug_name}' -> '{matches[0]}'")
+                return True
+
             return False
         except ImportError:
             # Fallback for standalone execution if file missing
@@ -2672,8 +2708,10 @@ if __name__ == "__main__":
             BASE_DIR = V17_DATA_DIR
             print(f"✅ [Cell 4] Using V17 Data from: {BASE_DIR}")
             import glob
-            test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))
-            print(f"✅ [Cell 4] Loaded {len(test_images)} images for V17 Test.")
+            # ✅ 修復：只取前 5 張做快速測試，而不是跑全部 600 張
+            all_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))
+            test_images = all_images[:5]  
+            print(f"✅ [Cell 4] Quick Test Mode: Running 5 samples (out of {len(all_images)})")
         else:
             BASE_DIR = "./medgemma_training_data_v5"
             print(f"⚠️ [Cell 4] Fallback to V5 data: {BASE_DIR}")
@@ -3253,7 +3291,8 @@ if __name__ == "__main__":
     
         return text.strip()
 
-    def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
+# [Audit Fix] Deprecated: Shadowed by V12.32 implementation below
+# def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
         """
         Tier 1: Online Neural TTS (gTTS) - Preferred for Quality
         Tier 2: Offline Fallback (pyttsx3) - Backup for Stability
@@ -3533,6 +3572,9 @@ if __name__ == "__main__":
         Hybrid TTS: Online (gTTS) -> Offline (pyttsx3) Fallback
         [FIX] Uses UUID for filenames and Cross-platform temp paths
         """
+        # ✅ [Fix] 呼叫清洗函數
+        text = clean_text_for_tts(text, lang=lang) 
+        
         import os
         import uuid
         import tempfile
@@ -3887,8 +3929,9 @@ if __name__ == "__main__":
         # Save
         # Save
         import uuid
-        # [FIX] Use UUID for filename (Concurrency Safe)
-        out_path = f"calendar_flagship_{uuid.uuid4().hex[:8]}.png"
+        import tempfile
+        # [FIX] Use UUID for filename (Concurrency Safe) & Temp Dir (Cross-Platform)
+        out_path = os.path.join(tempfile.gettempdir(), f"calendar_flagship_{uuid.uuid4().hex[:8]}.png")
         img.save(out_path)
         return out_path 
 
@@ -4381,10 +4424,15 @@ if __name__ == "__main__":
             try:
                 from transformers import pipeline
                 print(f"⏳ Loading MedASR: {MEDASR_MODEL}...")
+                # [FIX] 🚨 ASR Slow (CPU Hardcoded): 動態選擇設備
+                # 如果有 GPU 且 VRAM 足夠，優先使用 GPU 加速 ASR
+                device_for_asr = "cuda" if torch.cuda.is_available() else "cpu"
+                print(f"   🎤 MedASR Device: {device_for_asr}")
+                
                 medasr_pipeline = pipeline(
                     "automatic-speech-recognition",
                     model=MEDASR_MODEL,
-                    device="cpu", # Save GPU for Vision
+                    device=device_for_asr,  # ✅ 修復：動態設備選擇
                     token=True
                 )
                 print("✅ MedASR Loaded!")
@@ -4592,7 +4640,7 @@ if __name__ == "__main__":
                     with torch.no_grad():
                         outputs = model.generate(
                             **inputs, 
-                            max_new_tokens=1024,
+                            max_new_tokens=512, # [V8.3 Opt] Reduced from 1024 to prevent timeouts
                             do_sample=True, # Enable sampling for temperature to work
                             temperature=current_temp,
                             top_p=0.9,
@@ -4601,7 +4649,7 @@ if __name__ == "__main__":
                         )
                 
                     # Slice output to remove prompt echoing
-                    generated_tokens = outputs[0][input_len:]
+                    generated_tokens = outputs.sequences[0][input_len:]
                     generated_text = processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
                 
                     # Parse (Uses parse_json_from_response from Cell 4)
@@ -4671,7 +4719,16 @@ if __name__ == "__main__":
                     correction_context += f"\n\n[System Error Log]: Previous attempt failed due to: {str(e)}. Please RE-ANALYZE the image and ensure Output is VALID JSON only. Pay attention to dosing logic."
                     if verbose:
                         print(f"   🔄 Agent Retry #{current_try} (Temp={current_temp}->0.2): {e}")
+                    
+                    # [FIX] 🚨 Broken Retry Loop: 只有在超過最大重試次數時才 return
+                    # 否則應該 continue 回到 while 迴圈開頭進行重試
+                    if current_try > MAX_RETRIES:
+                        result["pipeline_status"] = "FAILED"
+                        result["final_status"] = "SYSTEM_ERROR"
+                        return result
+                    continue  # ✅ 重試邏輯修復：回到迴圈開頭
         
+            # 如果迴圈正常結束（沒有 return），代表所有重試都失敗了
             result["pipeline_status"] = "FAILED"
             result["final_status"] = "SYSTEM_ERROR"
             return result
@@ -4748,7 +4805,10 @@ if __name__ == "__main__":
 
                         # 1.1 Add Agent Logs UI
                         log_text = "🔄 Agent Thought Process:\n"
-                        log_text += f"   - Voice Context: '{voice_note}'\n"
+                        if not voice_note:
+                             log_text += f"   - Voice Context: None (Audio Rejected/Empty)\n"
+                        else:
+                             log_text += f"   - Voice Context: '{voice_note}'\n"
                         log_text += f"   - Model: MedGemma 1.5-4B (4-bit)\n"
                         log_text += f"   - Deterministic Guardrails: ACTIVE\n"
                     

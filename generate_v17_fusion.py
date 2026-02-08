@@ -89,9 +89,11 @@ def get_font(size, bold=False):
              download_fonts()
              return ImageFont.truetype(path, size)
         except Exception as e2:
-             print(f"❌ CRITICAL: Cannot load font {path}: {e2}")
-             print(f"   Generated images will have garbled Chinese text!")
-             return ImageFont.load_default()
+             # [Audit Fix] 🚨 FAIL-FAST: Never use load_default() for Chinese
+             print(f"\n❌ CRITICAL ERROR: Cannot load Chinese font ({path}): {e2}")
+             print(f"   Generated images will have GARBLED CHINESE TEXT (□□□).")
+             print(f"   Refusing to generate garbage data. Exiting.\n")
+             raise SystemExit("Font not found. Please download manually or fix internet connection.")
 
 def get_jitter_offset(amp=5):
     """Return a fixed (dx, dy) to apply to a whole group of elements."""

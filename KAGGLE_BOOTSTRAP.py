@@ -12,13 +12,54 @@
 
 # %%
 # ============================================================================
-# STEP 0: 環境重置與認證
+# 📦 DATASET LOADER (Auto-Copy from /kaggle/input) - [V12.16 Impact]
 # ============================================================================
+# This script is designed to run in Kaggle Kernels. It scans /kaggle/input for
+# critical files (agent_engine.py, medgemma_data.py, fonts) and copies them
+# to the working directory. This enables "Local Override Mode" without Git.
+
 import os
 import sys
-import shutil 
+import shutil
 import re
 from kaggle_secrets import UserSecretsClient
+
+print("🔍 Scanning for SilverGuard assets in /kaggle/input...")
+# Files we expect from the uploaded dataset
+target_files = [
+    "agent_engine.py", 
+    "medgemma_data.py", 
+    "generate_v17_fusion.py", 
+    "generate_stress_test.py",
+    "NotoSansTC-Bold.otf",
+    "NotoSansTC-Regular.otf",
+    "NotoSansCJKtc-Regular.otf"
+]
+
+files_copied = 0
+for root, dirs, files in os.walk("/kaggle/input"):
+    for file in files:
+        if file in target_files:
+            src = os.path.join(root, file)
+            dst = os.path.join(os.getcwd(), file)
+            # Don't overwrite if likely same (symbolic links in kaggle sometimes weird, copy is safer)
+            if not os.path.exists(dst):
+                try:
+                    shutil.copy2(src, dst)
+                    print(f"   📂 Loaded: {file}")
+                    files_copied += 1
+                except Exception as e:
+                    print(f"   ⚠️ Failed to copy {file}: {e}")
+
+if files_copied > 0:
+    print(f"✅ Successfully loaded {files_copied} assets from Dataset.")
+else:
+    print("ℹ️ No external dataset assets found. Assuming GitHub Clone mode or Local run.")
+
+# ============================================================================
+# STEP 0: 環境重置與認證
+# ============================================================================
+
 
 print("=" * 80)
 print("🏥 AI Pharmacist Guardian - Bootstrap (V12.13 Gemma 3 Fix)")
@@ -163,11 +204,13 @@ subprocess.run(
     shell=True, check=True
 )
 
-# 3. 視覺與音訊工具
+# 3. 視覺與音訊工具 (Key: Matplotlib >= 3.8 to support Pillow 10+)
+subprocess.run('pip uninstall -y pillow matplotlib', shell=True) # [V12.14] Nuke old pillow first
 subprocess.run(
-    'pip install -U "pillow>=10.4.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]"', 
+    'pip install -U "pillow>=10.4.0" "matplotlib>=3.9.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]"', 
     shell=True, check=True
 )
+print("⚠️ [IMPORTANT] If you see 'ImportError: _Ink' -> RESTART KERNEL & RUN THIS CELL AGAIN!")
 
 print("   ✅ 所有依賴安裝完成！")
 
