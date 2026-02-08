@@ -16,22 +16,32 @@ BLUR_THRESHOLD = 25.0  # ⚠️ Set to 25.0 for smooth demo recording
 DRUG_DATABASE = {
     # --- Confusion Cluster 1: Hypertension ---
     "Hypertension": [
-        {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after"},
-        {"code": "BC23456790", "name_en": "Concor", "name_zh": "康肯", "generic": "Bisoprolol", "dose": "5mg", "appearance": "黃色心形", "indication": "降血壓", "warning": "心跳過慢者慎用", "default_usage": "QD_breakfast_after"},
-        {"code": "BC23456799", "name_en": "Dilatrend", "name_zh": "達利全錠", "generic": "Carvedilol", "dose": "25mg", "appearance": "白色圓形 (刻痕)", "indication": "高血壓/心衰竭", "warning": "不可擅自停藥", "default_usage": "BID_meals_after"},
-        {"code": "BC23456788", "name_en": "Lasix", "name_zh": "來適泄錠", "generic": "Furosemide", "dose": "40mg", "appearance": "白色圓形", "indication": "高血壓/水腫", "warning": "服用後排尿頻繁，避免睡前服用", "default_usage": "BID_morning_noon"},
-        {"code": "BC23456801", "name_en": "Hydralazine", "name_zh": "阿普利素", "generic": "Hydralazine", "dose": "25mg", "appearance": "黃色圓形", "indication": "高血壓", "warning": "不可隨意停藥", "default_usage": "TID_meals_after"},
-        {"code": "BC23456791", "name_en": "Diovan", "name_zh": "得安穩", "generic": "Valsartan", "dose": "160mg", "appearance": "橘色橢圓形", "indication": "高血壓/心衰竭", "warning": "注意姿勢性低血壓、懷孕禁用", "default_usage": "QD_breakfast_after"},
+        {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after", 
+         "max_daily_dose": 10, "drug_class": "CCB", "beers_risk": False},
+        {"code": "BC23456790", "name_en": "Concor", "name_zh": "康肯", "generic": "Bisoprolol", "dose": "5mg", "appearance": "黃色心形", "indication": "降血壓", "warning": "心跳過慢者慎用", "default_usage": "QD_breakfast_after",
+         "max_daily_dose": 20, "drug_class": "Beta-Blocker", "beers_risk": False},
+        {"code": "BC23456799", "name_en": "Dilatrend", "name_zh": "達利全錠", "generic": "Carvedilol", "dose": "25mg", "appearance": "白色圓形 (刻痕)", "indication": "高血壓/心衰竭", "warning": "不可擅自停藥", "default_usage": "BID_meals_after",
+         "max_daily_dose": 50, "drug_class": "Beta-Blocker", "beers_risk": False},
+        {"code": "BC23456788", "name_en": "Lasix", "name_zh": "來適泄錠", "generic": "Furosemide", "dose": "40mg", "appearance": "白色圓形", "indication": "高血壓/水腫", "warning": "服用後排尿頻繁，避免睡前服用", "default_usage": "BID_morning_noon",
+         "max_daily_dose": 80, "drug_class": "Diuretic", "beers_risk": False}, # Note: Loop diuretics generally safe if monitored
+        {"code": "BC23456801", "name_en": "Hydralazine", "name_zh": "阿普利素", "generic": "Hydralazine", "dose": "25mg", "appearance": "黃色圓形", "indication": "高血壓", "warning": "不可隨意停藥", "default_usage": "TID_meals_after",
+         "max_daily_dose": 200, "drug_class": "Vasodilator", "beers_risk": False},
+        {"code": "BC23456791", "name_en": "Diovan", "name_zh": "得安穩", "generic": "Valsartan", "dose": "160mg", "appearance": "橘色橢圓形", "indication": "高血壓/心衰竭", "warning": "注意姿勢性低血壓、懷孕禁用", "default_usage": "QD_breakfast_after",
+         "max_daily_dose": 320, "drug_class": "ARB", "beers_risk": False},
     ],
     # --- Confusion Cluster 2: Diabetes ---
     "Diabetes": [
-        {"code": "BC23456792", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用減少腸胃不適", "default_usage": "BID_meals_after"},
-        {"code": "BC23456793", "name_en": "Daonil", "name_zh": "道尼爾", "generic": "Glibenclamide", "dose": "5mg", "appearance": "白色長條形 (刻痕)", "indication": "降血糖", "warning": "低血糖風險高", "default_usage": "QD_breakfast_after"},
-        {"code": "BC23456795", "name_en": "Diamicron", "name_zh": "岱蜜克龍", "generic": "Gliclazide", "dose": "30mg", "appearance": "白色長條形", "indication": "降血糖", "warning": "飯前30分鐘服用", "default_usage": "QD_breakfast_before"},
+        {"code": "BC23456792", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用減少腸胃不適", "default_usage": "BID_meals_after",
+         "max_daily_dose": 2550, "drug_class": "Biguanide", "beers_risk": False},
+        {"code": "BC23456793", "name_en": "Daonil", "name_zh": "道尼爾", "generic": "Glibenclamide", "dose": "5mg", "appearance": "白色長條形 (刻痕)", "indication": "降血糖", "warning": "低血糖風險高", "default_usage": "QD_breakfast_after",
+         "max_daily_dose": 20, "drug_class": "Sulfonylurea", "beers_risk": True}, # ⚠️ High Risk for Elderly
+        {"code": "BC23456795", "name_en": "Diamicron", "name_zh": "岱蜜克龍", "generic": "Gliclazide", "dose": "30mg", "appearance": "白色長條形", "indication": "降血糖", "warning": "飯前30分鐘服用", "default_usage": "QD_breakfast_before",
+         "max_daily_dose": 120, "drug_class": "Sulfonylurea", "beers_risk": True}, # ⚠️ High Risk for Elderly (Long-acting)
     ],
     # --- Confusion Cluster 3: Gastric ---
     "Gastric": [
-        {"code": "BC23456787", "name_en": "Losec", "name_zh": "樂酸克膠囊", "generic": "Omeprazole", "dose": "20mg", "appearance": "粉紅/紅棕色膠囊", "indication": "胃潰瘍/逆流性食道炎", "warning": "飯前服用效果最佳，不可嚼碎", "default_usage": "QD_meals_before"},
+        {"code": "BC23456787", "name_en": "Losec", "name_zh": "樂酸克膠囊", "generic": "Omeprazole", "dose": "20mg", "appearance": "粉紅/紅棕色膠囊", "indication": "胃潰瘍/逆流性食道炎", "warning": "飯前服用效果最佳，不可嚼碎", "default_usage": "QD_meals_before",
+         "max_daily_dose": 40, "drug_class": "PPI", "beers_risk": True}, # ⚠️ Long term use risk Clostridium difficile
     ],
     # --- Confusion Cluster 4: Anticoagulant ---
     # 1. Anticoagulants (High Risk)
@@ -45,7 +55,8 @@ DRUG_DATABASE = {
         "appearance": "粉紅色圓形 (刻痕)",
         "indication": "預防血栓形成",
         "warning": "需定期監測INR，避免深綠色蔬菜",
-        "default_usage": "QD_evening"
+        "default_usage": "QD_evening",
+        "max_daily_dose": 15, "drug_class": "Anticoagulant", "beers_risk": True # ⚠️ High Bleeding Risk
     },
     {
         "code": "BC24681357",
@@ -53,10 +64,11 @@ DRUG_DATABASE = {
         "name_zh": "拜瑞妥",
         "generic": "Rivaroxaban",
         "dose": "20mg",
-        "appearance": "紅棕色圓形",
+        "appearance": "Hex(#8D6E63)圓形", # Fixed: brown_red -> Hex
         "indication": "預防中風及栓塞",
         "warning": "隨餐服用。請注意出血徵兆",
-        "default_usage": "QD_evening_with_meal"
+        "default_usage": "QD_evening_with_meal",
+        "max_daily_dose": 20, "drug_class": "NOAC", "beers_risk": True # ⚠️ Bleeding Risk
     },
     {
         "code": "BC23951468",
@@ -67,7 +79,8 @@ DRUG_DATABASE = {
         "appearance": "白色圓形 (微凸)",
         "indication": "預防心肌梗塞",
         "warning": "胃潰瘍患者慎用。長期服用需監測出血風險",
-        "default_usage": "QD_breakfast_after"
+        "default_usage": "QD_breakfast_after",
+        "max_daily_dose": 100, "drug_class": "Antiplatelet", "beers_risk": True # ⚠️ Generally avoid for primary prevention age > 70
     },
     {
         "code": "BC_ASPIRIN_EC",
@@ -78,7 +91,8 @@ DRUG_DATABASE = {
         "appearance": "白色圓形 (腸溶)",
         "indication": "預防血栓/心肌梗塞",
         "warning": "胃潰瘍患者慎用。若有黑便請立即停藥就醫",
-        "default_usage": "QD_breakfast_after"
+        "default_usage": "QD_breakfast_after",
+        "max_daily_dose": 100, "drug_class": "Antiplatelet", "beers_risk": True
     },
     {
         "code": "BC24135792",
@@ -89,22 +103,30 @@ DRUG_DATABASE = {
         "appearance": "粉紅色圓形",
         "indication": "預防血栓",
         "warning": "手術前5-7天需停藥。勿與其他抗凝血藥併用",
-        "default_usage": "QD_breakfast_after"
+        "default_usage": "QD_breakfast_after",
+        "max_daily_dose": 75, "drug_class": "Antiplatelet", "beers_risk": False
     },
     ],
     # --- Confusion Cluster 5: CNS ---
     "Sedative": [
-        {"code": "BC23456794", "name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後立即就寢", "default_usage": "QD_bedtime"},
-        {"code": "BC23456802", "name_en": "Hydroxyzine", "name_zh": "安泰樂", "generic": "Hydroxyzine", "dose": "25mg", "appearance": "白色圓形", "indication": "抗過敏/焦慮", "warning": "注意嗜睡", "default_usage": "TID_meals_after"},
+        {"code": "BC23456794", "name_en": "Stilnox", "name_zh": "使蒂諾斯", "generic": "Zolpidem", "dose": "10mg", "appearance": "白色長條形", "indication": "失眠", "warning": "服用後立即就寢", "default_usage": "QD_bedtime",
+         "max_daily_dose": 10, "drug_class": "Z-drug", "beers_risk": True}, # ⚠️ High Fall/Delirium Risk
+        {"code": "BC23456802", "name_en": "Hydroxyzine", "name_zh": "安泰樂", "generic": "Hydroxyzine", "dose": "25mg", "appearance": "白色圓形", "indication": "抗過敏/焦慮", "warning": "注意嗜睡", "default_usage": "TID_meals_after",
+         "max_daily_dose": 100, "drug_class": "Antihistamine", "beers_risk": True}, # ⚠️ Anticholinergic burden
     ],
      # --- Confusion Cluster 6: Lipid ---
     "Lipid": [
-        {"code": "BC88889999", "name_en": "Lipitor", "name_zh": "立普妥", "generic": "Atorvastatin", "dose": "20mg", "appearance": "白色橢圓形", "indication": "降血脂", "warning": "肌肉痠痛時需回診", "default_usage": "QD_bedtime"},
-        {"code": "BC88889998", "name_en": "Crestor", "name_zh": "冠脂妥", "generic": "Rosuvastatin", "dose": "10mg", "appearance": "粉紅色圓形", "indication": "降血脂", "warning": "避免與葡萄柚汁併服", "default_usage": "QD_bedtime"},
+        {"code": "BC88889999", "name_en": "Lipitor", "name_zh": "立普妥", "generic": "Atorvastatin", "dose": "20mg", "appearance": "白色橢圓形", "indication": "降血脂", "warning": "肌肉痠痛時需回診", "default_usage": "QD_bedtime",
+         "max_daily_dose": 80, "drug_class": "Statin", "beers_risk": False},
+        {"code": "BC88889998", "name_en": "Crestor", "name_zh": "冠脂妥", "generic": "Rosuvastatin", "dose": "10mg", "appearance": "粉紅色圓形", "indication": "降血脂", "warning": "避免與葡萄柚汁併服", "default_usage": "QD_bedtime",
+         "max_daily_dose": 40, "drug_class": "Statin", "beers_risk": False},
+        {"code": "BC23456800", "name_en": "Ezetrol", "name_zh": "怡潔", "generic": "Ezetimibe", "dose": "10mg", "appearance": "白色長條形", "indication": "降血脂", "warning": "可與他汀類併用", "default_usage": "QD_breakfast_after",
+         "max_daily_dose": 10, "drug_class": "Cholesterol Absorption Inhibitor", "beers_risk": False},
     ],
     # --- Confusion Cluster 7: Analgesic (Added for Rule 4 Safety) ---
     "Analgesic": [
-        {"code": "BC55667788", "name_en": "Panadol", "name_zh": "普拿疼", "generic": "Acetaminophen", "dose": "500mg", "appearance": "白色圓形", "indication": "止痛/退燒", "warning": "每日不可超過4000mg (8顆)", "default_usage": "Q4H_prn"},
+        {"code": "BC55667788", "name_en": "Panadol", "name_zh": "普拿疼", "generic": "Acetaminophen", "dose": "500mg", "appearance": "白色圓形", "indication": "止痛/退燒", "warning": "每日不可超過4000mg (8顆)", "default_usage": "Q4H_prn",
+         "max_daily_dose": 4000, "drug_class": "Analgesic", "beers_risk": False},
     ],
 }
 
