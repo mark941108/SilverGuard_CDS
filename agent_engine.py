@@ -3349,7 +3349,7 @@ if __name__ == "__main__":
         }
     }
 
-    def clean_text_for_tts(text):
+    def clean_text_for_tts(text, lang='zh'):
         """
         🧹 TTS 專用文字清洗器
         將視覺符號 (Markdown/Emoji) 轉換為聽覺停頓或移除，

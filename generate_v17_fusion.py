@@ -258,7 +258,9 @@ def draw_hyper_real_pill(draw, x, y, drug_data, force_mismatch=False):
     elif shape == "capsule":
         draw.arc([x, y, x+80, y+40], start=180, end=0, fill=outline_color, width=2)
         draw.chord([x, y, x+80, y+80], start=0, end=180, fill=fill_color, outline=outline_color, width=2) # Bottom half
-        draw.chord([x, y, x+80, y+80], start=180, end=360, fill=color if color!="pink_brown" else "#D7CCC8", outline=outline_color, width=2) # Top half
+        # [Fix] Map custom color names to Hex to avoid PIL ValueError
+        top_color = {"pink_brown": "#D7CCC8", "brown_red": "#8D6E63", "white_gold": "#FFD700"}.get(color, color)
+        draw.chord([x, y, x+80, y+80], start=180, end=360, fill=top_color, outline=outline_color, width=2) # Top half
         
     elif shape == "oblong":
          draw.rounded_rectangle([x, y+20, x+100, y+60], radius=20, fill=fill_color, outline=outline_color, width=2)
