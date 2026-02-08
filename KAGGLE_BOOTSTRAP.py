@@ -106,7 +106,9 @@ if not missing_files:
     # [Fix] Use os.system for compatibility
     import subprocess
     try:
-        subprocess.run("cp *.py SilverGuard/", shell=True, check=True, stderr=subprocess.DEVNULL)
+        # [FIX] Also copy font files (.otf) so the generator can find them
+        subprocess.run("cp *.py *.otf SilverGuard/", shell=True, check=True, stderr=subprocess.DEVNULL)
+        print("   ✅ Synced Python scripts & Fonts to SilverGuard sandbox")
     except:
         pass
     
