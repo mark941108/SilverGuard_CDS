@@ -1120,7 +1120,9 @@ def normalize_dose_to_mg(dose_str):
                  # [Audit Fix] Capture decimals in fallback
                  nums = re.findall(r'\d*\.?\d+', s)
                  if nums: 
-                     val = float(nums[0]) # Raw number, assume mg if ambiguous but capture it
+                     # [Red Team Fix] Dosage Range Safety: Always take MAX value
+                     # "1-2 tabs" -> 2.0 (Worst Case Scenario)
+                     val = max([float(n) for n in nums])
                  else:
                      continue # Skip unparseable parts
             else:
