@@ -80,7 +80,7 @@ flowchart LR
         Correction
   end
  subgraph Wayfinding["🗺️ Wayfinding Protocol (Mahvar et al., 2025)"]
-        ConfCheck{"Confidence &lt; 70%?"}
+        ConfCheck{"Confidence &lt; 75%?"}
         AskUser@{ label: "❓ Ask: 'Is this 500 or 850?'" }
   end
  subgraph Action["🛡️ Action & Impact Layer"]

@@ -607,7 +607,7 @@ except ImportError:
             "name_zh": "拜瑞妥",
             "generic": "Rivaroxaban",
             "dose": "20mg",
-            "appearance": "紅棕色圓形",
+            "appearance": "Hex(#8D6E63)圓形", # Fixed: brown_red -> Hex
             "indication": "預防中風及栓塞",
             "warning": "隨餐服用。請注意出血徵兆",
             "default_usage": "QD_evening_with_meal"

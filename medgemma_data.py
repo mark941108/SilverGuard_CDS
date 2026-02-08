@@ -180,7 +180,13 @@ def get_renderable_data():
             
             # Color Matching
             # [Audit Fix] 順序重要！先檢查複合色（紅棕）再檢查單色
-            if "黃" in app: color = "yellow"
+            # [V17 Fix] Support direct Hex Code (e.g. Hex(#8D6E63))
+            if "Hex" in app:
+                import re
+                match = re.search(r'Hex\((#[0-9A-Fa-f]{6})\)', app)
+                if match: color = match.group(1)
+                else: color = "white" # Fallback
+            elif "黃" in app: color = "yellow"
             elif "紅棕" in app: color = "brown_red"  # ✅ Xarelto 專用：紅褐色
             elif "粉紅" in app and "紅棕" in app: color = "pink_brown"
             elif "粉紅" in app: color = "pink"
@@ -269,4 +275,33 @@ ALERT_PHRASES = {
         "WARNING": "注意！這藥可能有問題，先問過醫生或是藥師。",
         "SAFE": "這藥沒問題，照醫生交代去食。"
     }
+}
+
+# ---------------------------------------------------------
+# [V7.5 FIX] GLOBAL DRUG ALIASES (Synonym Mapping)
+# ---------------------------------------------------------
+DRUG_ALIASES = {
+    # Generic -> Brand (or vice versa, for normalization)
+    "amlodipine": "norvasc",
+    "bisoprolol": "concor",
+    "carvedilol": "dilatrend",
+    "furosemide": "lasix",
+    "valsartan": "diovan",
+    "metformin": "glucophage",
+    "glibenclamide": "daonil",
+    "gliclazide": "diamicron",
+    "omeprazole": "losec",
+    "warfarin sodium": "warfarin",
+    "coumadin": "warfarin",
+    "rivaroxaban": "xarelto",
+    "aspirin": "bokey",
+    "acetylsalicylic acid": "bokey",
+    "clopidogrel": "plavix",
+    "zolpidem": "stilnox",
+    "atorvastatin": "lipitor",
+    "rosuvastatin": "crestor",
+    "ezetimibe": "ezetrol",
+    "acetaminophen": "panadol",
+    "paracetamol": "panadol",
+    "tylenol": "panadol"
 }
