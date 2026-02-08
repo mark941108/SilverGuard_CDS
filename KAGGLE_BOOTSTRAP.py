@@ -212,6 +212,9 @@ subprocess.run(
 )
 print("⚠️ [IMPORTANT] If you see 'ImportError: _Ink' -> RESTART KERNEL & RUN THIS CELL AGAIN!")
 
+# [V12.16] FFMPEG Check (Critical for Audio)
+subprocess.run("apt-get install -y ffmpeg", shell=True, check=False)
+
 print("   ✅ 所有依賴安裝完成！")
 
 # %%

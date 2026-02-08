@@ -230,18 +230,21 @@ def parse_dosage_usage(usage_tag):
 
 ALERT_PHRASES = {
     "BAHASA": {
-        "HIGH_RISK": "BAHAYA! JANGAN MINUM OBAT INI. HUBUNGI DOKTER SEKARANG.",  # DANGER! Do not take. Call doctor.
-        "WARNING": "PERHATIAN. PERIKSA DOSIS DENGAN DOKTER.",                    # Attention. Check dose with doctor.
-        "SAFE": "OBAT INI AMAN. MINUM SESUAI RESEP."                             # This medicine is safe. Take as prescribed.
+        # Changed DOKTER to "DOKTER / APOTEKER" for broader context
+        "HIGH_RISK": "BAHAYA! JANGAN MINUM OBAT INI. HUBUNGI DOKTER ATAU APOTEKER SEKARANG.",
+        "WARNING": "PERHATIAN. PERIKSA KEMBALI DOSISNYA.", # Check the dose again
+        "SAFE": "OBAT INI AMAN. MINUM SESUAI RESEP."
     },
     "VIETNAMESE": {
-        "HIGH_RISK": "NGUY HIỂM! KHÔNG ĐƯỢC UỐNG THUỐC NÀY. GỌI BÁC SĨ NGAY.",   # DANGER! Do not take. Call doctor.
-        "WARNING": "CHÚ Ý. KIỂM TRA LẠI LIỀU LƯỢNG VỚI BÁC SĨ.",                 # Attention. Check dose with doctor.
-        "SAFE": "THUỐC NÀY AN TOÀN. UỐNG THEO TOA."                              # This medicine is safe. Take as prescribed.
+        # Kept original (Perfect)
+        "HIGH_RISK": "NGUY HIỂM! KHÔNG ĐƯỢC UỐNG THUỐC NÀY. GỌI BÁC SĨ NGAY.",
+        "WARNING": "CHÚ Ý. KIỂM TRA LẠI LIỀU LƯỢNG VỚI BÁC SĨ.",
+        "SAFE": "THUỐC NÀY AN TOÀN. UỐNG THEO TOA."
     },
     "TAIWANESE": {
-        "HIGH_RISK": "危險！這藥不通食，趕緊打電話問醫生。",                       # Danger! Don't eat this med, call doctor.
-        "WARNING": "注意！這藥可能有問題，先問過醫生再食。",                       # Attention! Might be problem, ask doctor first.
-        "SAFE": "這藥沒問題，照醫生交代去食。"                                     # This med is okay, eat as doctor said.
+        # Fixed "不通" -> "毋通" (Standard Hokkien)
+        "HIGH_RISK": "危險！這藥毋通食，趕緊打電話問醫生。",
+        "WARNING": "注意！這藥可能有問題，先問過醫生或是藥師。",
+        "SAFE": "這藥沒問題，照醫生交代去食。"
     }
 }

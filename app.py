@@ -2169,7 +2169,7 @@ def silverguard_ui(case_data, target_lang="zh-TW", force_offline=False):  # [Fix
     
     elif status == "HIGH_RISK":
         display_status = lang_pack["HIGH_RISK"]
-        color = "#ffcdd2"
+        color = "#ffebee"
         icon = "⛔"
     elif status == "WARNING":
         display_status = lang_pack["WARNING"]

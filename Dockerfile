@@ -61,6 +61,9 @@ ENV OFFLINE_MODE=True \
     MPLCONFIGDIR=/tmp/matplotlib \
     GRADIO_SERVER_NAME="0.0.0.0"
 
+# [V8.8 Fix] Ensure matplotlib cache is writable by non-root user
+RUN mkdir -p /tmp/matplotlib && chmod 777 /tmp/matplotlib
+
 # Expose Gradio Port
 EXPOSE 7860
 

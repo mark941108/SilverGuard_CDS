@@ -159,7 +159,7 @@ SilverGuard moves beyond simple "prompt engineering" to implement a scientifical
     > "Standard retries often fail due to correlated errors. SilverGuard implements **'Internal Heterogeneity'** by shifting from a Creative Persona (Temp 0.6) to a Strict Logician Persona (Temp 0.2) upon failure. This strategy increases the **Effective Channel Count ($K^*$)**, allowing a single 4B model to self-correct with the robustness of a larger ensemble [Yang et al., 2026]."
 
 *   **C. User Experience: Wayfinding AI**
-    > "Inspired by **Mahvar et al. (2025)** on **'Wayfinding AI'**, SilverGuard prioritizes **Context-Seeking** over guessing. If confidence drops below **70%**, the Agent triggers a **'Need Info'** state, asking the user specific clarifying questions (e.g., 'Is this 500mg or 850mg?') rather than hallucinating. This aligns with findings that users prefer **'Deferred Answers'** for high-stakes health queries."
+    > "Inspired by **Mahvar et al. (2025)** on **'Wayfinding AI'**, SilverGuard prioritizes **Context-Seeking** over guessing. If confidence drops below **75%**, the Agent triggers a **'Need Info'** state, asking the user specific clarifying questions (e.g., 'Is this 500mg or 850mg?') rather than hallucinating. This aligns with findings that users prefer **'Deferred Answers'** for high-stakes health queries."
 
 ### 🛠️ Strategic Architecture: Turning Weaknesses into Strengths
 
@@ -240,7 +240,7 @@ To ensure clinical safety at the edge, we implemented three layers of defense th
 
     *   **CO₂ Reduction:** By running on a local T4 GPU instead of querying massive cloud models for every check, SilverGuard reduces the inference carbon footprint by an estimated **90%** (~0.42g vs 4.32g CO₂ per query).
     *   **Zero Marginal Cost Inference:** Once deployed on local hardware (T4 GPU), each additional safety check costs **$0.00** in cloud API fees. This economic model makes 24/7 monitoring viable for resource-constrained community pharmacies.
-    *   **Future Roadmap:** Porting to **Android AICore (Pixel 9 Pro)** for a battery-powered, 100% offline solution.
+    *   **Future Roadmap (Phase 5):** Porting to **Android AICore (Pixel 9 Pro) via MediaPipe** for a battery-powered, 100% offline solution.
 
 **Quantifiable Health Impact:**
 Based on Taiwan's ADR (Adverse Drug Reaction) rate of 5.7% (PMID: 28472654) and the 250,000 elderly patients under migrant care:
