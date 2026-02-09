@@ -9,6 +9,13 @@ from datetime import datetime, timedelta, timezone
 # [UX Polish] Timezone Handling
 TZ_TW = timezone(timedelta(hours=8))
 
+# ==========================================
+# 🔧 GLOBAL CONFIGURATION (全域設定 - 絕對安全區)
+# ==========================================
+IMG_SIZE = 896
+VARIANTS_PER_DRUG = 30
+PATIENT_AGES = [65, 70, 75, 82, 88, 91]
+
 import qrcode
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps
 
@@ -88,9 +95,7 @@ else:
 
 OUTPUT_DIR = os.path.join(BASE_DIR, "assets/lasa_dataset_v17_compliance")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-IMG_SIZE = 896
-VARIANTS_PER_DRUG = 30
-PATIENT_AGES = [65, 70, 75, 82, 88, 91]
+# [V16] Dynamic Path for Kaggle vs Local
 
 # Google Fonts URLs
 FONT_URLS = {
