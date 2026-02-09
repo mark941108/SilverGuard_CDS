@@ -624,45 +624,26 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
 # ==========================================
 # 5. Database (Regulatory-Compliant Synthetic Data)
 # ==========================================
-PATIENTS = [
-    {"name": "王大明", "gender": "男 (M)", "id": "A123456789"},
-    {"name": "林美玉", "gender": "女 (F)", "id": "B223456789"},
-    {"name": "張志明", "gender": "男 (M)", "id": "C123456789"},
-    {"name": "陳淑芬", "gender": "女 (F)", "id": "D223456789"},
-]
+# [V27] Bias Eradication: Name variety engine
+SURNAMES = ["張", "劉", "陳", "李", "王", "吳", "林", "黃", "蔡", "曾", "鄧", "鄭", "謝", "洪", "郭"]
+GIVEN_M = ["志宏", "柏恩", "俊輝", "子軒", "建良", "家豪", "育嘉", "明德", "建國", "志強"]
+GIVEN_F = ["淑惠", "美玲", "雅芳", "欣怡", "慧珍", "佩珊", "淑芬", "美玉", "秀英", "美鳳"]
 
-# ==========================================
-# 5. Database (Regulatory-Compliant Synthetic Data - SYNCED with medgemma_data.py)
-# ==========================================
-# [Audit Fix] Defensive Import: Fallback to Hardcoded DB
-try:
-    from medgemma_data import DRUG_DATABASE as MASTER_DB
-    DATA_SYNC_AVAILABLE = True
-    print("✅ [Sync] Loaded DRUG_DATABASE from medgemma_data.py")
-except ImportError:
-    print("\n" + "!"*50)
-    print("⚠️ WARNING: medgemma_data.py NOT FOUND!")
-    print("⚠️ Falling back to internal hardcoded data.")
-    print("⚠️ Training data might be OUTDATED.")
-    print("!"*50 + "\n")
-    DATA_SYNC_AVAILABLE = False
-    
-    # Minimal Fallback DB (Critical Drugs Only)
-    MASTER_DB = {
-        "Hypertension": [
-            {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after"},
-        ],
-        "Diabetes": [
-            {"code": "BC23456792", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用減少腸胃不適", "default_usage": "BID_meals_after"},
-        ]
-    }
+def get_diverse_patients():
+    p_list = [
+        {"name": "王大明", "gender": "男 (M)", "id": "A123456789"},
+        {"name": "林美玉", "gender": "女 (F)", "id": "B223456789"},
+        {"name": "張志明", "gender": "男 (M)", "id": "C123456789"},
+        {"name": "陳淑芬", "gender": "女 (F)", "id": "D223456789"},
+    ]
+    for s in SURNAMES:
+        for g in GIVEN_M:
+             p_list.append({"name": s+g, "gender": "男 (M)", "id": f"M{random.randint(100,999)}"})
+        for g in GIVEN_F:
+             p_list.append({"name": s+g, "gender": "女 (F)", "id": f"F{random.randint(100,999)}"})
+    return p_list
 
-PATIENTS = [
-    {"name": "王大明", "gender": "男 (M)", "id": "A123456789"},
-    {"name": "林美玉", "gender": "女 (F)", "id": "B223456789"},
-    {"name": "張志明", "gender": "男 (M)", "id": "C123456789"},
-    {"name": "陳淑芬", "gender": "女 (F)", "id": "D223456789"},
-]
+PATIENTS = get_diverse_patients()
 
 def get_synced_drugs():
     """ Adapter: DRUG_DATABASE (V5) -> Stress Test Schema (V9) """

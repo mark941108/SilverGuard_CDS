@@ -24,6 +24,46 @@ except ImportError:
     print("!"*50 + "\n")
     DATA_SYNC_AVAILABLE = False
 
+# ==========================================
+# 1. 病患資料擴充 (Round 19: Diversity Fix)
+# ==========================================
+# 解決 "Overfitting to 4 patients" 問題
+# 擴充至 60+ 隨機病患，強迫模型閱讀文字而非背誦名字
+
+PATIENT_PROFILES = {}
+
+# 1. 基礎名單 (保留原本的以確保相容性)
+base_profiles = {
+    "陳金龍": {"gender": "男", "dob": datetime(1955, 3, 12)},
+    "林美玉": {"gender": "女", "dob": datetime(1948, 8, 25)},
+    "張志明": {"gender": "男", "dob": datetime(1985, 6, 15)},
+    "李建國": {"gender": "男", "dob": datetime(1941, 2, 28)},
+}
+PATIENT_PROFILES.update(base_profiles)
+
+# 2. 自動生成 50+ 個隨機病人 (The "Chen Jinlong" Killer)
+last_names = ["王", "李", "張", "劉", "陳", "楊", "黃", "趙", "吳", "周", "徐", "孫", "馬", "朱", "胡", "郭", "何", "高", "林"]
+first_names_m = ["志明", "建國", "冠宇", "豪", "偉", "亮", "明", "強", "文", "傑", "俊", "凱", "成", "峰", "平", "添財", "進財"]
+first_names_f = ["淑芬", "雅婷", "美玲", "麗華", "秀英", "敏", "靜", "惠", "娟", "英", "華", "玉", "珍", "儀", "佳", "罔市", "招弟"]
+
+# 生成 60 個額外名單
+for _ in range(60):
+    gender = random.choice(["男", "女"])
+    lname = random.choice(last_names)
+    fname = random.choice(first_names_m) if gender == "男" else random.choice(first_names_f)
+    full_name = f"{lname}{fname}"
+    
+    # 隨機生日 (60-90歲)
+    year = random.randint(1935, 1965)
+    month = random.randint(1, 12)
+    day = random.randint(1, 28)
+    
+    # 避免重複覆蓋
+    if full_name not in PATIENT_PROFILES:
+        PATIENT_PROFILES[full_name] = {"gender": gender, "dob": datetime(year, month, day)}
+
+print(f"✅ Patient Database Expanded: {len(PATIENT_PROFILES)} profiles loaded.")
+
 
 # ==========================================
 # ⚖️ LEGAL DISCLAIMER / 免責聲明
@@ -175,6 +215,38 @@ def apply_optical_stress(img, severity=0.5):
     enhancer = ImageEnhance.Brightness(img)
     img = enhancer.enhance(random.uniform(0.9, 1.1))
     
+    return img
+
+def apply_realism_augmentations(img):
+    """
+    🌟 V18 升級：把完美的數位圖片變成「爛手機拍的照片」
+    這能有效防止模型記住像素級別的特徵 (Overfitting)
+    """
+    # 1. 隨機旋轉 (模擬手抖/歪斜)
+    if random.random() < 0.7:
+        angle = random.uniform(-3, 3) # 微幅旋轉
+        img = img.rotate(angle, resample=Image.BICUBIC, expand=False, fillcolor='white')
+
+    # 2. 隨機模糊 (模擬對焦失敗 - 這是對抗 Overfitting 的神技)
+    # 大幅增加模糊機率與強度
+    if random.random() < 0.6:  
+        radius = random.uniform(0.5, 1.5)
+        img = img.filter(ImageFilter.GaussianBlur(radius))
+
+    # 3. 隨機亮度/對比度 (模擬醫院燈光)
+    enhancer = ImageEnhance.Brightness(img)
+    img = enhancer.enhance(random.uniform(0.8, 1.2)) # 變暗或變亮
+
+    enhancer = ImageEnhance.Contrast(img)
+    img = enhancer.enhance(random.uniform(0.7, 1.3))
+
+    # 4. 隨機添加噪點 (模擬 ISO 感光雜訊)
+    if random.random() < 0.4:
+        img_np = np.array(img)
+        noise = np.random.normal(0, 5, img_np.shape).astype(np.uint8) # 輕微噪點
+        img_np = np.clip(img_np.astype(int) + noise, 0, 255).astype(np.uint8)
+        img = Image.fromarray(img_np)
+
     return img
 
 def draw_watermark(img):
@@ -611,6 +683,9 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
     # --- G. Post-Processing ---
     img = add_creases(img, intensity=0.5)
     
+    # [Round 19 Fix] Apply Stronger Augmentations
+    img = apply_realism_augmentations(img)
+    
     # [V26.1 Fix] Use kwargs to control optical stress (sim2real_intensity)
     # Default to 1 (High stress) if not specified, but respect lower values
     blur_severity = kwargs.get("sim2real_intensity", 1.0)
@@ -687,12 +762,24 @@ if __name__ == "__main__":
     import json
     from datetime import datetime
     
-    random.seed(42)
-    VARIANTS_PER_DRUG = 30
-    TRAP_PROBABILITY = 0.3
+    # [V27] Nuclear Bias Eradication: 100+ Diverse Names
+    MALE_NAMES = ["陳金龍", "張志明", "李建國", "黃明德", "吳文雄", "林大維", "王建平", "蔡志強", "劉慶榮", "曾國慶", "徐嘉銘", "洪文海", "郭瑞麟", "周俊宏", "廖志傑", "朱博文", "盧國華", "蘇嘉豪", "葉啟文", "何銘峰"]
+    FEMALE_NAMES = ["林美玉", "王秀英", "劉淑芬", "陳麗華", "李淑珍", "張雅婷", "黃宜婷", "吳淑慧", "曾秀雲", "蔡佩君", "徐美鳳", "郭淑卿", "洪秀蘭", "周美玲", "廖淑貞", "朱鳳英", "盧秀雲", "蘇秋菊", "葉秀蘭", "何美雲"]
     
-    PATIENT_AGES = list(range(65, 95))
-    PATIENT_NAMES = ["陳金龍", "林美玉", "張志明", "李建國", "王秀英", "黃明德", "劉淑芬", "吳文雄"]
+    # Expand lists to reach 100+ unique identifying names
+    import names_dataset # Optional: if you want to be super pros, but simple list is safer
+    # Adding more manually to ensure variety without extra dependencies
+    MALE_NAMES += [f"王{c}{d}" for c, d in [("志", "宏"), ("建", "輝"), ("俊", "傑"), ("柏", "翰"), ("承", "恩")]]
+    FEMALE_NAMES += [f"陳{c}{d}" for c, d in [("雅", "雯"), ("淑", "惠"), ("美", "蓮"), ("秀", "琴"), ("惠", "如")]]
+    
+    # Coverage for common surnames
+    SURNAMES = ["張", "劉", "陳", "李", "王", "吳", "林", "黃", "蔡", "曾", "許", "徐", "郭", "洪", "蕭", "曾", "程", "謝"]
+    GIVEN_M = ["志宏", "柏恩", "俊輝", "冠宇", "家豪", "子軒", "建良", "育嘉"]
+    GIVEN_F = ["淑惠", "美玲", "雅芳", "怡君", "慧珍", "佩珊", "欣怡", "淑芬"]
+    
+    # Final combined lists (150+ combinations)
+    ALL_MALES = MALE_NAMES + [s + g for s in SURNAMES for g in GIVEN_M]
+    ALL_FEMALES = FEMALE_NAMES + [s + g for s in SURNAMES for g in GIVEN_F]
     
     print(f"\n🏭 Generating {total_drugs} drugs × {VARIANTS_PER_DRUG} variants = {total_drugs * VARIANTS_PER_DRUG} samples\n")
     
@@ -705,24 +792,31 @@ if __name__ == "__main__":
             print(f"🔄 [{cat}] {drug_shortname}...", end="")
             
             for variant_idx in range(VARIANTS_PER_DRUG):
-                # [Audit Fix P1] Rule-Based Trap Logic (not random)
-                # Trap = Medical Risk (Sound-alike drug OR high-risk category)
                 is_trap = (cat == "SOUND_ALIKE_CRITICAL") or (cat in ["Anticoagulant", "Sedative"])
                 filename = f"{OUTPUT_DIR}/{cat}_{drug_shortname}_V{variant_idx:03d}.png"
                 
                 patient_age = random.choice(PATIENT_AGES)
-                patient_name = random.choice(PATIENT_NAMES)
+                
+                # [Anti-Bias Fix] Use Gender-Linked Names
+                is_male = random.random() < 0.5
+                patient_name = random.choice(ALL_MALES) if is_male else random.choice(ALL_FEMALES)
+                patient_gender = "男 (M)" if is_male else "女 (F)"
                 
                 # Select random parameters
                 bg_color = random.choice(["white", "cream", "light_gray", "warm_white"])
                 blur_level = random.choice([0.0, 0.5, 1.0]) # 0=Clear, 1=Blurry
                 glare_intensity = random.choice([0.3, 0.6, 0.9])
                 
+                # Update patient dict for generation
+                p_data = {"name": patient_name, "gender": patient_gender}
+                
                 generate_v26_human_bag(
                     filename, cat, d, is_trap,
                     bg_color=bg_color,
                     blur_level=blur_level,
-                    glare_intensity=glare_intensity
+                    glare_intensity=glare_intensity,
+                    patient_name=patient_name,
+                    patient_age=patient_age
                 )
                 
                 generated_files.append({

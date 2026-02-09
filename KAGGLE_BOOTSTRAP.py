@@ -209,7 +209,7 @@ subprocess.run(
 # 3. 視覺與音訊工具 (Key: Matplotlib >= 3.8 to support Pillow 10+)
 subprocess.run('pip uninstall -y pillow matplotlib', shell=True) # [V12.14] Nuke old pillow first
 subprocess.run(
-    'pip install -U "pillow>=10.4.0" "matplotlib>=3.9.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]"', 
+    'pip install -U "pillow>=10.4.0" "matplotlib>=3.9.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]" "sentence-transformers" "faiss-cpu"', 
     shell=True, check=True
 )
 print("⚠️ [IMPORTANT] If you see 'ImportError: _Ink' -> RESTART KERNEL & RUN THIS CELL AGAIN!")
