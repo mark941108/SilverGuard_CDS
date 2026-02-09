@@ -32,6 +32,28 @@ IMG_WIDTH = 896
 IMG_HEIGHT = 896
 
 # ==========================================
+# 🏥 MASTER DB (Source of Truth Sync)
+# ==========================================
+try:
+    import medgemma_data
+    MASTER_DB = medgemma_data.DRUG_DATABASE
+    print("✅ MASTER_DB synced with medgemma_data.py")
+except ImportError:
+    print("⚠️ medgemma_data.py not found, using internal hardcoded fallback")
+    MASTER_DB = {
+        "Hypertension": [
+            {"code": "BC23456789", "name_en": "Norvasc", "name_zh": "脈優", "generic": "Amlodipine", "dose": "5mg", "appearance": "白色八角形", "indication": "降血壓", "warning": "小心姿勢性低血壓", "default_usage": "QD_breakfast_after"},
+            {"code": "BC23456788", "name_en": "Lasix", "name_zh": "來適泄錠", "generic": "Furosemide", "dose": "40mg", "appearance": "白色圓形", "indication": "高血壓/水腫", "warning": "服用後排尿頻繁", "default_usage": "BID_morning_noon"}
+        ],
+        "Diabetes": [
+            {"code": "BC23456792", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用", "default_usage": "BID_meals_after"}
+        ],
+        "High Risk": [
+            {"code": "WAR0500001", "name_en": "Warfarin", "name_zh": "華法林", "generic": "Warfarin Sodium", "dose": "5mg", "appearance": "粉紅色圓形", "indication": "抗凝血", "warning": "定期監測INR", "default_usage": "QD_evening"}
+        ]
+    }
+
+# ==========================================
 # 1. 資源準備 (Auto-Font)
 # ==========================================
 FONT_URL = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf"

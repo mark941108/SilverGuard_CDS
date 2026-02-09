@@ -88,6 +88,7 @@ else:
 OUTPUT_DIR = os.path.join(BASE_DIR, "assets/lasa_dataset_v17_compliance")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 IMG_SIZE = 896
+VARIANTS_PER_DRUG = 30
 
 # Google Fonts URLs
 FONT_URLS = {
