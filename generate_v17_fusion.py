@@ -89,6 +89,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "assets/lasa_dataset_v17_compliance")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 IMG_SIZE = 896
 VARIANTS_PER_DRUG = 30
+PATIENT_AGES = [65, 70, 75, 82, 88, 91]
 
 # Google Fonts URLs
 FONT_URLS = {
