@@ -7,10 +7,10 @@ Purpose: Sync data between Training (V5), Generation (V16), and Stress Test.
 # [V8.8 Audit Fix] Global Safety Thresholds
 # [Demo Recording] Blur Threshold Configuration
 # Production: 100.0 (Conservative for Patient Safety)
-# Demo Recording: 25.0 (Prevents false rejection from camera shake/phone photos)
-BLUR_THRESHOLD = 25.0  # ⚠️ Set to 25.0 for smooth demo recording
+# Strict Clinical Standard: 50.0 (Recommended for Impact Challenge)
+BLUR_THRESHOLD = 50.0  # ✅ Restored to Professional Standard 
 # Note: Camera shake or phone photography typically scores 40-80
-# A threshold of 100.0 would reject most demo recordings
+# A threshold of 100.0 would reject most handheld inputs
 
 # Original Data Source from V5
 DRUG_DATABASE = {
@@ -90,7 +90,7 @@ DRUG_DATABASE = {
         "dose": "100mg",
         "appearance": "白色圓形 (腸溶)",
         "indication": "預防血栓/心肌梗塞",
-        "warning": "胃潰瘍患者慎用。若有黑便請立即停藥就醫",
+        "warning": "胃潰瘍患者慎用。若有黑便建議立即就醫評估停藥",
         "default_usage": "QD_breakfast_after",
         "max_daily_dose": 100, "drug_class": "Antiplatelet", "beers_risk": True
     },
@@ -102,7 +102,7 @@ DRUG_DATABASE = {
         "dose": "75mg",
         "appearance": "粉紅色圓形",
         "indication": "預防血栓",
-        "warning": "手術前5-7天需停藥。勿與其他抗凝血藥併用",
+        "warning": "手術前建議諮詢醫師評估停藥 (通常5-7天)。勿與其他抗凝血藥併用",
         "default_usage": "QD_breakfast_after",
         "max_daily_dose": 75, "drug_class": "Antiplatelet", "beers_risk": False
     },
@@ -131,23 +131,7 @@ DRUG_DATABASE = {
 }
 
 # ===== Drug Aliases Mapping (Legacy Support) =====
-DRUG_ALIASES = {
-    # Diabetes
-    "glucophage": "metformin", "glucophage xr": "metformin", "fortamet": "metformin", "glumetza": "metformin",
-    "amaryl": "glimepiride", "januvia": "sitagliptin", "daonil": "glibenclamide", "diamicron": "gliclazide",
-    # Hypertension
-    "norvasc": "amlodipine", "concor": "bisoprolol", "diovan": "valsartan", "dilatrend": "carvedilol", "lasix": "furosemide",
-    # Sedative
-    "stilnox": "zolpidem", "imovane": "zopiclone", "hydralazine": "hydralazine", "hydroxyzine": "hydroxyzine",
-    # Cardiac
-    "asa": "aspirin", "plavix": "clopidogrel", "aspirin": "aspirin", "bokey": "aspirin",
-    # Analgesic
-    "panadol": "acetaminophen", "acetaminophen": "acetaminophen",
-    # Anticoagulant
-    "coumadin": "warfarin", "warfarin": "warfarin", "xarelto": "rivaroxaban",
-    # Lipid
-    "lipitor": "atorvastatin", "crestor": "rosuvastatin",
-}
+# DRUG_ALIASES Consolidated below to prevent duplication
 
 def get_renderable_data():
     """
@@ -258,22 +242,19 @@ def parse_dosage_usage(usage_tag):
 
 ALERT_PHRASES = {
     "BAHASA": {
-        # Changed DOKTER to "DOKTER / APOTEKER" for broader context
-        "HIGH_RISK": "BAHAYA! JANGAN MINUM OBAT INI. HUBUNGI DOKTER ATAU APOTEKER SEKARANG.",
-        "WARNING": "PERHATIAN. PERIKSA KEMBALI DOSISNYA.", # Check the dose again
-        "SAFE": "OBAT INI AMAN. MINUM SESUAI RESEP."
+        "HIGH_RISK": "RISIKO TINGGI. MOHON KONSULTASI DOKTER SEGERA.",
+        "WARNING": "PERHATIAN. SARAN KONFIRMASI DOSIS.", 
+        "SAFE": "INFO SESUAI RESEP. IKUTI INSTRUKSI DOKTER."
     },
     "VIETNAMESE": {
-        # Kept original (Perfect)
-        "HIGH_RISK": "NGUY HIỂM! KHÔNG ĐƯỢC UỐNG THUỐC NÀY. GỌI BÁC SĨ NGAY.",
-        "WARNING": "CHÚ Ý. KIỂM TRA LẠI LIỀU LƯỢNG VỚI BÁC SĨ.",
-        "SAFE": "THUỐC NÀY AN TOÀN. UỐNG THEO TOA."
+        "HIGH_RISK": "RỦI RO CAO. VUI LÒNG HỎI Ý KIẾN BÁC SĨ.",
+        "WARNING": "CẢNH BÁO. VUI LÒNG KIỂM TRA LẠI.", 
+        "SAFE": "THÔNG TIN KHỚP. VUI LÒNG TUÂN THỦ TOA THUỐC."
     },
     "TAIWANESE": {
-        # Fixed "不通" -> "毋通" (Standard Hokkien)
-        "HIGH_RISK": "危險！這藥毋通食，趕緊打電話問醫生。",
-        "WARNING": "注意！這藥可能有問題，先問過醫生或是藥師。",
-        "SAFE": "這藥沒問題，照醫生交代去食。"
+        "HIGH_RISK": "這項藥物有高風險，建議先問過醫生。",
+        "WARNING": "這項藥物要注意，建議拿單子給藥師看。", 
+        "SAFE": "辨識結果符合處方，請照醫生交代服用。"
     }
 }
 
@@ -303,5 +284,211 @@ DRUG_ALIASES = {
     "ezetimibe": "ezetrol",
     "acetaminophen": "panadol",
     "paracetamol": "panadol",
-    "tylenol": "panadol"
+    "tylenol": "panadol",
+    "hydralazine": "hydralazine", # Generic fallback
+    "hydroxyzine": "hydroxyzine",
+    "imovane": "zopiclone",
+    "stilnox": "zolpidem"
 }
+
+def lookup_chinese_name(name_en):
+    """
+    將英文藥名對照資料庫轉換為中文藥名 (Data-level Lookup)
+    """
+    if not name_en: return "未知藥物"
+    import re
+    # 清理雜訊 (劑量、括號)
+    clean_name = re.sub(r'\s*\d+\.?\d*\s*(mg|g|mcg|ug|ml|毫克|公克)\b', '', str(name_en), flags=re.IGNORECASE)
+    clean_name = re.sub(r'\s*\([^)]*\)', '', clean_name).strip().lower()
+    
+    # 檢查別名
+    target = DRUG_ALIASES.get(clean_name, clean_name)
+    
+    for category in DRUG_DATABASE.values():
+        for item in category:
+            if target in [item['name_en'].lower(), item['generic'].lower()]:
+                return item['name_zh']
+    return name_en # Fallback
+
+# =========================================================
+# ❤️ [Empathetic Engine] Patient-Centric Communication Mode (Compliance Verified)
+# Focus: AI provides triage guidance, NOT medical decisions.
+# =========================================================
+# =========================================================
+# ❤️ [Empathetic Engine] Patient-Centric Communication Mode (Compliance Verified)
+# Focus: AI provides triage guidance, NOT medical decisions.
+# [Round 144] Multilingual Expansion (ID/VI/EN) for Template TTS
+# =========================================================
+WARM_SCRIPTS = {
+    "HIGH_RISK": {
+        "zh-TW": [
+            "提醒您，請稍等一下。",  
+            "這藥物與一般處方有些許差異，", 
+            "⚠️ 建議先諮詢醫師或是藥師，確認沒問題再來服用，比較安心！" 
+        ],
+        "en": [
+            "Please wait a moment.",
+            "This prescription requires verification.",
+            "⚠️ Please consult a pharmacist before taking this medication."
+        ],
+        "id": [
+            "Mohon tunggu sebentar.",
+            "Resep ini perlu diverifikasi.",
+            "⚠️ Disarankan konsultasi ke apoteker sebelum minum obat ini."
+        ],
+        "vi": [
+            "Xin vui lòng chờ một chút.",
+            "Đơn thuốc này cần được xác minh.",
+            "⚠️ Khuyên bạn nên hỏi ý kiến dược sĩ trước khi dùng thuốc này."
+        ]
+    },
+    "WARNING": {
+        "zh-TW": [
+            "提醒您，請多留意。",
+            "這藥物有一些細節建議要注意，",
+            "⚠️ 建議向藥師確認用藥方式。" 
+        ],
+        "en": [
+            "Please take note.",
+            "There are some details to check.",
+            "⚠️ Please confirm usage with a pharmacist."
+        ],
+        "id": [
+            "Mohon perhatikan.",
+            "Ada detail yang perlu dicek.",
+            "⚠️ Disarankan konfirmasi cara pakai ke apoteker."
+        ],
+        "vi": [
+            "Xin lưu ý.",
+            "Có một số chi tiết cần kiểm tra.",
+            "⚠️ Khuyên bạn xác nhận cách dùng với dược sĩ."
+        ]
+    },
+    "SAFE": {
+        "zh-TW": [ 
+            "辨識結果符合處方紀錄。",           
+            "它是 {drug_name}，", 
+            "請遵照醫囑服用，並定期回診。" 
+        ],
+        "en": [
+            "Identification matches records.",
+            "This is {drug_name}.",
+            "Please follow the prescription and regular check-ups."
+        ],
+        "id": [
+            "Identifikasi cocok dengan resep.",
+            "Ini adalah {drug_name}.",
+            "Mohon ikuti resep dan kontrol teratur."
+        ],
+        "vi": [
+            "Nhận dạng khớp với hồ sơ.",
+            "Đây là {drug_name}.",
+            "Vui lòng tuân theo đơn thuốc và tái khám định kỳ."
+        ]
+    }
+}
+
+# 🚨 [Round 128] Medical Ethics Update: Professional Tone Enforced
+# Deprecated: Informal phrasings removed for clinical professionalism by default.
+# Add: Specific clinical reasoning + Direct triage action
+EMERGENCY_SCRIPTS = {
+    "BLEEDING": {
+        "zh-TW": "⚠️ 醫療警示：偵測到出血關鍵字。您正在服用抗凝血藥物，建議立即尋求醫療協助，並諮詢醫師關於用藥調整。",
+        "en": "⚠️ MEDICAL ALERT: Bleeding reported while on anticoagulants. Recommend seeking immediate medical attention to evaluate medication risks.",
+        "id": "⚠️ PERINGATAN MEDIS: Pendarahan terdeteksi. Disarankan segera cari bantuan medis untuk evaluasi obat.",
+        "vi": "⚠️ CẢNH BÁO Y TẾ: Phát hiện chảy máu. Khuyên bạn nên tìm kiếm sự chăm sóc y tế ngay lập tức để đánh giá thuốc."
+    },
+    "CHEST_PAIN": {
+        "zh-TW": "⚠️ 緊急狀況：偵測到胸痛或心臟不適。建議保持冷靜，並立即撥打 119 或前往最近的急診。",
+        "en": "⚠️ CRITICAL ALERT: Chest pain detected. Recommend calling 119/911 or going to the nearest Emergency Room.",
+        "id": "⚠️ DARURAT: Nyeri dada terdeteksi. Disarankan segera hubungi ambulans atau ke UGD terdekat.",
+        "vi": "⚠️ KHẨN CẤP: Phát hiện đau ngực. Khuyên bạn gọi cấp cứu 115 hoặc đến phòng cấp cứu gần nhất."
+    },
+    "STROKE": {
+        "zh-TW": "⚠️ 中風警示：偵測到疑似中風症狀。建議立即記下時間並撥打 119 求助。",
+        "en": "⚠️ STROKE ALERT: Possible stroke symptoms detected. Recommend noting the time and calling an ambulance immediately.",
+        "id": "⚠️ WASPADA STROKE: Gejala stroke terdeteksi. Disarankan catat waktu dan panggil ambulans segera.",
+        "vi": "⚠️ CẢNH BÁO ĐỘT QUỴ: Nghi ngờ đột quỵ. Khuyên bạn ghi lại thời gian và gọi cấp cứu ngay."
+    },
+    "ALLERGY": {
+        "zh-TW": "⚠️ 過敏警示：偵測到藥物過敏反應。建議攜帶藥袋諮詢醫師或藥師，評估是否暫停用藥。",
+        "en": "⚠️ ALLERGY ALERT: Possible adverse reaction. Recommend consulting a doctor/pharmacist with the drug bag immediately.",
+        "id": "⚠️ ALERGI OBAT: Kemungkinan reaksi alergi. Disarankan konsultasi ke dokter dengan membawa obat.",
+        "vi": "⚠️ DỊ ỨNG THUỐC: Có thể bị phản ứng phụ. Khuyên bạn mang theo thuốc để hỏi ý kiến bác sĩ."
+    }
+}
+
+
+def generate_warm_message(status, drug_name_en, reasoning="", target_lang="zh-TW"):
+    """
+    Core Logic: Constructing empathetic patient-centric responses.
+    [Round 108 Update] Added 'reasoning' for context-aware emergency overrides.
+    [Round 109 Update] Added 'target_lang' for multilingual emergency triage.
+    """
+    # 0. Emergency Override (High Priority)
+    # Check reasoning keywords for immediate triage
+    if reasoning:
+        r_upper = str(reasoning).upper()
+        emergency_key = None
+        if "BLEEDING" in r_upper or "HEMORRHAGE" in r_upper or "BLACK STOOL" in r_upper:
+            emergency_key = "BLEEDING"
+        elif "CHEST PAIN" in r_upper or "SUICIDE" in r_upper or "CRUSHING PAIN" in r_upper:
+            emergency_key = "CHEST_PAIN"
+        elif "STROKE" in r_upper:
+            emergency_key = "STROKE"
+        elif "ALLERGY" in r_upper or "ANAPHYLAXIS" in r_upper:
+            emergency_key = "ALLERGY"
+            
+        if emergency_key:
+            # [Round 109] Multilingual Routing
+            # Default to English if language not supported, or zh-TW if default
+            lang_code = target_lang if target_lang in ["zh-TW", "en", "id", "vi"] else "en"
+            # Fallback for traditional chinese specifically
+            if target_lang == "zh-TW": lang_code = "zh-TW"
+            
+            script_dict = EMERGENCY_SCRIPTS.get(emergency_key, {})
+            return script_dict.get(lang_code, script_dict.get("en", "EMERGENCY! SEEK MEDICAL HELP."))
+
+    # 狀態對齊：如果傳入的是 PASS 則轉換為 SAFE (確保字典能查到)
+    if status == "PASS": status = "SAFE"
+    
+    # [Constraint] Warm Scripts are currently zh-TW ONLY. 
+    # For other languages, we return None to let app.py handle standard TTS, 
+    # UNLESS it was an emergency caught above.
+    # [Round 144] CONSTRAINT REMOVED: Now supporting ID/VI/EN via templates.
+    
+    if status not in WARM_SCRIPTS:
+        return None
+        
+    # Get Multilingual Script Dictionary
+    script_dict = WARM_SCRIPTS[status]
+    
+    # Select Language (Fallback to en if missing, or zh-TW if default)
+    lang_code = target_lang if target_lang in ["zh-TW", "en", "id", "vi"] else "en"
+    if target_lang == "zh-TW" and "zh-TW" not in script_dict: lang_code = "zh-TW" # Safety
+    
+    if lang_code not in script_dict:
+        return None # No template for this language
+        
+    script_parts = script_dict[lang_code]
+    
+    # lookup_chinese_name is only for zh-TW. For others, we use the English name.
+    if lang_code == "zh-TW":
+        drug_display = lookup_chinese_name(drug_name_en)
+    else:
+        drug_display = drug_name_en # Use English name for ID/VI/EN
+    
+    if status == "SAFE":
+        # 組合 SAFE 邏輯：使用 .format() 填入藥名
+        try:
+            # Check if template has placeholder
+            if "{drug_name}" in script_parts[1]:
+                part_2 = script_parts[1].format(drug_name=drug_display)
+            else:
+                 part_2 = script_parts[1]
+            return f"{script_parts[0]} {part_2} {script_parts[2]}"
+        except:
+             return f"{script_parts[0]} {drug_display}. {script_parts[2]}"
+    else:
+        # 危險/警告時
+        return f"{script_parts[0]} {script_parts[1]} {script_parts[2]}"

@@ -1,15 +1,14 @@
-# 🏥 SilverGuard Core Dependencies (V12.13 Impact Edition)
-# Aligned with KAGGLE_BOOTSTRAP.py
+# 🏥 SilverGuard Core Dependencies (V1.0 Impact Edition)
 
 # ZeroGPU Requirement
 spaces
 
-# Core AI/ML (Gemma 3 Support)
-# Note: +cu118 versions require --index-url https://download.pytorch.org/whl/cu118
+# Core AI/ML (Gemma 3 & MedASR Support)
 torch>=2.6.0
 torchvision>=0.21.0
 torchaudio>=2.6.0
-transformers>=4.51.0
+# [P0 Fix] MedASR requires transformers 5.0.0 (Pre-release)
+git+https://github.com/huggingface/transformers.git@65dc261512cbdb1ee72b88ae5b222f2605aad8e5
 accelerate>=1.3.0
 bitsandbytes>=0.45.0
 peft>=0.14.0
@@ -20,18 +19,29 @@ albumentations
 opencv-python-headless
 qrcode[pil]
 
-# Audio & TTS
-# Audio & TTS
+# Audio & TTS (Critical Updates)
 gTTS
 pyttsx3
+edge-tts              # [NEW] For High-Quality Neural TTS
+librosa               # [NEW] For MedASR audio processing
+soundfile             # [NEW] Audio backend
 
-# Web/App Framework (Gradio 5 + Pydantic 2)
+# RAG & Knowledge Base (Enable Vector Search)
+sentence-transformers # [NEW] For embeddings
+faiss-cpu             # [NEW] For vector index
+
+# Web/App Framework
 gradio>=5.15.0
 fastapi>=0.115.0
 pydantic>=2.10.0
+nest_asyncio          # [NEW] For Jupyter compatibility
 
 # Utilities
 numpy>=1.26.4
 pandas>=2.2.0
 tqdm>=4.66.1
 python-dotenv>=1.0.1
+requests>=2.31.0
+
+# Windows Compatibility (Optional but recommended for requirements.txt)
+# pywin32; sys_platform == 'win32'

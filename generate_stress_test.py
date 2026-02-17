@@ -1,7 +1,8 @@
 """
-Gallery of Horrors - Stress Test Generator (V9: 2026 Flagship Edition)
+🏥 SilverGuard: Physics-Informed Stress Engine (V9: 2026 Flagship Edition)
 ======================================================================
 Designed for MedGemma Impact Challenge - "Agentic Workflow Prize"
+Narrative: Mathematically simulating real-world entropy (Sim2Real)
 Compliance: Taiwan Pharmacist Act (13 Items) + 2026 Elderly Friendly UX.
 
 Features:
@@ -598,7 +599,7 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     # Prevents "Forgery of Documents" accusations
     # Prevents Trademark Infringement confusion (Nominative Fair Use)
     # V12: 加入 clean_version 選項供 Sim2Physical 測試
-    if not clean_version:  # 只在非乾淨版加浮水印
+    if not clean_version:
         draw = ImageDraw.Draw(img) # Re-init draw on textured image if needed
         wm_font = get_font(50)
         
@@ -611,6 +612,11 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
         # Rotate watermark
         txt_layer = txt_layer.rotate(30)
         img = Image.alpha_composite(img.convert("RGBA"), txt_layer).convert("RGB")
+    else:
+        # [Audit Fix] Mandatory small watermark even for 'clean' version to prevent document forgery
+        draw = ImageDraw.Draw(img)
+        font_micro = get_font(12)
+        draw.text((10, img.height - 25), "AI GENERATED - RESEARCH ONLY - NOT A REAL DOCUMENT", fill=(180, 180, 180), font=font_micro)
 
     # Optical Stress
     try: img = apply_optical_stress(img, severity=optical_severity)

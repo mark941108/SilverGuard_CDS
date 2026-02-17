@@ -2,7 +2,7 @@
 ![SilverGuard CDS](assets/hero_image.jpg)
 
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
-> 1. **NOT A MEDICAL DEVICE**: SilverGuard is a RESEARCH PROTOTYPE. Not FDA/TFDA approved.
+> 1. **NOT A MEDICAL DEVICE**: SilverGuard CDS is a RESEARCH PROTOTYPE. It has NOT been approved or certified by FDA/TFDA for clinical use. Output is for research purposes ONLY. Consult a licensed professional.
 > 2. **NOT FOR CLINICAL USE**: Do NOT use for medical decisions. Consult a licensed professional.
 > 3. **AUTHOR DISCLAIMER**: Author is NOT a physician/pharmacist. This is a student research project.
 > 4. **NO LIABILITY**: Authors assume ZERO liability for errors or damages.
@@ -11,13 +11,15 @@
 > 7. **INTERNATIONAL USE**: References Taiwan regulations only. Users must comply with local laws.
 > 8. **ERROR RATE DISCLOSURE**: This system has a known error rate and may miss dangerous conditions or flag safe medications. Do NOT rely on it as sole decision-making tool.
 > 9. **NOT FOR EMERGENCIES**: In case of adverse reaction, call emergency services immediately. Do NOT wait for AI analysis.
-> 10. **LIMITED SCOPE**: This prototype covers only 19 medications and cannot detect all drug-drug or drug-food interactions.
+> 10. **LIMITED SCOPE (Architectural POC)**: This system currently validates against a hardened kernel of **19 high-risk medications** (Anti-diabetics, Anticoagulants).
+>     *   **Why?** To demonstrate Zero-Latency Logic on Edge devices without external API dependency.
+>     *   **Production:** The `retrieve_drug_info()` function is designed as a Module Interface. In a hospital deployment, this local dictionary is hot-swapped with FHIR/RxNorm API calls without changing the Agentic reasoning logic.
 
-# 🏥 SilverGuard: Intelligent Medication Safety System (V1.0 Impact Edition)
+# 🏥 SilverGuard CDS: Intelligent Medication Safety System (V1.0 Impact Edition)
 
-> [!IMPORTANT]
-> **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
-> Please add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN` before running.
+> **⚠️ IMPORTANT FOR JUDGES:** This notebook requires two critical steps for deployment:
+> 1. **MedGemma Token**: Add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN`.
+> 2. **MedASR Access**: You MUST visit [google/medasr](https://huggingface.co/google/medasr) and **accept the usage terms**. This is a gated model; failure to do so will result in a 403 error during ASR initialization.
 
 > **MedGemma-Powered Drug Bag Safety Checker & Elder-Friendly Assistant**  
 > An intelligent prescription verification system with Privacy-First Edge AI design
@@ -29,7 +31,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Kaggle](https://img.shields.io/badge/Kaggle-Agentic%20Workflow%20Prize-FFD700)](https://www.kaggle.com/competitions/med-gemma-impact-challenge)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
-[![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-yellow)](https://huggingface.co/spaces/markwang941108/SilverGuard-V1)
+[![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20 Face-Spaces-yellow)](https://huggingface.co/spaces/markwang941108/SilverGuard-V1)
 [![Docker](https://img.shields.io/badge/Docker-Compatible-blue?logo=docker)](#docker-reproducibility-optional)
 
 
@@ -94,10 +96,10 @@ A **privacy-first, offline, multilingual, medically-intelligent** medication ver
 
 **This pattern affects approximately 1.3 million medication errors annually in Taiwan** (Extrapolated from Taiwan Ministry of Health medication safety reports and WHO global error rates applied to Taiwan's population).
 
-### Our Solution: SilverGuard
+### Our Solution: SilverGuard CDS
 
 A **privacy-first, edge-deployed AI assistant** that:
-1. ✅ **Core inference** runs **100% Offline** on device (T4 GPU) - no PHI leaves container
+1. ✅ **Core inference** runs **100% Offline** on device (RTX 5060 / T4 GPU) - no PHI leaves container
 2. ✅ **Hybrid Privacy**: Optional TTS uses secure cloud API (Default: Disabled/Offline)
 3. ✅ Performs **medical reasoning** (catches dosage errors, drug interactions)
 4. ✅ Generates **elderly-friendly output** (large-font calendar + local accent TTS)
@@ -107,7 +109,22 @@ A **privacy-first, edge-deployed AI assistant** that:
 
 ---
 
-## 🚀 Quick Start (3 Options)
+## ⚡ 1-Minute Quick Start
+> **Don't want to configure environments?** We built a self-bootstrapping script that handles dependencies, data generation, and model quantization automatically.
+
+1. Open our **[Kaggle Notebook Implementation](https://www.kaggle.com/code/markwang941108/silverguard-impact-research-v8)**.
+2. Add your `HUGGINGFACE_TOKEN` in Secrets.
+3. **Run All Cells**.
+
+The `KAGGLE_BOOTSTRAP.py` script will:
+- ✅ Auto-install `transformers>=4.51.0` (Gemma 3 support)
+- ✅ Compile `espeak-ng` from source (for Offline TTS)
+- ✅ Patch 4-bit quantization for T4/P100 GPUs
+- ✅ Launch the Agentic Demo in ~10 minutes.
+
+---
+
+## 🚀 Quick Start (Manual Options)
 > **Current Version:** V1.0 Impact Edition (Internal Build: v12.22)
 
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires a **Hugging Face Token** to download MedGemma.  
@@ -118,7 +135,7 @@ A **privacy-first, edge-deployed AI assistant** that:
 2. Add `HUGGINGFACE_TOKEN` to **Kaggle Secrets** (Add-ons → Secrets)
 3. Click **Run All** (⏯️ button)
 4. Wait ~10 minutes for training completion
-5. Review **Cell 5** (JSON safety analysis) and **Cell 7** (SilverGuard UI)
+5. Review **Cell 5** (JSON safety analysis) and **Cell 7** (SilverGuard CDS UI)
 6. **Screenshot** the terminal output and UI for demo
 
 ### 💻 Option 2: Local/Colab Setup
@@ -142,14 +159,14 @@ python app.py  # Opens at http://localhost:7860
 
 ### 🐳 Option 3: Docker (Production Deployment)
 ```bash
-docker build -t silverguard .
+docker build -t silverguard_cds .
 docker run --gpus all -p 7860:7860 silverguard
 ```
 
 ---
 
 ## 🌟 Key Features (Impact)
-*   **👵 SilverGuard Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Simulated Taiwanese Mandarin) and **Large-Font Calendars**.
+*   **👵 SilverGuard CDS Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Simulated Taiwanese Mandarin) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Visual Translation Override** (UI text degrades to simple native warnings for ID/VI) and **Clinically Verified Translations**.
 *   **🗣️ Local Dialect Support**: Capable of **Localized Taiwanese Mandarin (Taiwan-Accent)** TTS, crucial for communicating with the 65+ demographic in rural Taiwan.
 *   **🔐 Privacy First**: **Hybrid Privacy Architecture** - Core VLM inference runs **100% Locally** (PHI stays on device). Optional TTS module offers configurable privacy modes (Offline `pyttsx3` vs Cloud `gTTS`).
@@ -162,11 +179,11 @@ docker run --gpus all -p 7860:7860 silverguard
 |----------|--------|
 | **The Problem** | Elderly patients face **7x higher** medication error risk, costing **$42B/year** globally |
 | **The Solution** | An **Offline Edge-AI Agent** that intercepts prescription errors from drug bag images |
-| **The "Secret Sauce"** | **Agentic Reflection Pattern**: Agent critiques its output → injects error context → refines with lower temperature |
-| **Social Impact** | **SilverGuard**: Translates JSON alerts into elder-friendly TTS audio + large-font calendars |
+| **The "Secret Sauce"** | **AMIE** | **Inference Strategy**<br>Self-Critique & Inner Monologue | **System 2 Protocol**<br>Implements "Safety-First Shift" (Temp 0.2 → 0.1) to lock down hallucinations |
+| **Social Impact** | **SilverGuard CDS**: Translates JSON alerts into elder-friendly TTS audio + large-font calendars |
 | **Privacy Claim** | **Hybrid Architecture**: Local PHI processing, anonymized external DB queries |
 | **Why MedGemma** | Medical reasoning to catch dosage errors that general VLMs miss, 100% local on T4 GPU |
-| **Edge AI Tech** | Leveraging **Gemma 1.5's efficient Transformer architecture** to run on legacy T4 GPUs |
+| **Edge AI Tech** | Leveraging **Gemma 1.5's efficient Transformer architecture** to run on Consumer Edge (RTX 5060) or Cloud T4 GPUs |
 
 ---
 
@@ -175,7 +192,7 @@ docker run --gpus all -p 7860:7860 silverguard
 | Evaluation Dimension | **🏥 AI Pharmacist Guardian** | ☁️ GPT-4o / Claude 3.5 (Cloud) | 👩‍⚕️ Human Pharmacist |
 |:---------------------|:------------------------------|:-------------------------------|:----------------------|
 | **Privacy (HIPAA/GDPR)** | ✅ **Privacy-First (Zero PII Egress)** | ❌ **High Risk** (Data uploaded to cloud) | ✅ Safe |
-| **Edge Deployment** | ✅ **< 4GB VRAM** (Runs on old clinic PCs) | ❌ Impossible (Requires internet) | N/A |
+| **Edge Deployment** | ✅ **Native RTX 5060 / T4 inference using 4-bit LoRA (Hai-DEF Framework compatible)** | ❌ Impossible (Requires internet) | N/A |
 | **Cost per Prescription** | ✅ **Zero Marginal Cost*** (< $0.001 USD per inference) | ⚠️ ~$0.03 USD (Expensive at scale) | ⚠️ Expensive (Labor) |
 | **Code-Switching (Mixed Script)** | ✅ **Native-Grade** (Fine-tuned for EN/ZH) | 🟡 A-Tier (Occasional hallucinations) | ✅ Native |
 | **Safety Mechanism** | ✅ **Agentic Self-Correction + Refuse When Uncertain** | ⚠️ Black Box (Hard to control hallucinations) | ✅ Professional Judgment |
@@ -190,14 +207,14 @@ docker run --gpus all -p 7860:7860 silverguard
 
 ## 🤖 Agentic Reflection Pattern (Andrew Ng, 2024)
 
-SilverGuard implements the **Reflection Pattern**, one of the foundational Agentic Design Patterns introduced by Andrew Ng in 2024. Instead of generating a final answer in one pass (zero-shot), our system operates in an iterative loop of **Generate → Critique → Refine**:
+SilverGuard CDS implements the **Reflection Pattern**, one of the foundational Agentic Design Patterns introduced by Andrew Ng in 2024. Instead of generating a final answer in one pass (zero-shot), our system operates in an iterative loop of **Generate → Critique → Refine**:
 
 ```mermaid
 graph LR
-    A[Input: Drug Bag Image] --> B{Generate<br/>Temperature 0.6}
+    A[Input: Drug Bag Image] --> B{Generate<br/>Temperature 0.2}
     B -->|Initial Draft| C{Critique<br/>Logic Consistency Check}
     C -->|✅ Pass| D[Final Output:<br/>Safety Alert]
-    C -->|❌ Fail| E[Refine<br/>Temperature 0.2 + Error Context]
+    C -->|❌ Fail| E[Refine<br/>Temperature 0.1 + Error Context]
     E -->|Retry with Constraints| B
     
     style E fill:#ffcccc,stroke:#cc0000,stroke-width:2px
@@ -216,9 +233,9 @@ graph LR
 **Andrew Ng's Key Insight**: GPT-3.5 with a Reflection loop can sometimes **outperform GPT-4** in zero-shot tasks (demonstrated in coding benchmarks).
 
 **Our Implementation**:
-1. **Generate** (Temp 0.6): Draft extraction with creative exploration
+1. **Generate** (Temp 0.2): Draft extraction with maximum safety focus
 2. **Critique** (Deterministic): Symbolic logic validation of dosage math and drug interactions
-3. **Refine** (Temp 0.2): Error-aware re-generation with tighter constraints
+3. **Refine** (Temp 0.1): Error-aware re-generation with absolute minimal entropy
 
 **Critical Distinction**:  
 This is **NOT** general-purpose AGI. This is **domain-constrained reflection** within a safety cage designed for medical applications. In healthcare, even "agentic" systems must operate within deterministic guardrails.
@@ -257,7 +274,7 @@ MedGemma's medical pre-training enables it to:
 **Scenario:** Patient receives Metformin 500mg with dosing instruction "Q6H" (every 6 hours)
 
 ```python
-# STEP 1: Initial Extraction (Temperature 0.6 - Creative)
+# STEP 1: Initial Extraction (Temperature 0.2 - Conservative)
 Initial Output:
 {
   "drug_name": "Metformin",
@@ -292,29 +309,29 @@ Refined Output:
   "severity": "MEDIUM",
   "confidence": "87%"
 }
-# 🏥 SilverGuard: Geriatric Medication Safety Agent (MedGemma-4B)
+# 🏥 SilverGuard CDS: Geriatric Medication Safety Agent (MedGemma-4B)
 
-> **"Because a pharmacist can't be there 24/7, but SilverGuard can."**
+> **"Because a pharmacist can't be there 24/7, but SilverGuard CDS can."**
 
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
-> **NOT A MEDICAL DEVICE**: SilverGuard is a RESEARCH PROTOTYPE for the Google MedGemma Challenge. It is NOT approved by FDA, TFDA, or any regulatory authority.
+> **NOT A MEDICAL DEVICE**: SilverGuard CDS is a RESEARCH PROTOTYPE for the Google MedGemma Challenge. It is NOT approved by FDA, TFDA, or any regulatory authority.
 > **NOT FOR CLINICAL USE**: Do NOT use this software to make medical decisions. Always consult a licensed healthcare professional.
 > **SYNTHETIC DATA**: All training data is computer-generated. Real-world performance may differ.
 
 ---
 ## 🌟 Project Overview
-**SilverGuard** is an **Agentic Clinical Decision Support System (CDSS)** designing for the "Aging Society" (Super-Aged Society).
+**SilverGuard CDS** is an **Agentic Clinical Decision Support System (CDSS)** designing for the "Aging Society" (Super-Aged Society).
 It transforms the **Gemma 3 (MedGemma-4B)** LLM into an intelligent "Safety Guardian" that can **SEE** prescriptions, **HEAR** caregiver voice notes, and **SPEAK** advice in local dialects (Taiwanese Hokkien).
 
 ### 🏆 Key Innovation: "Hybrid Privacy Architecture"
-Unlike pure cloud solutions, SilverGuard is designed for **Privacy-First Healthcare**:
+Unlike pure cloud solutions, SilverGuard CDS is designed for **Privacy-First Healthcare**:
 -   **Core VLM Inference**: Runs **100% Locally** on T4 GPU (PHI stays on device).
 -   **MedASR Integration**: Local transcript processing (Simulated Dialect Routing for Demo).
 -   **Configurable Privacy**:
     -   🔒 **Maximum Privacy**: Uses offline TTS (`pyttsx3`) for fully air-gapped deployment.
     -   🔊 **Maximum Quality**: Uses hybrid cloud TTS (`gTTS`) for demo purposes (anonymized data only).
 
-> **Note on Configuration:** SilverGuard defaults to **Offline Mode (Privacy)** for Web Deployments (HuggingFace Spaces), but enables **Online Mode (Quality)** for Kaggle Research Demos to showcase full audio capabilities.
+> **Note on Configuration:** SilverGuard CDS defaults to **Offline Mode (Privacy)** for Web Deployments (HuggingFace Spaces), but enables **Online Mode (Quality)** for Kaggle Research Demos to showcase full audio capabilities.
 
 3. ✅ Privacy-first deployment (Hybrid Privacy: Core Inference Offline + Optional Cloud TTS)
 4. ✅ Multilingual clinical text (handles EN/ZH code-switching)
@@ -430,6 +447,19 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 > **Philosophy**: "An AI that knows when to refuse is safer than one that always guesses."  
 > Our system prioritizes **Active Refusal** over hallucination. Instead of processing every image blindly, we validate input quality through multiple layers.
 
+### 🌪️ Under the Hood: The "Physics-Informed" Corruption Engine
+
+We moved beyond simple Gaussian blur. To verify Sim2Real transferability, we engineered a custom degradation pipeline (`generate_stress_test.py`) that mathematically simulates real-world pharmacy entropy.
+
+**Code Reference:** See [`generate_stress_test.py`](generate_stress_test.py) (Lines 324-435) for the physics simulation logic:
+
+*   **Crease Simulation (`add_creases`)**: Uses Bézier-like randomized curves to simulate folded drug bags (common in elderly pockets).
+*   **Specular Glare (`apply_plastic_glare`)**: Simulates harsh pharmacy fluorescent lighting reflecting off plastic packaging.
+*   **Thermal Fading (`simulate_thermal_fading`)**: Mathematically lowers contrast and increases brightness to mimic aged thermal paper receipts.
+*   **Physical Damage (`apply_physical_damage`)**: Procedurally generates tears, water stains, and dirt spots to test OCR robustness.
+
+This engine allows us to validate **Behavioral Stability** against physical entropy before deployment.
+
 <details>
 <summary><b>📷 Robustness Testing: Click to Expand Validation Gallery</b></summary>
 
@@ -496,7 +526,7 @@ $$ C_{total} = E_{saved} \times A_{rate} \times C_{event} $$
 Where:
 *   $N_{rx} = 48,000$ (Monthly Prescriptions $\times$ 12)
 *   $R_{err} = 1.6\%$ (WHO Global Medication Error Rate)
-*   $S_{model} = 94\%$ (SilverGuard Sensitivity/Recall)
+*   $S_{model} = 94\%$ (SilverGuard CDS Sensitivity/Recall)
 *   $A_{rate} = 40\%$ (Conservative Actionable Prevention Rate)
 *   $C_{event} = 1,200\ USD$ (Min. Cost per Adverse Drug Event)
 
@@ -628,9 +658,9 @@ $$\text{Annual Savings} = 2,700 \times \$50 = \$135,000 \text{ USD}$$
 
 > **📸 Screenshot Required:** After running Cell 5 and Cell 7, capture screenshots showing:
 > - **Left:** Terminal output with HIGH_RISK detection
-> - **Right:** SilverGuard elder-friendly calendar UI
+> - **Right:** SilverGuard CDS elder-friendly calendar UI
 >
-> *"Left: The Agent detecting a potentially life-threatening dose for an 88-year-old. Right: SilverGuard converting this into an elder-friendly visual warning."*
+> *"Left: The Agent detecting a potentially life-threatening dose for an an 88-year-old. Right: SilverGuard CDS converting this into an elder-friendly visual warning."*
 
 <!-- Add your screenshot here after running the notebook -->
 <!-- ![Demo Screenshot](demo_screenshot.png) -->
@@ -712,12 +742,12 @@ flowchart LR
         Fusion("Context Fusion")
   end
  subgraph Correction["🔄 Strategy Shift (Diversity)"]
-        RetryLogic["Inject Error Context\n& Lower Temp (0.6 -> 0.2)\n(Chain of Thought CoT)"]
+        RetryLogic["Inject Error Context\n& Lower Temp (0.2 -> 0.1)\n(Chain of Thought CoT)"]
   end
  subgraph AgenticLoop["🧠 Neuro-Symbolic Agent Loop (Kim et al., 2026)"]
     direction TB
         Strategy{"Orchestrator\n(Validation Bottleneck)"}
-        Sys1["System 1: MedGemma 1.5\n(Temp=0.6, Creative)"]
+        Sys1["System 1: MedGemma 1.5\n(Temp=0.2, Conservative)"]
         Sys2["System 2: Deterministic Logic\n(Regex + Python Guardrails)"]
         DB[("Local Knowledge\nMock RAG")]
         Correction
@@ -865,7 +895,7 @@ To ensure patient safety, we conducted rigorous stress testing using **adversari
 We explicitly tested the model against common real-world noise to define its **operational boundaries**:
 
 | Failure Mode | Symptom | Mitigation Strategy |
-|:-------------|:--------|:--------------------|
+|:-------------|:--------|---------------------|
 | **Motion Blur** | Text "smearing" causes reading errors (50mg → 5mg) | **Pre-processing:** Laplacian variance check rejects blurry images |
 | **Severe Occlusion** | Thumb covering the "dosage" area | **Logic Check:** Missing entity → `WARNING: Incomplete Data` |
 | **OOD Input** | Uploading receipt instead of drug bag | **Input Gate:** VLM pre-check validates image type |
@@ -961,13 +991,13 @@ By running **locally on Kaggle/Colab T4 (or Local PC)**:
 ### Deployment Roadmap
 
 - **Phase 1**: Kaggle Notebook (current) ✅
-- **Phase 2**: Gradio/Streamlit Web App + SilverGuard UI ✅
+- **Phase 2**: Gradio/Streamlit Web App + SilverGuard CDS UI ✅
 - **Phase 3**: Edge deployment on **NVIDIA Jetson Orin Nano** (67 TOPS, 15W) or consumer GPUs (RTX 3060/4060)
 - **Phase 4**: Mobile App (iOS/Android) for home caregivers
 
 > **Accuracy Over Speed**: In medical safety, waiting 3-5 seconds for Agent self-correction is preferable to a 0.1% false negative rate. *Missed dangerous prescriptions cost lives; extra inference time costs only electricity.*
 
-### 👴 SilverGuard: Human-Centered Accessibility
+### 👴 SilverGuard CDS: Human-Centered Accessibility
 
 Designed for cognitive accessibility in elderly patients:
 
@@ -993,10 +1023,10 @@ As an **Energy Engineering student**, I calculated the carbon cost of AI inferen
 | Deployment | CO₂ per Query | vs. Cloud Savings |
 |------------|---------------|-------------------|
 | Cloud GPT-4V | ~4.32g | (baseline) |
-| **SilverGuard (Edge T4)** | ~0.42g | **90% reduction** |
+| **SilverGuard CDS (Edge T4)** | ~0.42g | **90% reduction** |
 | Future: Pixel AICore | ~0.05g | **99% reduction** |
 
-> **🌍 Impact**: If deployed to 10,000 pharmacies (100 queries/day), SilverGuard saves **1,424 tonnes CO₂/year** compared to cloud solutions. *SilverGuard doesn't just enhance safety—it saves the planet.*
+> **🌍 Impact**: If deployed to 10,000 pharmacies (100 queries/day), SilverGuard CDS saves **1,424 tonnes CO₂/year** compared to cloud solutions. *SilverGuard CDS doesn't just enhance safety—it saves the planet.*
 
 ---
 
@@ -1014,7 +1044,7 @@ This project utilizes Google's **MedGemma 1.5-4B** model. We strictly adhere to 
 * **Model Weights**: Gemma Terms of Use
 * **Pharmacist Data**: Open Data (Taiwan FDA) / Synthetic Generation
 
-**SilverGuard © 2026** - *Protecting our elders, one prescription at a time.*
+**SilverGuard CDS © 2026** - *Protecting our elders, one prescription at a time.*
 ## ⚠️ Transparency Report & Technical Limitations (Academic Integrity)
 
 To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disclose the following implementation details:
@@ -1068,12 +1098,12 @@ except:
 
 # 2. Clone Repository
 repo_url = f"https://{gh_token}@github.com/mark941108/SilverGuard.git"
-print("📦 Cloning SilverGuard...")
+print("📦 Cloning SilverGuard CDS...")
 !rm -rf SilverGuard
 !git clone {repo_url}
 
 # 3. ROOT MIGRATION (Crucial for Absolute Paths)
-# Moves files from ./SilverGuard subclass to /kaggle/working/ root
+# Moves files from ./SilverGuard CDS subclass to /kaggle/working/ root
 print("📂 Moving files to Root (Preventing Path Trap)...")
 !cp -r SilverGuard/* .
 !cp SilverGuard/requirements.txt . 2>/dev/null || :
@@ -1096,7 +1126,7 @@ Stage 1: Environment Setup & HuggingFace Auth
 Stage 2: Synthetic Data Generation (600 images + Taiwan Standard Risk Injection)
 Stage 3: QLoRA Fine-Tuning (MedGemma 1.5-4B, 3 epochs)
 Stage 4: Agentic Pipeline Testing & Confusion Matrix
-Stage 5: High Risk Demo & SilverGuard UI
+Stage 5: High Risk Demo & SilverGuard CDS UI
 ```
 
 ---
@@ -1215,7 +1245,7 @@ Why we chose **Agentic Workflow** over simple OCR:
 
 *   **Edge-First:** Core inference (OCR + Reasoning) runs 100% locally on the T4 GPU.
 *   **Ephemeral Processing:** Patient data is processed in volatile memory (RAM) and **wiped immediately** after the session. No PHI is persisted to disk.
-*   **Hybrid Privacy Model:** The optional SilverGuard TTS feature transmits *anonymized, non-PII text* to the speech synthesis provider strictly for audio generation, with no data retention.
+*   **Hybrid Privacy Model:** The optional SilverGuard CDS TTS feature utilizes offline-first generation by default, ensuring no voice data leaves your local network during daily assistance.tly for audio generation, with no data retention.
 
 ### 3. Data Integrity & IP Statement
 *   **Synthetic Data**: All patient names (e.g., "Chen Jin-Long"), dates, and prescription details shown in this documentation are **AI-generated**. Any resemblance to real persons is coincidental.
@@ -1314,7 +1344,7 @@ We acknowledge the **Sim2Real gap**. To mitigate this without compromising patie
 ### Q2: Why is this considered an "Agentic Workflow" and not just a standard classifier?
 **A: Because it exhibits "Self-Correction" and "Dynamic Reasoning."**
 Unlike a standard VLM that outputs a static prediction, MedGemma Guardian actively monitors its own logic.
--   **Step 1:** It attempts inference with `Temperature=0.6` (Creative).
+-   **Step 1:** It attempts inference with `Temperature=0.2` (Conservative).
 -   **Step 2:** A symbolic logic layer checks for contradictions (e.g., Age 88 vs. High Dose).
 -   **Step 3 (The Agentic Leap):** If a flaw is detected, the Agent **injects the error context** into its own prompt, lowers its temperature to `0.2` (Deterministic), and retries.
 This feedback loop allows the system to "think before speaking," a hallmark of agentic AI.
@@ -1337,7 +1367,7 @@ This combines the *understanding* of LLMs with the *precision* of code.
 **A: By optimizing for High Precision, not just Recall.**
 We understand that if an AI flags every prescription as "Potential Risk," pharmacists will ignore it.
 *   **Thresholding:** We use a conservative logic where `WARNING` is only triggered if specific contraindications (e.g., Age > 80 + High Dose) are met, rather than generic warnings.
-*   **Visual Hierarchy:** SilverGuard's UI uses distinct color coding (Red for lethal, Yellow for caution) so pharmacists can prioritize their attention. Our internal testing shows a specificity of ~92%, ensuring alerts are meaningful.
+*   **Visual Hierarchy:** SilverGuard CDS's UI uses distinct color coding (Red for lethal, Yellow for caution) so pharmacists can prioritize their attention. Our internal testing shows a specificity of ~92%, ensuring alerts are meaningful.
 
 #### Q6: The `DRUG_DATABASE` currently has only 19 distinct medications. Is this scalable?
 **A: Yes, we use a "Lightweight Proto-Strategy" for edge demo efficiency.**
@@ -1358,7 +1388,7 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 #### Q9: What is the core philosophy of your safety architecture?
 **A: "An architecture of safety isn't just about accuracy; it's about knowing when to ask for help."**
 
-SilverGuard is an **Offline-First**, LLM-powered visual QA system designed to be the logic layer between elderly patients and their medications. It runs locally on edge devices (T4 GPU optimized), providing a **privacy-preserving** safety net that detects errors before pills are swallowed.
+SilverGuard CDS is an **Offline-First**, LLM-powered visual QA system designed to be the logic layer between elderly patients and their medications. It runs locally on edge devices (T4 GPU optimized), providing a **privacy-preserving** safety net that detects errors before pills are swallowed.
 
 
 
