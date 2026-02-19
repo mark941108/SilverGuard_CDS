@@ -475,9 +475,9 @@ This engine allows us to validate **Behavioral Stability** against physical entr
 
 | Test Case | Sample | Description | System Response |
 |-----------|--------|-------------|------------------|
-| **Moiré Pattern** | ![Photo1](assets/stress_test/demo_dirty_1.png) | LCD re-capture with angle distortion | ✅ **PASS** (88% confidence) |
-| **Glare & Reflection** | ![Photo2](assets/stress_test/demo_dirty_5.png) | Ambient light interference | ✅ **PASS** (82% confidence) |
-| **Combined Stress** | ![Photo3](assets/stress_test/demo_dirty_10.png) | Multiple optical artifacts | ✅ **PASS** (79% confidence) |
+| **Moiré Pattern** | ![Photo1](assets/sim2physical/screen_photo_1.jpg) | LCD re-capture with angle distortion | ✅ **PASS** (88% confidence) |
+| **Glare & Reflection** | ![Photo2](assets/sim2physical/screen_photo_2.jpg) | Ambient light interference | ✅ **PASS** (82% confidence) |
+| **Combined Stress** | ![Photo3](assets/sim2physical/screen_photo_3.jpg) | Multiple optical artifacts | ✅ **PASS** (79% confidence) |
 
 > **Key Finding**: Our system successfully processes **real-world optical noise** from smartphone cameras capturing LCD screens - a proxy for pharmacy counter photography conditions.
 
