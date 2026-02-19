@@ -54,4 +54,11 @@ Thumbs.db
 .agent/
 
 # Sim2Physical Original Photos (Keep only selected photos in assets/sim2physical/)
+# Sim2Physical Original Photos (Keep only selected photos in assets/sim2physical/)
 TAKE A PHOTO/
+
+# Temporary & Backup
+tmp/
+silverguard-code-v1/
+_legacy_verification/
+_training_ref/
