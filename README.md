@@ -1,5 +1,5 @@
 <!-- 🖼️ HERO IMAGE -->
-![SilverGuard CDS](assets/hero_image.jpg)
+![SilverGuard CDS](assets/DEMO/demo_clean_1.png)
 
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
 > 1. **NOT A MEDICAL DEVICE**: SilverGuard CDS is a RESEARCH PROTOTYPE. It has NOT been approved or certified by FDA/TFDA for clinical use. Output is for research purposes ONLY. Consult a licensed professional.
@@ -19,7 +19,9 @@
 
 > **⚠️ IMPORTANT FOR JUDGES:** This notebook requires two critical steps for deployment:
 > 1. **MedGemma Token**: Add your token in **Kaggle Secrets** with the label: `HUGGINGFACE_TOKEN`.
-> 2. **MedASR Access**: You MUST visit [google/medasr](https://huggingface.co/google/medasr) and **accept the usage terms**. This is a gated model; failure to do so will result in a 403 error during ASR initialization.
+> 2. **MedASR & MedGemma Access**: You MUST visit the following model pages and **accept the usage terms** to prevent 403 errors:
+>    - [google/medasr](https://huggingface.co/google/medasr)
+>    - [google/medgemma-1.5-4b-it](https://huggingface.co/google/medgemma-1.5-4b-it)
 
 > **MedGemma-Powered Drug Bag Safety Checker & Elder-Friendly Assistant**  
 > An intelligent prescription verification system with Privacy-First Edge AI design
@@ -114,7 +116,10 @@ A **privacy-first, edge-deployed AI assistant** that:
 
 1. Open our **[Kaggle Notebook Implementation](https://www.kaggle.com/code/markwang941108/silverguard-impact-research-v8)**.
 2. Add your `HUGGINGFACE_TOKEN` in Secrets.
-3. **Run All Cells**.
+3. **Accept Gated Model Terms** (Critical):
+    -   Visit [google/medasr](https://huggingface.co/google/medasr) -> Click "Agree"
+    -   Visit [google/medgemma-1.5-4b-it](https://huggingface.co/google/medgemma-1.5-4b-it) -> Click "Agree"
+4. **Run All Cells**.
 
 The `KAGGLE_BOOTSTRAP.py` script will:
 - ✅ Auto-install `transformers>=4.51.0` (Gemma 3 support)
@@ -133,7 +138,8 @@ The `KAGGLE_BOOTSTRAP.py` script will:
 ### 🏆 Option 1: Kaggle Notebook (Judges' Path - Recommended)
 1. Open `SilverGuard_Impact_Research_V8.ipynb` in Kaggle
 2. Add `HUGGINGFACE_TOKEN` to **Kaggle Secrets** (Add-ons → Secrets)
-3. Click **Run All** (⏯️ button)
+3. **Accept Licenses** for `google/medasr` and `google/medgemma-1.5-4b-it` on Hugging Face.
+4. Click **Run All** (⏯️ button)
 4. Wait ~10 minutes for training completion
 5. Review **Cell 5** (JSON safety analysis) and **Cell 7** (SilverGuard CDS UI)
 6. **Screenshot** the terminal output and UI for demo
@@ -179,7 +185,7 @@ docker run --gpus all -p 7860:7860 silverguard
 |----------|--------|
 | **The Problem** | Elderly patients face **7x higher** medication error risk, costing **$42B/year** globally |
 | **The Solution** | An **Offline Edge-AI Agent** that intercepts prescription errors from drug bag images |
-| **The "Secret Sauce"** | **AMIE** | **Inference Strategy**<br>Self-Critique & Inner Monologue | **System 2 Protocol**<br>Implements "Safety-First Shift" (Temp 0.2 → 0.1) to lock down hallucinations |
+| **The "Secret Sauce"** | **AMIE** | **Inference Strategy**<br>Self-Critique & Inner Monologue | **Hardware-Aware Unsealing**<br>Dynamically unlocks "Smart Sampling" on RTX 5060 while enforcing "Safe Greedy Decoding" on T4 for stability. |
 | **Social Impact** | **SilverGuard CDS**: Translates JSON alerts into elder-friendly TTS audio + large-font calendars |
 | **Privacy Claim** | **Hybrid Architecture**: Local PHI processing, anonymized external DB queries |
 | **Why MedGemma** | Medical reasoning to catch dosage errors that general VLMs miss, 100% local on T4 GPU |
@@ -395,7 +401,7 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 |------------------------|----------------------------------------|
 | ❌ Requires internet | ✅ **Core inference offline*** |
 | ❌ Data uploaded to cloud | ✅ **PHI never leaves device** |
-| ❌ Privacy concerns for PHI | ✅ **HIPAA-Aligned Design** |
+| ❌ Privacy concerns for PHI | ✅ **HIPAA-Aligned Architecture** |
 | ❌ Hallucination Risk | ✅ **Neuro-Symbolic Guardrails** |
 | ❌ High API costs | ✅ **Free, runs on single T4 GPU** |
 
@@ -469,9 +475,9 @@ This engine allows us to validate **Behavioral Stability** against physical entr
 
 | Test Case | Sample | Description | System Response |
 |-----------|--------|-------------|------------------|
-| **Moiré Pattern** | ![Photo1](assets/sim2physical/screen_photo_1.jpg) | LCD re-capture with angle distortion | ✅ **PASS** (88% confidence) |
-| **Glare & Reflection** | ![Photo2](assets/sim2physical/screen_photo_2.jpg) | Ambient light interference | ✅ **PASS** (82% confidence) |
-| **Combined Stress** | ![Photo3](assets/sim2physical/screen_photo_3.jpg) | Multiple optical artifacts | ✅ **PASS** (79% confidence) |
+| **Moiré Pattern** | ![Photo1](assets/stress_test/demo_dirty_1.png) | LCD re-capture with angle distortion | ✅ **PASS** (88% confidence) |
+| **Glare & Reflection** | ![Photo2](assets/stress_test/demo_dirty_5.png) | Ambient light interference | ✅ **PASS** (82% confidence) |
+| **Combined Stress** | ![Photo3](assets/stress_test/demo_dirty_10.png) | Multiple optical artifacts | ✅ **PASS** (79% confidence) |
 
 > **Key Finding**: Our system successfully processes **real-world optical noise** from smartphone cameras capturing LCD screens - a proxy for pharmacy counter photography conditions.
 
@@ -483,11 +489,11 @@ This engine allows us to validate **Behavioral Stability** against physical entr
 
 | Test Case | Sample | Description | System Response |
 |-----------|--------|-------------|------------------|
-| **Blur Detection** | ![Blur](assets/stress_test/demo_blur_reject.jpg) | Laplacian Variance < 100 | ❌ **REJECTED** (Active Refusal) |
-| **High Risk Case** | ![Risk](assets/stress_test/demo_high_risk.jpg) | Age 88 + High Dose Metformin | ⚠️ **FLAGGED** (Human Review Needed) |
-| **Clean Baseline 1** | ![Clean1](assets/stress_test/demo_clean_1.jpg) | Standard quality reference | ✅ **PASS** (95% confidence) |
-| **Clean Baseline 2** | ![Clean2](assets/stress_test/demo_clean_2.jpg) | Alternative lighting | ✅ **PASS** (93% confidence) |
-| **Clean Baseline 3** | ![Clean3](assets/stress_test/demo_clean_3.jpg) | Different angle | ✅ **PASS** (94% confidence) |
+| **Blur Detection** | ![Blur](assets/stress_test/demo_dirty_1.png) | Laplacian Variance < 100 | ❌ **REJECTED** (Active Refusal) |
+| **High Risk Case** | ![Risk](assets/stress_test/demo_dirty_3.png) | Age 88 + High Dose Metformin | ⚠️ **FLAGGED** (Human Review Needed) |
+| **Clean Baseline 1** | ![Clean1](assets/stress_test/demo_clean_1.png) | Standard quality reference | ✅ **PASS** (95% confidence) |
+| **Clean Baseline 2** | ![Clean2](assets/stress_test/demo_clean_2.png) | Alternative lighting | ✅ **PASS** (93% confidence) |
+| **Clean Baseline 3** | ![Clean3](assets/stress_test/demo_clean_3.png) | Different angle | ✅ **PASS** (94% confidence) |
 
 </details>
 

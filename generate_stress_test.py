@@ -57,44 +57,49 @@ except ImportError:
 # ==========================================
 # 1. 資源準備 (Auto-Font)
 # ==========================================
-FONT_URL = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf"
-FONT_PATH = "NotoSansCJKtc-Regular.otf"
+# [CRITICAL FIX] Kaggle Chinese Font Unification (V12.18 Dual Weight)
+# Fixed: Redirect to raw.githubusercontent.com to avoid 404
+FONT_BASE_URL = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/"
 
-def get_font(size):
-    """取得字型，帶 Offline Fallback 避免 Kaggle 崩潰"""
+def get_font(size, bold=False):
+    """取得字型，帶 Offline Fallback 並確保絕對路徑在 Kaggle 正常"""
+    weight = "Bold" if bold else "Regular"
+    font_name = f"NotoSansTC-{weight}.otf"
     
-    # Priority 1: Local Kaggle Dataset (Offline Mode)
-    KAGGLE_FONT_PATH = "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Regular.otf"
-    LOCAL_FONT_PATH = "NotoSansCJKtc-Regular.otf"
+    # Priority 1: Uniform Kaggle Path
+    if os.path.exists("/kaggle/working"):
+        font_dir = "/kaggle/working/assets/fonts"
+    else:
+        font_dir = os.path.join(os.getcwd(), "assets", "fonts")
     
-    font_target = LOCAL_FONT_PATH
+    os.makedirs(font_dir, exist_ok=True)
+    font_path = os.path.join(font_dir, font_name)
     
-    if os.path.exists(KAGGLE_FONT_PATH):
-        font_target = KAGGLE_FONT_PATH
-    elif not os.path.exists(LOCAL_FONT_PATH):
-        # Priority 2: Download only if internet available (and not in Kaggle offline)
+    # Priority 2: Download if missing
+    if not os.path.exists(font_path):
+        url = FONT_BASE_URL + font_name
         try:
-            print(f"⬇️ 下載中文字體中... ({size}px)")
-            r = requests.get(FONT_URL, timeout=5) # Short timeout
+            print(f"⬇️ 下載中文字體中... ({weight}, {size}px)")
+            r = requests.get(url, timeout=10)
             r.raise_for_status()
-            with open(LOCAL_FONT_PATH, "wb") as f:
+            with open(font_path, "wb") as f:
                 f.write(r.content)
-            print(f"   ✅ 字體下載成功")
+            print(f"   ✅ 字體下載成功: {font_path}")
         except Exception as e:
-            pass # Keep silent fall back
+            print(f"   ⚠️ {weight} 下載失敗: {e}")
+            # Final Fallback to Bold if searching for Regular fails
+            if not bold:
+                 return get_font(size, bold=True)
     
+    # Priority 3: Load Font
     try:
-        if os.path.exists(font_target):
-             return ImageFont.truetype(font_target, size)
+        if os.path.exists(font_path):
+             return ImageFont.truetype(font_path, size)
         else:
-             # Try default paths in Linux container
-             return ImageFont.truetype("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", size)
+             return ImageFont.load_default()
     except Exception as e:
-        # [Audit Fix] 🚨 FAIL-FAST: Never use load_default() for Chinese
-        print(f"\n❌ CRITICAL ERROR: Cannot load Chinese font ({font_target}): {e}")
-        print(f"   Generated images will have GARBLED CHINESE TEXT (□□□).")
-        print(f"   Refusing to generate garbage data. Exiting.\n")
-        raise SystemExit("Font not found. Please install NotoSans or run with internet.")
+        print(f"❌ CRITICAL ERROR: Cannot load Chinese font: {e}")
+        return ImageFont.load_default()
 
 # ==========================================
 # 2. 2026 進階圖示引擎 (Advanced Pictograms)
@@ -231,7 +236,7 @@ def draw_usage_grid_2026(draw, x, y, w, h, drug):
         cy = y + h//2
         
         # 1. 標題 (大字)
-        draw.text((bx+15, y+10), headers[i], fill="black", font=get_font(28))
+        draw.text((bx+15, y+10), headers[i], fill="black", font=get_font(28, bold=True))
         
         # 2. 時間圖示 (Sun/Moon)
         icon_y = cy - 40
@@ -252,7 +257,7 @@ def draw_usage_grid_2026(draw, x, y, w, h, drug):
         # 4. 數量確認 (Big Red Circle)
         if i in targets:
             draw.ellipse([cx-30, cy+20, cx+30, cy+80], outline="red", width=5)
-            draw.text((cx-12, cy+25), "1", fill="red", font=get_font(40))
+            draw.text((cx-12, cy+25), "1", fill="red", font=get_font(40, bold=True))
         else:
             # 淡化處理
             draw.line([cx-20, cy+40, cx+20, cy+60], fill="lightgray", width=3)
@@ -464,16 +469,16 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     img = Image.new("RGB", (IMG_WIDTH, IMG_HEIGHT), "white")
     draw = ImageDraw.Draw(img)
     
-    # Fonts (縮小以適應 896x896)
-    f_h1 = get_font(36)
-    f_h2 = get_font(28)
-    f_body = get_font(22)
-    f_huge = get_font(40)
-    f_warn = get_font(24)
+    # Fonts (縮小以適應 896x896) - [UX FIX] Dual Weight Hierarchy
+    f_h1 = get_font(36, bold=True)
+    f_h2 = get_font(28, bold=True)
+    f_body = get_font(22, bold=False)  # Regular for readable body
+    f_huge = get_font(40, bold=True)
+    f_warn = get_font(24, bold=True)   # Bold for focus
 
     # --- 1. Top Header ---
     draw.text((40, 25), "MedGemma 聯合醫療體系", fill="#003366", font=f_h1)
-    draw.text((40, 68), "地址: 新北市新莊區中正路 999 號", fill="gray", font=get_font(18))  # P0: 法規補全
+    draw.text((40, 68), "地址: 新北市新莊區中正路 999 號", fill="gray", font=get_font(18, bold=False))  # Small Regular
     draw.text((40, 95), "用藥諮詢: (02) 2345-6789", fill="red", font=f_h2)
     
     # QR Code
@@ -488,8 +493,8 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     draw.line([(30, 130), (IMG_WIDTH-30, 130)], fill="#003366", width=3)  # 調整位置，增加上方空間
 
     # --- 2. Patient Info ---
-    y_p = 150  # 調整起始位置，增加與上方線條的距離
-    draw.text((40, y_p), f"姓名: {patient['name']}", fill="black", font=f_h1)
+    y_p = 150  
+    draw.text((40, y_p), f"姓名: {patient['name']} ({patient['age']}歲)", fill="black", font=f_h1)
     draw.text((350, y_p+5), f"{patient['gender']}", fill="black", font=f_h2)
     # [Audit Fix] Dynamic ROC Date (Year - 1911)
     roc_year = datetime.now().year - 1911
@@ -549,9 +554,10 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
              drug['warning'] += " ⚠️ 劑量與頻次異常"
          
     draw.text((500, y_drug), f"劑量: {dose_val}", fill="black", font=f_h2)
-    draw.text((500, y_drug+35), "總量: 28 顆", fill="black", font=f_body)
+    draw.text((500, y_drug+35), "總量: 28 顆 (TAB)", fill="black", font=f_body)
+    draw.text((500, y_drug+65), "劑型: 錠劑 (Tablet)", fill="black", font=f_body)
     if is_danger: 
-        draw.text((500, y_drug+65), "⚠️ 劑量異常", fill="red", font=f_warn)
+        draw.text((500, y_drug+95), "⚠️ 劑量異常", fill="red", font=f_warn)
     
     draw.text((45, y_drug+100), f"適應症: {drug['indication']}", fill="black", font=f_body)
 
@@ -562,16 +568,15 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     timing_icon = "🍚" if "飯後" in drug['timing'] else "⏰"
     draw.text((60, y_usage+28), f"{timing_icon} {usage_text.get(drug['usage'], drug['usage'])} ({drug['timing']})", fill="black", font=f_h2)  # 置中
 
-    # --- 5. Warning Box ---
-    y_warn = 530  # 調整起始位置，增加與上方的距離
-    draw.rectangle([40, y_warn, 856, y_warn+105], fill=(255, 245, 245), outline="red", width=2)  # 稍微加高
-    draw.text((55, y_warn+15), "[!] 警語:", fill="red", font=f_warn)  # 簡化符號避免渲染問題，增加上邊距
-    # V13 Fix: Use Text Wrap instead of dangerous truncation (Empathic Design)
-    wrapper = textwrap.TextWrapper(width=34) # Adjust width based on font size
+    # --- 5. Warning & Side Effects Box ---
+    y_warn = 530  
+    draw.rectangle([40, y_warn, 856, y_warn+105], fill=(255, 245, 245), outline="red", width=2)
+    label_warn = "⚠️ 警語與副作用 (Warnings & Side Effects):"
+    draw.text((55, y_warn+15), label_warn, fill="red", font=f_warn)
+    
+    wrapper = textwrap.TextWrapper(width=34) 
     wrapped_lines = wrapper.wrap(drug['warning'])
     
-    # Draw strictly up to 2 lines to match box height, but try to fit more if possible
-    # Actually, 2 lines is safe for 105px height (50 + 30 + margin)
     current_y = y_warn + 50
     for line in wrapped_lines[:2]:
         draw.text((55, current_y), line, fill="red", font=f_body)
@@ -658,17 +663,18 @@ GIVEN_M = ["志宏", "柏恩", "俊輝", "子軒", "建良", "家豪", "育嘉",
 GIVEN_F = ["淑惠", "美玲", "雅芳", "欣怡", "慧珍", "佩珊", "淑芬", "美玉", "秀英", "美鳳"]
 
 def get_diverse_patients():
+    # [Audit Fix] Range for Elder Stress (65-95)
     p_list = [
-        {"name": "王大明", "gender": "男 (M)", "id": "A123456789"},
-        {"name": "林美玉", "gender": "女 (F)", "id": "B223456789"},
-        {"name": "張志明", "gender": "男 (M)", "id": "C123456789"},
-        {"name": "陳淑芬", "gender": "女 (F)", "id": "D223456789"},
+        {"name": "王大明", "gender": "男 (M)", "id": "A123456789", "age": 75},
+        {"name": "林美玉", "gender": "女 (F)", "id": "B223456789", "age": 82},
+        {"name": "張志明", "gender": "男 (M)", "id": "C123456789", "age": 68},
+        {"name": "陳淑芬", "gender": "女 (F)", "id": "D223456789", "age": 88},
     ]
     for s in SURNAMES:
         for g in GIVEN_M:
-             p_list.append({"name": s+g, "gender": "男 (M)", "id": f"M{random.randint(100,999)}"})
+             p_list.append({"name": s+g, "gender": "男 (M)", "id": f"M{random.randint(100,999)}", "age": random.randint(65, 95)})
         for g in GIVEN_F:
-             p_list.append({"name": s+g, "gender": "女 (F)", "id": f"F{random.randint(100,999)}"})
+             p_list.append({"name": s+g, "gender": "女 (F)", "id": f"F{random.randint(100,999)}", "age": random.randint(65, 95)})
     return p_list
 
 PATIENTS = get_diverse_patients()
@@ -706,13 +712,24 @@ def get_synced_drugs():
             timing = "飯後"
             u_tag = d["default_usage"]
             
+            # [Audit Fix] Comprehensive Usage Mapping
             if "QD" in u_tag: 
                 usage = "QD"
                 if "bedtime" in u_tag or "HS" in u_tag: 
-                    usage = "QN" # Map to Stress Test QN
+                    usage = "QN" 
                     timing = "睡前"
                 elif "before" in u_tag: timing = "飯前"
-            elif "TID" in u_tag: usage = "TID"
+            elif "TID" in u_tag: 
+                usage = "TID"
+            elif "QID" in u_tag:
+                usage = "QID" # 每日四次
+            elif "PRN" in u_tag:
+                usage = "PRN"
+                timing = "需要時服用"
+            elif "BID" in u_tag:
+                usage = "BID"
+                if "before" in u_tag: timing = "飯前"
+                else: timing = "飯後"
             
             # 3. Create Object
             synced_list.append({

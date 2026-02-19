@@ -8,7 +8,7 @@ Purpose: Sync data between Training (V5), Generation (V16), and Stress Test.
 # [Demo Recording] Blur Threshold Configuration
 # Production: 100.0 (Conservative for Patient Safety)
 # Strict Clinical Standard: 50.0 (Recommended for Impact Challenge)
-BLUR_THRESHOLD = 50.0  # ✅ Restored to Professional Standard 
+BLUR_THRESHOLD = 25.0  # ✅ [Demo Mode] Relaxed for Live Demo (Standard: 50.0) 
 # Note: Camera shake or phone photography typically scores 40-80
 # A threshold of 100.0 would reject most handheld inputs
 

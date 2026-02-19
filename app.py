@@ -10,6 +10,11 @@ import platform
 import tempfile
 import textwrap
 
+# 🛡️ [Gradio 5 Security Fix] 強制允許存取 DEMO 資料夾 (Director's Bypass)
+# Must be set BEFORE importing gradio
+# 🟢 修改這裡：加入 /kaggle/input
+os.environ["GRADIO_ALLOWED_PATHS"] = "/kaggle/working/SilverGuard/assets/DEMO,/kaggle/working/SilverGuard/assets,/kaggle/input"
+
 # [Optimization] Load Gradio LAST to avoid event loop conflicts during heavy imports
 import gradio as gr
 import asyncio
@@ -50,7 +55,7 @@ def run_hw_diagnostic():
     else:
         print("⚠️ CUDA NOT DETECTED. Torch build might be CPU-only or Driver issue.")
     print(f"================================\n")
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 import json
 import re
 # [Audit Fix] Portability: Mock 'spaces' if not on ZeroGPU
@@ -66,6 +71,23 @@ except ImportError:
         def GPU(duration=60):
             def decorator(func): return func
             return decorator
+
+# [V10.1 Hotfix] Safe JSON Encoder for PyTorch Objects
+class SafeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, 'dtype'):
+            return str(obj)
+        if hasattr(obj, 'device'):
+            return str(obj)
+        if isinstance(obj, (set, tuple)):
+            return list(obj)
+        try:
+            import torch
+            if isinstance(obj, torch.dtype):
+                return str(obj)
+        except:
+            pass
+        return str(obj) 
         
 try:
     import pyttsx3 
@@ -324,15 +346,38 @@ def get_random_tip_html():
     </div>
     """
 
-# [V20.1] Unified Font Management (Safe Fallback for Windows/ZeroGPU)
+# [CRITICAL FIX] Kaggle Chinese Font Downloader (Dual Weight Support)
 def ensure_font_exists():
-    """Ensure a suitable font is available for PIL rendering."""
-    # This is a stub for the font management logic previously discussed
-    # In practice, it should check for the existence of specific .ttf files
-    pass
+    """確保中文字體存在 (粗/正)，修復 404 與絕對路徑問題"""
+    fonts = {
+        "Bold": "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf",
+        "Regular": "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Regular.otf"
+    }
+    
+    if os.path.exists("/kaggle/working"):
+        font_dir = "/kaggle/working/assets/fonts"
+    else:
+        font_dir = os.path.join(os.getcwd(), "assets", "fonts")
+    
+    os.makedirs(font_dir, exist_ok=True)
+    paths = {}
+    for name, url in fonts.items():
+        p = os.path.join(font_dir, f"NotoSansTC-{name}.otf")
+        paths[name] = p
+        if not os.path.exists(p):
+            print(f"⬇️ Downloading {name} font...")
+            try:
+                import requests
+                r = requests.get(url, timeout=10)
+                with open(p, "wb") as f:
+                    f.write(r.content)
+                print(f"✅ {name} font ready.")
+            except Exception as e:
+                print(f"⚠️ {name} download failed: {e}")
+    return paths
 
-# Initialize Font System
-ensure_font_exists()
+# Initialize Global Font Paths
+FONT_PATHS_GLOBAL = ensure_font_exists()
 
 # [Audit Fix P2] Safe Translations Config (Moved to Header)
 SAFE_TRANSLATIONS = {
@@ -341,7 +386,7 @@ SAFE_TRANSLATIONS = {
         "HIGH_RISK": "⚠️ 系統偵測異常！請先確認",
         "WARNING": "⚠️ 警告！建議再次確認及諮詢",
         "PASS": "✅ 檢測安全 (僅供參考)",
-        "CONSULT": "建議立即諮詢藥師 (0800-633-436)",
+        "CONSULT": "💡 臨床建議： 請聯繫原開單醫院藥劑科，或撥打 食藥署諮詢專線 1919。",
         "TTS_LANG": "zh-tw"
     },
     "id": {
@@ -411,14 +456,22 @@ else:
 HF_TOKEN = os.environ.get("HUGGINGFACE_TOKEN")
 BASE_MODEL = "google/medgemma-1.5-4b-it"
 
-# [V12.22 Fix] Unified Model Path for Local Deployment
-# Prioritize environment variable, fallback to renamed local adapter dir
-ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "./silverguard_lora_adapter")
-print(f"🎯 Loading Adapter Model from: {ADAPTER_MODEL}")
+# [V12.25 Fix] Omni-Radar: 無視目錄層級鎖定 LoRA 權重
+import glob
+print("🔍 啟動全域雷達掃描 LoRA 權重 (adapter_config.json)...")
+kaggle_adapters = glob.glob("/kaggle/input/**/adapter_config.json", recursive=True)
 
-if "Please_Replace" in ADAPTER_MODEL or not ADAPTER_MODEL:
-    print("❌ CRITICAL: ADAPTER_MODEL_ID not configured!")
-    raise ValueError("ADAPTER_MODEL_ID environment variable must be set before deployment.")
+if kaggle_adapters:
+    ADAPTER_MODEL = os.path.dirname(kaggle_adapters[0])
+    print(f"🎯 [Omni-Radar] 強制鎖定 Kaggle 權重: {ADAPTER_MODEL}")
+else:
+    # Fallback to Env or Local Default
+    ADAPTER_MODEL = os.environ.get("ADAPTER_MODEL_ID", "./silverguard_lora_adapter")
+    print(f"🎯 Loading Adapter Model from: {ADAPTER_MODEL}")
+
+if not os.path.exists(ADAPTER_MODEL) or "Please_Replace" in str(ADAPTER_MODEL):
+    print("❌ CRITICAL: Adapter not found! Falling back to base model might cause logic failure.")
+    # In Gradio app, we might want to continue but warn
 
 # Offline Mode Toggle (For Air-Gapped / Privacy-First deployment)
 # [Privacy By Design] Default to TRUE to ensure no data leaves the device by default.
@@ -449,10 +502,19 @@ def load_model_assets():
         from transformers import BitsAndBytesConfig, AutoModelForImageTextToText, AutoProcessor
         from peft import PeftModel
         
-        print(f"⚡ Loading Blackwell-Native 4-bit NF4 (VRAM Optimization)...")
+        # [Stability Fix] Dynamic Precision Selection
+        # Use bfloat16 for RTX 30/40/Blackwell (Ampere+), float16 for T4/Older
+        if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8:
+            target_dtype = torch.bfloat16
+            print("🚀 [Ampere Detected] Using bfloat16 for maximum stability.")
+        else:
+            # ✅ 總監指令：T4 強制使用 float32 作為運算精度，避免 Gemma 激活值溢位產生 NaN
+            target_dtype = torch.float32 
+            print("🛡️ [Legacy/T4 Detected] Using float32 compute dtype to prevent NaN overflow.")
+
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_compute_dtype=target_dtype,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_use_double_quant=True
         )
@@ -460,12 +522,13 @@ def load_model_assets():
         base_model = AutoModelForImageTextToText.from_pretrained(
             BASE_MODEL, 
             quantization_config=bnb_config,
-            device_map="auto",           
-            torch_dtype=torch.bfloat16,
+            device_map={"": 0}, # 🏎️ [Performance] 強制全數掛載於第一張顯卡，防止 RTX 5060 誤將模型切換至 CPU
+            torch_dtype=target_dtype, # ✅ [Fix] Revert to torch_dtype to prevent JSON serialization error on Ampere
             token=HF_TOKEN,
             attn_implementation="sdpa"
         )
-        processor = AutoProcessor.from_pretrained(BASE_MODEL, token=HF_TOKEN)
+        # [V8.6 Fix] Force use_fast=False for Gemma 3 Stability on T4
+        processor = AutoProcessor.from_pretrained(BASE_MODEL, token=HF_TOKEN, use_fast=False)
         processor.tokenizer.pad_token_id = processor.tokenizer.eos_token_id
         
         # Sync configuration
@@ -485,7 +548,8 @@ def load_model_assets():
         return model, processor
         
     except Exception as e:
-        print(f"❌ CRITICAL ERROR loading Model Assets: {e}")
+        import traceback
+        print(f"❌ CRITICAL ERROR loading Model Assets:\n{traceback.format_exc()}")
         return None, None
 
 # ============================================================================
@@ -895,16 +959,17 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     draw = ImageDraw.Draw(img)
     
     # ============ 載入字體 ============
-    def load_font(size):
-        font_paths = [
-            "assets/fonts/NotoSansTC-Bold.otf",
-            "assets/fonts/NotoSansTC-Regular.otf",
-            "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
-        ]
-        for path in font_paths:
-            if os.path.exists(path):
-                try: return ImageFont.truetype(path, size)
-                except: continue
+    def load_font(size, bold=True):
+        weight = "Bold" if bold else "Regular"
+        path = FONT_PATHS_GLOBAL.get(weight)
+        
+        # Fallback logic: if regular not available, use bold
+        if not path or not os.path.exists(path):
+            path = FONT_PATHS_GLOBAL.get("Bold")
+
+        if path and os.path.exists(path):
+            try: return ImageFont.truetype(path, size)
+            except: pass
         return ImageFont.load_default()
     
     font_super = load_font(84)
@@ -1398,7 +1463,8 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
     # [Round 200] Anti-Hallucination: Overwrite message with DB Truth
     # The LLM sometimes says Aspirin is for diabetes. We must stop this.
     try:
-        from agent_utils import resolve_drug_name_zh, retrieve_drug_info, DRUG_DATABASE
+        # [Fix P0] Removed redundant local import to avoid UnboundLocalError
+        # from agent_utils import resolve_drug_name_zh, retrieve_drug_info, DRUG_DATABASE
         # Resolve canonical name
         raw_name = result_json.get("extracted_data", {}).get("drug", {}).get("name", "Unknown")
         canonical_name = resolve_drug_name_zh(raw_name)
@@ -1421,6 +1487,10 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
     t = templates.get(target_lang, templates["en"]) # Fallback to English
     
     if use_agent_msg:
+        # [UI Polish] Clean Agent Message FIRST (Director's Final Fix moved upstream)
+        if "Step" in agent_msg:
+            agent_msg = agent_msg.split("Step")[0].strip()
+            
         msg = agent_msg
         # [Safety Net] If High Risk, ensure we append specific warning if missing
         risk_flag = status in ["HIGH_RISK", "WARNING", "ATTENTION_NEEDED", "ATTN_NEEDED"]
@@ -1428,7 +1498,14 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
             # Check if likely already warned in message
             triggers = ["風險", "注意", "警告", "危險", "Consult", "Warning"]
             if not any(trig in msg for trig in triggers):
-                 msg += f" ⚠️ 特別提醒！系統發現：{reasoning}。請諮詢藥師。"
+                 # [Emergency Override] Bleeding check
+                 is_bleeding = "出血" in reasoning or "bleeding" in reasoning.lower()
+                 if is_bleeding:
+                     # Clean text, no raw reasoning
+                     msg += f" ⚠️ [緊急] 系統監測到出血風險。若症狀嚴重，請立即撥打 119 前往急診。"
+                 else:
+                     # Clean text, no raw reasoning
+                     msg += f" 💡 臨床建議：系統偵測到潛在風險。請聯繫原開單醫院藥劑科，或撥打 食藥署諮詢專線 1919。"
     else:
         # Fallback to Template (Legacy Robust Mode)
         msg = f"您好，我是您的用藥小幫手。這是您的藥「{drug_name}」。"
@@ -1437,13 +1514,18 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
         risk_flag = status in ["HIGH_RISK", "WARNING", "ATTENTION_NEEDED", "ATTN_NEEDED"]
         
         if risk_flag:
-            # [UX Polish] For ATTENTION_NEEDED, soften the tone slightly if needed, but keep it as a warning for safety
-            msg += f" ⚠️ 特別提醒！系統發現：{reasoning}。建議向藥師或醫師確認用藥細節。"
+            # [Emergency Override] Bleeding check
+            is_bleeding = "出血" in reasoning or "bleeding" in reasoning.lower()
+            if is_bleeding:
+                msg += f" ⚠️ [緊急] 系統監測到出血風險。若症狀嚴重，請立即撥打 119 前往急診。"
+            else:
+                msg += f" 💡 臨床建議：系統偵測到潛在風險。請聯繫原開單醫院藥劑科，或撥打 食藥署諮詢專線 1919。"
         elif status in ["HUMAN_REVIEW_NEEDED", "UNKNOWN_DRUG", "UNKNOWN", "MISSING_DATA"]:
             msg += " " + t["review"]
         else:
             # For safe usage, translate logic is handled in UI, but here we do simple fallback
             msg += " " + t["safe"].format(usage=usage)
+    # 👆 🟢 加入完畢 👆
         
     return msg
 
@@ -1528,7 +1610,11 @@ def parse_drugs_from_text(text):
     except:
         pass
         
-    return list(set(detected))
+    unique_detected = list(set(detected))
+    # [Fix] Ensure always 2 values for Gradio unpacking
+    drug_a = unique_detected[0] if len(unique_detected) > 0 else ""
+    drug_b = unique_detected[1] if len(unique_detected) > 1 else ""
+    return drug_a, drug_b
 
 # ============================================================================
 # 🎯 RLHF FEEDBACK LOGGER
@@ -2055,16 +2141,66 @@ def create_demo():
                         clear_btn = gr.Button("🗑️ Clear All / 清除", variant="secondary", size="lg")
                         
                         
+                    
+                    
+                    # [Kaggle Hotfix V8] Director's Final Decree (The "One-Hit Wonder")
+                        def get_demo_path(filename):
+                            """
+                            動態解析 Demo 圖片路徑 (支援 Kaggle Dataset 暴力掃描)
+                            """
+                            import os
+                            import glob
+                            
+                            # 🚀 總監級雷達：優先掃描 Kaggle Dataset
+                            if os.path.exists("/kaggle/input"):
+                                search_result = glob.glob(f"/kaggle/input/**/{filename}", recursive=True)
+                                if search_result:
+                                    print(f"🎯 [Demo Asset Found] 找到圖片: {search_result[0]}")
+                                    return search_result[0]
+                                    
+                            # 本機預設路徑 fallback
+                            base_path = os.path.dirname(os.path.abspath(__file__))
+                            return os.path.join(base_path, "assets", "DEMO", filename)
+
                         # Quick Win: Examples
+                        def load_img_for_gradio(fname):
+                            """
+                            🛡️ 總監級防禦：動態獲取真實路徑 (支援雲端與本機)，並轉為純像素矩陣。
+                            若檔案遺失，自動生成安全佔位圖，絕對不讓 Gradio 觸發 InvalidPathError！
+                            """
+                            import numpy as np
+                            from PIL import Image
+                            import os
+
+                            # 1. 呼叫上方寫好的尋路雷達 (自動判斷是 Kaggle 還是 本機 Windows)
+                            img_path = get_demo_path(fname)
+                            
+                            if os.path.exists(img_path):
+                                try:
+                                    # 🔪 降維打擊：讀取圖片並轉為 Numpy 陣列，徹底抹除路徑特徵
+                                    img = Image.open(img_path).convert("RGB")
+                                    return np.array(img) 
+                                except Exception as e:
+                                    print(f"⚠️ 讀取圖片失敗: {e}")
+                                    
+                            # 2. 絕對防呆：如果檔案真的遺失，回傳黑色矩陣保命，Gradio 絕對不會當機
+                            print(f"🚨 [警告] 找不到測試圖片 {fname}！生成安全佔位圖。")
+                            return np.zeros((500, 500, 3), dtype=np.uint8)
+
                         gr.Examples(
                             examples=[
-                                ["assets/DEMO/demo_grandma_aspirin_clean.png"], 
-                                ["assets/DEMO/GENERAL_TRAINING_Aspirin_V005.png"], 
-                                ["assets/DEMO/GENERAL_TRAINING_Aspirin_V017.png"]
+                                # 🛡️ 總監的最後一擊：一定要用 load_img_for_gradio 包起來！把圖片轉成記憶體物件！
+                                [load_img_for_gradio("demo_grandma_aspirin_clean.png")],
+                                [load_img_for_gradio("GENERAL_TRAINING_Aspirin_V005.png")],
+                                [load_img_for_gradio("GENERAL_TRAINING_Aspirin_V017.png")]
                             ],
                             inputs=[input_img],
-                            label="🚀 One-Click Demo Examples"
+                            label="🚀 One-Click Demo Examples",
+                            examples_per_page=3
                         )
+
+
+
                     
                     with gr.Column(scale=1):
                         # --- NEW: Language Selector for Migrant Caregivers ---
@@ -2154,6 +2290,14 @@ def create_demo():
                     # 2. Prepare temp file
                     import tempfile
                     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                        # 🛡️ [Mobile Fix] Correct EXIF Rotation (Orientation)
+                        if image:
+                            image = ImageOps.exif_transpose(image)
+
+                        # 🛡️ [Security Fix] 防禦 RGBA 透明圖片導致的 JPEG 存檔崩潰
+                        if hasattr(image, "mode") and image.mode in ("RGBA", "P"):
+                            image = image.convert("RGB")
+                            
                         image.save(tmp.name)
                         img_path = tmp.name
                         
@@ -2170,8 +2314,11 @@ def create_demo():
                             target_lang
                         )
                         
+                        
                         final_status = result.get("final_status", "UNKNOWN")
-                        trace_log = json.dumps(result.get("vlm_output", {}), indent=2, ensure_ascii=False)
+                        # [V10.1 Hotfix] Use SafeEncoder to prevent crash on torch.dtype objects
+                        trace_log = json.dumps(result.get("vlm_output", {}), indent=2, ensure_ascii=False, cls=SafeEncoder)
+                        
                         
                         # 4.4 [Fix] Overwrite Hallucinated SBAR with Real Data
                         # The VLM sometimes outputs a static "Elderly (78)" or wrong drug. 
@@ -2179,18 +2326,20 @@ def create_demo():
                         try:
                             vlm_out = result.get("vlm_output", result)
                             if isinstance(vlm_out, dict):
-                                # Handle nested parsed access
-                                 if "parsed" in vlm_out:
+                                 # Handle nested parsed access
+                                 if vlm_out.get("parsed") is not None:
                                      vlm_out = vlm_out["parsed"]
                                      
-                                 ex = vlm_out.get("extracted_data", {})
-                                 sf = vlm_out.get("safety_analysis", {})
-                                 
-                                 real_name = ex.get("patient", {}).get("name", "Unknown") 
-                                 real_age = ex.get("patient", {}).get("age", "Unknown")
-                                 real_drug = ex.get("drug", {}).get("name", "Unknown")
-                                 real_status = sf.get("status", "UNKNOWN")
-                                 real_reason = sf.get("reasoning", "")
+                                 # [V8.2] Null-Guard for parsed content
+                                 if vlm_out is not None:
+                                     ex = vlm_out.get("extracted_data", {})
+                                     sf = vlm_out.get("safety_analysis", {})
+                                     
+                                     real_name = ex.get("patient", {}).get("name", "Unknown") if isinstance(ex, dict) else "Unknown"
+                                     real_age = ex.get("patient", {}).get("age", "Unknown") if isinstance(ex, dict) else "Unknown"
+                                     real_drug = ex.get("drug", {}).get("name", "Unknown") if isinstance(ex, dict) else "Unknown"
+                                     real_status = sf.get("status", "UNKNOWN") if isinstance(sf, dict) else "UNKNOWN"
+                                     real_reason = sf.get("reasoning", "") if isinstance(sf, dict) else ""
                                  
                                  # Reconstruct SBAR
                                  fixed_sbar = f"**SBAR Handoff (Verified)**\n* **S (Situation):** Automated SilverGuard Analysis.\n* **B (Background):** Patient: {real_name} ({real_age}). Drug: {real_drug}.\n* **A (Assessment):** {real_status}. {real_reason}\n* **R (Recommendation):** Review finding."
@@ -2218,8 +2367,15 @@ def create_demo():
                         # 5. Generate Formatted Speech (Fixed Format)
                         speech_text = json_to_elderly_speech(result, target_lang=target_lang)
     
-                        # 6. Yield Final Result
-                        yield final_status, result, speech_text, None, trace_log, cal_img_stream
+                        # 6. Yield Final Result (Fixed PIL Type for UI stability)
+                        cal_img_obj = None
+                        if cal_img_stream and os.path.exists(cal_img_stream):
+                            try:
+                                cal_img_obj = Image.open(cal_img_stream)
+                            except:
+                                cal_img_obj = None
+
+                        yield final_status, result, speech_text, None, trace_log, cal_img_obj
     
                     except Exception as e:
                         import traceback
@@ -2564,7 +2720,7 @@ def create_demo():
             "zh-TW",  # caregiver_lang_dropdown
             False,  # privacy_toggle
             "",    # status_display
-            "",    # json_output
+            None,  # json_output
             "<div style='padding:30px; text-align:center; color:#999;'><h3>Ready for analysis...</h3></div>",  # silver_html
             None,  # audio_output
             None,  # calendar_output
@@ -2657,9 +2813,12 @@ if __name__ == "__main__":
     bootstrap_system()
     
     # 🎯 Context-Aware Model Path
-    if IS_KAGGLE and os.path.exists("/kaggle/input/silverguard-adapter"):
-        ADAPTER_MODEL = "/kaggle/input/silverguard-adapter"
-        print(f"☁️ [Cloud] Detected Kaggle Environment. Using model at: {ADAPTER_MODEL}")
+    if IS_KAGGLE:
+        if os.path.exists("/kaggle/input/silverguard-adapter"):
+             ADAPTER_MODEL = "/kaggle/input/silverguard-adapter"
+             print(f"☁️ [Cloud] Detected Kaggle Environment. Using model at: {ADAPTER_MODEL}")
+        else:
+             print(f"☁️ [Cloud] Detected Kaggle Environment. Using default/local adapter path.")
     elif IS_HF_SPACE:
         ADAPTER_MODEL = "." # Assuming repo is cloned
         print(f"☁️ [Cloud] Detected Hugging Face Space.")
@@ -2669,19 +2828,29 @@ if __name__ == "__main__":
     print(f"🚀 Starting SilverGuard CDS ({SYSTEM_OS} Edition)...")
     
     # 🎯 Launch Configuration
+    # [Kaggle Hotfix V5] Static Path Registration (EARLY BINDING)
+    # MUST be called before create_demo() to ensure gr.Examples registers correctly
+    if IS_KAGGLE:
+        print("🛡️ [Security] Registering static paths for Demo Assets (Early Binding)...")
+        import gradio as gr
+        # Use relative path matching the get_demo_path return value
+        gr.set_static_paths(paths=["assets/DEMO", "assets"])
+
     # 🎯 建立 UI (只在主進程執行)
     demo = create_demo()
 
+    demo.queue()
     # 🎯 Launch Configuration (✅ 已優化：強制本機直連，防錄影斷線)
     demo.launch(
         server_name="0.0.0.0" if IS_CLOUD else "127.0.0.1",  
         server_port=7860,
-        # [Video Mode] 關閉 share=True，確保在完全斷網環境下依然能極速運行
-        share=False, 
+        # [Kaggle/HF Fix] Enable share=True for cloud demos to generate public URLs
+        share=True if IS_CLOUD else False, 
         inbrowser=False if IS_CLOUD else True,
         show_error=True,
         head=HEAD_ASSETS,
-        allowed_paths=["/tmp", tempfile.gettempdir(), ".", os.getcwd()],
+        # 👇 強制告訴 Gradio 這些地方的檔案是安全的
+        allowed_paths=["/kaggle/input", "/kaggle/working", "/tmp", tempfile.gettempdir(), ".", os.getcwd()],
         theme=gr.themes.Soft(), 
         css=custom_css
     )

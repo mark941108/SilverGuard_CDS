@@ -32,46 +32,35 @@ except ImportError:
     print("!"*50 + "\n")
     DATA_SYNC_AVAILABLE = False
 
-# ==========================================
-# 1. 病患資料擴充 (Round 19: Diversity Fix)
-# ==========================================
-# 解決 "Overfitting to 4 patients" 問題
-# 擴充至 60+ 隨機病患，強迫模型閱讀文字而非背誦名字
-
-PATIENT_PROFILES = {}
-
-# 1. 基礎名單 (保留原本的以確保相容性)
-base_profiles = {
-    "陳金龍": {"gender": "男", "dob": datetime(1955, 3, 12)},
-    "林美玉": {"gender": "女", "dob": datetime(1948, 8, 25)},
-    "張志明": {"gender": "男", "dob": datetime(1985, 6, 15)},
-    "李建國": {"gender": "男", "dob": datetime(1941, 2, 28)},
-}
-PATIENT_PROFILES.update(base_profiles)
-
-# 2. 自動生成 50+ 個隨機病人 (The "Chen Jinlong" Killer)
-last_names = ["王", "李", "張", "劉", "陳", "楊", "黃", "趙", "吳", "周", "徐", "孫", "馬", "朱", "胡", "郭", "何", "高", "林"]
-first_names_m = ["志明", "建國", "冠宇", "豪", "偉", "亮", "明", "強", "文", "傑", "俊", "凱", "成", "峰", "平", "添財", "進財"]
-first_names_f = ["淑芬", "雅婷", "美玲", "麗華", "秀英", "敏", "靜", "惠", "娟", "英", "華", "玉", "珍", "儀", "佳", "罔市", "招弟"]
-
-# 生成 60 個額外名單
-for _ in range(60):
-    gender = random.choice(["男", "女"])
-    lname = random.choice(last_names)
-    fname = random.choice(first_names_m) if gender == "男" else random.choice(first_names_f)
-    full_name = f"{lname}{fname}"
+# [CRITICAL FIX] Kaggle Chinese Font Downloader
+def ensure_font_exists():
+    """確保中文字體存在，修復 Kaggle 404 問題"""
+    # [V12.18 FIX] Use raw.githubusercontent.com for stability (Fix 404)
+    font_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf"
     
-    # 隨機生日 (60-90歲)
-    year = random.randint(1935, 1965)
-    month = random.randint(1, 12)
-    day = random.randint(1, 28)
+    # 判斷 Kaggle 環境絕對路徑
+    if os.path.exists("/kaggle/working"):
+        font_dir = "/kaggle/working/assets/fonts"
+    else:
+        font_dir = os.path.join(os.getcwd(), "assets", "fonts")
     
-    # 避免重複覆蓋
-    if full_name not in PATIENT_PROFILES:
-        PATIENT_PROFILES[full_name] = {"gender": gender, "dob": datetime(year, month, day)}
+    os.makedirs(font_dir, exist_ok=True)
+    font_path = os.path.join(font_dir, "NotoSansTC-Bold.otf")
+    
+    if not os.path.exists(font_path):
+        print(f"⬇️ Downloading font from {font_url}...")
+        try:
+            import requests
+            r = requests.get(font_url)
+            with open(font_path, "wb") as f:
+                f.write(r.content)
+            print(f"✅ Font saved to {font_path}")
+        except Exception as e:
+            print(f"⚠️ Font download failed: {e}")
+    return font_path
 
-print(f"✅ Patient Database Expanded: {len(PATIENT_PROFILES)} profiles loaded.")
-
+# Execute Font Check
+FONT_PATH = ensure_font_exists()
 
 # ==========================================
 # ⚖️ LEGAL DISCLAIMER / 免責聲明
@@ -97,37 +86,53 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "assets/lasa_dataset_v17_compliance")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 # [V16] Dynamic Path for Kaggle vs Local
 
-# Google Fonts URLs
+# Google Fonts URLs (Fixed to raw.githubusercontent.com - Dual Weight)
 FONT_URLS = {
-    "Bold": "https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC-Bold.otf",
-    "Regular": "https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC-Regular.otf"
+    "Bold": "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf",
+    "Regular": "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Regular.otf"
 }
+
+def resolve_font_path(font_name):
+    """🔍 智慧搜尋字體絕對路徑，徹底解決 Kaggle 路徑迷航"""
+    possible_paths = [
+        f"/kaggle/working/assets/fonts/{font_name}",               # Kaggle Bootstrap 路徑
+        f"/kaggle/working/SilverGuard/assets/fonts/{font_name}",   # Kaggle 子目錄路徑
+        f"../assets/fonts/{font_name}",                            # 本機相對路徑
+        f"assets/fonts/{font_name}",                               # 預設相對路徑
+        font_name                                                  # 最後掙扎 (當前目錄)
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    print(f"⚠️ 警告: 徹底找不到字體 {font_name}！")
+    return font_name # 找不到就回傳原名
+
+# 動態解析真正的字體路徑
 FONT_PATHS = {
-    "Bold": "NotoSansTC-Bold.otf",
-    "Regular": "NotoSansTC-Regular.otf"
+    "Bold": resolve_font_path("NotoSansTC-Bold.otf"),
+    "Regular": resolve_font_path("NotoSansTC-Regular.otf")
 }
 
 def download_fonts():
-    """Auto-download fonts. STRICT MODE: Fail if download fails."""
-    # [V25] Tip: For Kaggle, upload these fonts to a Dataset and change FONT_PATHS to input path.
+    """Auto-download fonts with Kaggle directory awareness."""
+    font_dir = "/kaggle/working/assets/fonts" if os.path.exists("/kaggle/working") else "."
+    os.makedirs(font_dir, exist_ok=True)
+    
     for style, url in FONT_URLS.items():
-        path = FONT_PATHS[style]
+        path = os.path.join(font_dir, FONT_PATHS[style])
         if not os.path.exists(path):
             print(f"⬇️ Downloading font: {style}...")
             try:
                 r = requests.get(url, timeout=15)
-                if r.status_code == 200:
-                    with open(path, "wb") as f:
-                        f.write(r.content)
-                    print(f"✅ Saved {path}")
-                else:
-                    raise Exception(f"HTTP {r.status_code}")
+                with open(path, "wb") as f:
+                    f.write(r.content)
+                print(f"✅ Saved {path}")
             except Exception as e:
-                print(f"⚠️ WARNING: Font download failed for {style}. Using system fallback.")
-                # raise RuntimeError(f"Font download failed: {e}") # [Audit Fix] Soft Fail
+                print(f"⚠️ Font download failed for {style}: {e}")
 
-def get_font(size, bold=False):
-    path = FONT_PATHS["Bold"] if bold else FONT_PATHS["Regular"]
+def get_font(size, bold=True):
+    font_dir = "/kaggle/working/assets/fonts" if os.path.exists("/kaggle/working") else "."
+    path = os.path.join(font_dir, FONT_PATHS["Bold"] if bold else FONT_PATHS["Regular"])
     try:
         return ImageFont.truetype(path, size)
     except Exception as e:
@@ -150,7 +155,12 @@ def get_jitter_offset(amp=5):
 def fit_text_to_width(draw, text, font_path, max_width, start_size=50):
     """Recursively shrink font size until text fits in max_width."""
     size = start_size
-    font = ImageFont.truetype(font_path, size)
+    try:
+        font = ImageFont.truetype(font_path, size)
+    except OSError:
+        # 🛡️ 終極防線：如果字體真的壞了或找不到，自動降級為系統預設字體，絕對不准 Crash！
+        print(f"🚨 字體載入失敗: {font_path}。啟用系統預設字體兜底！")
+        return ImageFont.load_default(), size
     try:
         bbox = draw.textbbox((0, 0), text, font=font)
         width = bbox[2] - bbox[0]
@@ -712,24 +722,6 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
     print(f"✅ Generated V26: {filename}")
 
 if __name__ == "__main__":
-    
-    # [Debug Fix] Auto-download Font for Training Environment
-    def ensure_font_exists():
-        font_path = "NotoSansTC-Bold.otf"
-        if not os.path.exists(font_path):
-            print("⬇️ Downloading font for data generation...")
-            # Use urllib to avoid requests dependency issues in minimal envs
-            url = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf"
-            import urllib.request
-            try:
-                urllib.request.urlretrieve(url, font_path)
-                print("✅ Font downloaded.")
-            except Exception as e:
-                print(f"⚠️ Font download failed: {e}. Text rendering may fail.")
-        return font_path
-
-    # Ensure font exists before proceeding
-    ensure_font_exists()
     
     download_fonts() 
     

@@ -301,7 +301,8 @@ def resolve_drug_name_zh(raw_name):
                 if target in [item['name_en'].lower(), item['generic'].lower()]:
                     return item['name_zh']
                 # 關鍵字包含匹配 (例如 VLM 吐出 "Glucophage Tablets")
-                if clean_name in item['name_en'].lower() or item['name_en'].lower() in clean_name:
+                # [Fix] 必須確保 clean_name 不為空，否則會匹配到所有藥物 (造成 Norvasc 幻覺)
+                if clean_name and len(clean_name) > 2 and (clean_name in item['name_en'].lower() or item['name_en'].lower() in clean_name):
                     return item['name_zh']
                 
     return raw_name # 找不到則回傳原始名稱 (至少有原始資訊)
@@ -590,6 +591,17 @@ def parse_json_from_response(response):
     # 🟢 [FIX] 縫合手術：修復模型提早關閉 JSON 的問題
     # [Fix] Repair "}, "sbar_handoff"" pattern
     response = re.sub(r'\}\s*,\s*"sbar_handoff"', r', "sbar_handoff"', response)
+    
+    # 🟢 [Director's Polish V2] Safety-Critical Regex
+    # Only fix comma-inside-quotes if NOT preceded by valid JSON terminators (quote, digit, brace, bracket, e/l for bool/null)
+    # Fixes: "usage": "1/2錠 (半)," "patient" -> "usage": "1/2錠 (半)", "patient"
+    # Ignores: "100mg"}, "safety" (Valid)
+    response = re.sub(r'([^"\d\}\]el])\s*,\s*"', r'\1", "', response)
+
+    # 🟢 [Director's Micro-Patch] Fix extra brace hallucination
+    # Fixes: "silverguard_message": "..."}, "sbar_handoff" -> "... ", "sbar_handoff"
+    response = response.replace('"}, "sbar_handoff"', '", "sbar_handoff"')
+    response = response.replace('}"}', '"}') # Prevent double braces at end
 
     response = response.strip()
 
