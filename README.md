@@ -163,6 +163,30 @@ docker run --gpus all -p 7860:7860 silverguard
 
 ---
 
+## 🧠 Module 5: Technical FAQ & Judge's Addendum
+<details>
+<summary><b>👉 Click here for Deep-Dive Architectural Decisions (Sim2Real, Hardware Trade-offs, Agent Design)</b></summary>
+
+### 1. 🛡️ Sim2Real Gap Defense
+> **Q: Your 'Gallery of Horrors' uses synthetic/simulated physical noise. How do you address the Sim2Real gap?**
+> **A:** We explicitly acknowledge this gap. Our goal isn't to perfectly simulate reality, but to stress-test the **Safety Architecture**. By feeding the model mathematically degraded images (e.g., Laplacian Variance < 100), we prove that our system defaults to **"Active Refusal"** (asking the user to retake the photo) rather than hallucinating a fatal dosage. In medical AI, predictable refusal is safer than unpredictable guessing.
+
+### 2. ⚡ Edge vs Cloud (Why not GPT-4o?)
+> **Q: Why use a 4B local model (MedGemma) instead of calling a stronger cloud API like GPT-4o?**
+> **A:** Three reasons: **Privacy, Cost, and Connectivity**. Rural Taiwanese clinics and elder-care homes often lack stable internet. Cloud APIs require egressing Protected Health Information (PHI), which violates our HIPAA-aligned design. By utilizing 4-bit quantization on a local consumer GPU (RTX 5060), we achieve zero marginal cost per inference and 100% offline reliability.
+
+### 3. 🤖 Agentic vs Swarm Architecture
+> **Q: Why a "Centralized Agentic Loop" instead of a Multi-Agent Swarm?**
+> **A:** Aligning with recent DeepMind research (2026), independent agent swarms can amplify errors in sequential reasoning. We opted for a **Centralized System 2 Orchestrator**. The LLM (System 1) generates hypotheses, but a deterministic Python rule engine (System 2) validates them against hard constraints (e.g., Beers Criteria). If validation fails, it forces a targeted retry with a lower temperature (0.2 → 0.1).
+
+### 4. 🐢 Hardware Trade-offs & Latency
+> **Q: The MedASR transcription has a 3-5 second latency. Why?**
+> **A:** This is a deliberate hardware trade-off. To prevent Out-Of-Memory (OOM) crashes on an 8GB RTX 5060 while keeping MedGemma loaded in VRAM, we offloaded the MedASR acoustic processing to the CPU. In critical healthcare systems, **deterministic stability always outranks speed**.
+
+</details>
+
+---
+
 ### 📞 Contact & Emergency
 *   **General Consultation**: Taiwan FDA Consultation Line **1919**
 *   **Medical Emergency**: Dial **119** immediately.
