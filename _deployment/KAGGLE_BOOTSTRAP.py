@@ -71,25 +71,65 @@ else:
     print("ℹ️ No external dataset assets found. Assuming GitHub Clone mode or Local run.")
 
 # ============================================================================
-# STEP 0: 環境重置與認證
+# STEP 0: Pre-Flight Checks (Graceful Degradation) - [V12.16 Impact]
 # ============================================================================
-
-
 print("=" * 80)
-print("🏥 AI Pharmacist Guardian - Bootstrap (V12.16 Impact)")
+print("🛡️ SilverGuard Pre-Flight Diagnostics")
 print("=" * 80)
 
-# 1. 讀取金鑰
-user_secrets = UserSecretsClient()
-print("\n[1/6] 讀取認證金鑰...")
+# 1. Internet Check
+print("1. [Internet] Checking connectivity...", end=" ")
 try:
-    gh_token = user_secrets.get_secret("GITHUB_TOKEN")
+    # Use curl with timeout to check HuggingFace connectivity
+    subprocess.check_call(["curl", "-s", "--connect-timeout", "5", "-I", "https://huggingface.co"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print("✅ Online")
+except subprocess.CalledProcessError:
+    print("❌ FAILED")
+    print("\n" + "!"*60)
+    print("❌ CRITICAL ERROR: Internet is DISABLED.")
+    print("👉 Please open 'Settings' (Right Sidebar) -> 'Internet' -> Turn ON.")
+    print("   (Required to install dependencies and download MedGemma)")
+    print("!"*60 + "\n")
+    sys.exit(1)
+
+# 2. GPU Check
+print("2. [Hardware] Checking GPU accelerator...", end=" ")
+try:
+    subprocess.check_call(["nvidia-smi"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print("✅ GPU Detected")
+except (FileNotFoundError, subprocess.CalledProcessError):
+    print("❌ FAILED")
+    print("\n" + "!"*60)
+    print("❌ CRITICAL ERROR: GPU Accelerator is MISSING.")
+    print("👉 Please open 'Settings' -> 'Accelerator' -> Select 'GPU T4 x2'.")
+    print("   (CPU-only runtime will crash due to OOM)")
+    print("!"*60 + "\n")
+    sys.exit(1)
+
+# 3. Token Check (Hard Kill)
+print("3. [Secrets] Checking Auth Credentials...", end=" ")
+user_secrets = UserSecretsClient()
+try:
     hf_token = user_secrets.get_secret("HUGGINGFACE_TOKEN")
-    print("   ✅ 金鑰讀取成功")
-except:
-    print("   ❌ 金鑰未設定！請去 Add-ons > Secrets 設定")
-    gh_token = ""
-    hf_token = ""
+    if not hf_token or hf_token.strip() == "":
+        raise ValueError("Token is empty")
+    print("✅ HF Token Found")
+    
+    # Optional GitHub Token (Soft Check)
+    try:
+        gh_token = user_secrets.get_secret("GITHUB_TOKEN")
+    except:
+        gh_token = ""
+        
+except Exception as e:
+    print("❌ FAILED")
+    print("\n" + "!"*60)
+    print("❌ CRITICAL ERROR: 'HUGGINGFACE_TOKEN' not found in Secrets.")
+    print("👉 Please go to 'Add-ons' -> 'Secrets' -> 'Add New'")
+    print("   Label: HUGGINGFACE_TOKEN")
+    print("   Value: [Your HuggingFace Read Token]")
+    print("!"*60 + "\n")
+    sys.exit(1)
 
 # %%
 # ============================================================================
