@@ -1120,9 +1120,10 @@ print("📦 Cloning SilverGuard CDS...")
 !git clone {repo_url}
 
 # 3. ROOT MIGRATION (Crucial for Absolute Paths)
-# Moves files from ./SilverGuard subclass directory to /kaggle/working/ root
 print("📂 Moving files to Root (Preventing Path Trap)...")
-!cp -rn SilverGuard/. .
+# [STABILITY FIX] Use -r with /* AND .* to catch ALL files (hidden + regular)
+!cp -r SilverGuard/* . 2>/dev/null || :
+!cp -r SilverGuard/.* . 2>/dev/null || :
 !rm -rf SilverGuard
 !cp requirements.txt . 2>/dev/null || :
 
@@ -1134,12 +1135,20 @@ print("🔧 Installing Dependencies...")
 # 5. Launch MedGemma Impact Pipeline
 print("🚀 Launching MedGemma Impact Pipeline...")
 
-# Step 5a: Generate V17 Hyper-Realistic Dataset (Optional but recommended)
-if os.path.exists("generate_v17_fusion.py"):
-    print("🎨 Generating V17 Hyper-Realistic Dataset...")
-    !python generate_v17_fusion.py
+# Step 5a: Generate V17 Dataset (Mandatory if missing) 
+# We check if dataset is already there to avoid redundant generation
+import glob
+v17_check = glob.glob("**/dataset_v17_train.json", recursive=True)
+if not v17_check:
+    if os.path.exists("generate_v17_fusion.py"):
+        print("🎨 V17 Data missing! Generating Hyper-Realistic Dataset (est. 3-5 min)...")
+        !python generate_v17_fusion.py
+    else:
+        print("⚠️ Warning: generate_v17_fusion.py not found. Falling back to internal engine.")
+else:
+    print(f"✅ V17 Dataset found at {v17_check[0]}")
 
-# Step 5b: Run main engine (Data Gen -> Training -> Agent Demo)
+# Step 5b: Run main engine
 !python agent_engine.py
 ```
 

@@ -346,15 +346,18 @@ import glob
 print("🔍 啟動全域雷達掃描 V17 資料集...")
 V17_DATA_DIR = "" # [FIX] Initialize to prevent NameError
 v17_train_json = None
-# 1. 優先掃描 Kaggle /kaggle/input
-kaggle_v17 = glob.glob("/kaggle/input/**/dataset_v17_train.json", recursive=True)
-if kaggle_v17:
-    v17_train_json = kaggle_v17[0]
+# 1. 優先掃描 Kaggle /kaggle/input (全域搜索)
+kaggle_candidates = glob.glob("/kaggle/input/**/dataset_v17_train.json", recursive=True)
+# 2. 備用掃描本地工作目錄 (全域搜索，不限於 ./**)
+local_candidates = glob.glob("**/dataset_v17_train.json", recursive=True)
+
+all_candidates = kaggle_candidates + local_candidates
+
+if all_candidates:
+    v17_train_json = all_candidates[0]
+    print(f"🎯 Omni-Radar Locked V17 Dataset at: {v17_train_json}")
 else:
-    # 2. 備用掃描本地工作目錄
-    local_v17 = glob.glob("./**/dataset_v17_train.json", recursive=True)
-    if local_v17:
-        v17_train_json = local_v17[0]
+    v17_train_json = None
 
 v17_train_exists = v17_train_json is not None
 
