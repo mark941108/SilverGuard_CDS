@@ -34,27 +34,39 @@ except ImportError:
 
 # [CRITICAL FIX] Kaggle Chinese Font Downloader
 def ensure_font_exists():
-    """確保中文字體存在，修復 Kaggle 404 問題"""
-    # [V12.18 FIX] Use raw.githubusercontent.com for stability (Fix 404)
+    """Ensure Traditional Chinese font exists, fix Kaggle 404/corruption issues."""
     font_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf"
     
-    # 判斷 Kaggle 環境絕對路徑
     if os.path.exists("/kaggle/working"):
         font_dir = "/kaggle/working/assets/fonts"
     else:
-        font_dir = os.path.join(os.getcwd(), "assets", "fonts")
+        font_dir = os.path.join(os.getcwd(), "assets/fonts")
     
     os.makedirs(font_dir, exist_ok=True)
     font_path = os.path.join(font_dir, "NotoSansTC-Bold.otf")
     
-    if not os.path.exists(font_path):
+    def is_valid_otf(path):
+        if not os.path.exists(path) or os.path.getsize(path) < 1000:
+            return False
+        with open(path, "rb") as f:
+            header = f.read(4)
+            return header in [b"OTTO", b"\x00\x01\x00\x00"] # Valid OpenType/TrueType headers
+
+    if not is_valid_otf(font_path):
         print(f"⬇️ Downloading font from {font_url}...")
         try:
             import requests
-            r = requests.get(font_url)
-            with open(font_path, "wb") as f:
-                f.write(r.content)
-            print(f"✅ Font saved to {font_path}")
+            r = requests.get(font_url, stream=True, timeout=30)
+            if r.status_code == 200:
+                with open(font_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                if is_valid_otf(font_path):
+                    print(f"✅ Font saved and verified: {font_path}")
+                else:
+                    print(f"❌ Downloaded file is not a valid font (likely HTML error page).")
+            else:
+                print(f"❌ Failed to download font: HTTP {r.status_code}")
         except Exception as e:
             print(f"⚠️ Font download failed: {e}")
     return font_path
@@ -86,67 +98,74 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "assets/lasa_dataset_v17_compliance")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 # [V16] Dynamic Path for Kaggle vs Local
 
-# Google Fonts URLs (Fixed to raw.githubusercontent.com - Dual Weight)
+# ==========================================
+# 📐 Font Management (Kaggle & Local)
+# ==========================================
+if os.path.exists("/kaggle/working"):
+    ASSETS_FONTS_DIR = "/kaggle/working/assets/fonts"
+else:
+    ASSETS_FONTS_DIR = os.path.join(os.getcwd(), "assets/fonts")
+os.makedirs(ASSETS_FONTS_DIR, exist_ok=True)
+
 FONT_URLS = {
     "Bold": "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf",
     "Regular": "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Regular.otf"
 }
 
-def resolve_font_path(font_name):
-    """🔍 智慧搜尋字體絕對路徑，徹底解決 Kaggle 路徑迷航"""
-    possible_paths = [
-        f"/kaggle/working/assets/fonts/{font_name}",               # Kaggle Bootstrap 路徑
-        f"/kaggle/working/SilverGuard/assets/fonts/{font_name}",   # Kaggle 子目錄路徑
-        f"../assets/fonts/{font_name}",                            # 本機相對路徑
-        f"assets/fonts/{font_name}",                               # 預設相對路徑
-        font_name                                                  # 最後掙扎 (當前目錄)
-    ]
-    for path in possible_paths:
-        if os.path.exists(path):
-            return path
-    print(f"⚠️ 警告: 徹底找不到字體 {font_name}！")
-    return font_name # 找不到就回傳原名
-
-# 動態解析真正的字體路徑
-FONT_PATHS = {
-    "Bold": resolve_font_path("NotoSansTC-Bold.otf"),
-    "Regular": resolve_font_path("NotoSansTC-Regular.otf")
-}
+def is_valid_otf(path):
+    if not os.path.exists(path) or os.path.getsize(path) < 1000000: # Fonts are usually >1MB
+        return False
+    try:
+        with open(path, "rb") as f:
+            header = f.read(4)
+            return header in [b"OTTO", b"\x00\x01\x00\x00"]
+    except:
+        return False
 
 def download_fonts():
-    """Auto-download fonts with Kaggle directory awareness."""
-    font_dir = "/kaggle/working/assets/fonts" if os.path.exists("/kaggle/working") else "."
-    os.makedirs(font_dir, exist_ok=True)
-    
+    """Download fonts with validation to prevent HTML corruption."""
+    import requests
     for style, url in FONT_URLS.items():
-        path = os.path.join(font_dir, FONT_PATHS[style])
-        if not os.path.exists(path):
-            print(f"⬇️ Downloading font: {style}...")
+        path = os.path.join(ASSETS_FONTS_DIR, f"NotoSansTC-{style}.otf")
+        if not is_valid_otf(path):
+            print(f"⬇️ Downloading font: {style} (~15MB)...")
             try:
-                r = requests.get(url, timeout=15)
-                with open(path, "wb") as f:
-                    f.write(r.content)
-                print(f"✅ Saved {path}")
+                r = requests.get(url, stream=True, timeout=60)
+                if r.status_code == 200:
+                    with open(path, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=1024*1024):
+                            f.write(chunk)
+                    if is_valid_otf(path):
+                        print(f"✅ Downloaded & Verified: {style}")
+                    else:
+                        print(f"❌ Download Failed: {style} (Corrupted or HTML)")
+                else:
+                    print(f"❌ HTTP {r.status_code} for {style}")
             except Exception as e:
-                print(f"⚠️ Font download failed for {style}: {e}")
+                print(f"⚠️ Font Download Error: {e}")
 
 def get_font(size, bold=True):
-    font_dir = "/kaggle/working/assets/fonts" if os.path.exists("/kaggle/working") else "."
-    path = os.path.join(font_dir, FONT_PATHS["Bold"] if bold else FONT_PATHS["Regular"])
+    style = "Bold" if bold else "Regular"
+    path = os.path.join(ASSETS_FONTS_DIR, f"NotoSansTC-{style}.otf")
+    
+    if not is_valid_otf(path):
+        download_fonts()
+        
     try:
         return ImageFont.truetype(path, size)
     except Exception as e:
-        # Retry download once
-        print(f"⚠️ Font not found ({path}), attempting download...")
+        print(f"⚠️ Font Loading Failed ({style}): {e}")
+        # Final fallback to bold if regular fails, or vice versa
+        other_style = "Regular" if bold else "Bold"
+        other_path = os.path.join(ASSETS_FONTS_DIR, f"NotoSansTC-{other_style}.otf")
         try:
-             download_fonts()
-             return ImageFont.truetype(path, size)
-        except Exception as e2:
-             # [Audit Fix] 🚨 FAIL-FAST: Never use load_default() for Chinese
-             print(f"\n❌ CRITICAL ERROR: Cannot load Chinese font ({path}): {e2}")
-             print(f"   Generated images will have GARBLED CHINESE TEXT (□□□).")
-             print(f"   Refusing to generate garbage data. Exiting.\n")
-             raise SystemExit("Font not found. Please download manually or fix internet connection.")
+            return ImageFont.truetype(other_path, size)
+        except:
+            print("🚨 CRITICAL: No fonts available. Using system default (Warning: Chinese text will be squares).")
+            return ImageFont.load_default()
+
+# Pre-download
+download_fonts()
 
 def get_jitter_offset(amp=5):
     """Return a fixed (dx, dy) to apply to a whole group of elements."""

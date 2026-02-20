@@ -172,7 +172,8 @@ _SYNTHETIC_DATA_GEN_SOURCE = {}
 # [CRITICAL FIX] Kaggle Chinese Font Downloader (Dual Weight Support)
 def ensure_font_exists():
     """
-    Auto-download NotoSansTC-Bold and Regular for typographic hierarchy.
+    Auto-download NotoSansTC-Bold and Regular with local header validation.
+    Prevents corruption (HTML error pages) and ensures Traditional Chinese support.
     """
     fonts = {
         "Bold": "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf",
@@ -182,18 +183,35 @@ def ensure_font_exists():
     font_dir = "/kaggle/working/assets/fonts" if os.path.exists("/kaggle/working") else os.path.join(os.getcwd(), "assets", "fonts")
     os.makedirs(font_dir, exist_ok=True)
     
+    def is_valid_otf(path):
+        if not os.path.exists(path) or os.path.getsize(path) < 1000000:
+            return False
+        try:
+            with open(path, "rb") as f:
+                header = f.read(4)
+                return header in [b"OTTO", b"\x00\x01\x00\x00"]
+        except:
+            return False
+
     paths = {}
+    import requests
     for name, url in fonts.items():
         p = os.path.join(font_dir, f"NotoSansTC-{name}.otf")
         paths[name] = p
-        if not os.path.exists(p):
-            print(f"⬇️ Downloading {name} font...")
+        if not is_valid_otf(p):
+            print(f"⬇️ Downloading {name} font (~15MB)...")
             try:
-                import requests
-                r = requests.get(url, timeout=10)
-                with open(p, "wb") as f:
-                    f.write(r.content)
-                print(f"✅ {name} font ready.")
+                r = requests.get(url, stream=True, timeout=60)
+                if r.status_code == 200:
+                    with open(p, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=1024*1024):
+                            f.write(chunk)
+                    if is_valid_otf(p):
+                        print(f"✅ {name} font ready and verified.")
+                    else:
+                        print(f"❌ {name} download failed header validation.")
+                else:
+                    print(f"❌ {name} HTTP {r.status_code}")
             except Exception as e:
                 print(f"⚠️ {name} download failed: {e}")
     return paths
