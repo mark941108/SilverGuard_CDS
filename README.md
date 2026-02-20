@@ -40,15 +40,15 @@
 ## Table of Contents
 
 - [💔 The Real-World Problem](#-the-real-world-problem)
-- [⚡ Quick Start (Judges' Recommended Path)](#-quick-start)
+- [⚡ Quick Start & Deployment](#-quick-start--deployment)
 - [🌟 Key Features](#-key-features-impact)
 - [⚡ Judges' Executive Summary](#-judges-executive-summary-30-second-insight)
-- [🔬 Technical Implementation](#-technical-implementation)
-- [📈 Projected Impact Analysis](#-projected-impact-analysis)
+- [ Projected Impact Analysis](#-projected-impact-analysis)
 - [🚀 Deployment Roadmap](#-deployment-roadmap--scaling-impact)
 - [🏗️ Architecture](#%EF%B8%8F-complete-workflow-architecture-neuro-symbolic-agent-loop)
 - [🎬 Demo Results](#-demo-results)
-- [🩺 Regulatory & Ethics](#-regulatory--ethics)
+- [🏛️ Technical Foundation & HAI-DEF Alignment](#%EF%B8%8F-technical-foundation--hai-def-alignment)
+- [⚖️ Legal & Compliance](#%EF%B8%8F-legal--compliance)
 - [📚 References](#-references)
 
 ---
