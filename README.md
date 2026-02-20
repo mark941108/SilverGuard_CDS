@@ -397,7 +397,7 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 > | **MedGemma Inference** | ✅ Local | ✅ Local | ❌ None |
 > | **Drug Image Analysis** | ✅ Local | ✅ Local | ❌ None |
 > | **Safety Logic Check** | ✅ Local | ✅ Local | ❌ None |
-> \* **Privacy Safeguard**: The Edge-TTS API only receives **de-identified, generic phrases** (e.g., "請記得飯後服藥"). Patient names/data are replaced with "阿公/阿嬤" via `clean_text_for_tts()` (defined in `app.py`) before transmission. Set `OFFLINE_MODE=True` for fully air-gapped deployment.
+> \* **Privacy Safeguard**: The Edge-TTS API only receives **final alert phrases** already stripped of patient identifiers. `clean_text_for_tts()` (defined in `agent_engine.py`) removes Markdown syntax, emojis, and normalizes punctuation for smooth audio output — no PHI is included in the text passed to the API. Set `OFFLINE_MODE=True` for fully air-gapped deployment (Windows: SAPI5 / Linux: Piper TTS).
 
 
 > [!IMPORTANT]
