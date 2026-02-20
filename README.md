@@ -1,4 +1,4 @@
-<!-- 🖼️ HERO IMAGE -->
+﻿<!-- 🖼️ HERO IMAGE -->
 ![SilverGuard CDS](assets/DEMO/demo_clean_1.png)
 
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
@@ -46,7 +46,7 @@
 
 > [!WARNING]
 > **⚠️ KNOWN LIMITATIONS (Red Team Audit Feb 2026)**
-> 1.  **Language Bias**: MedASR is optimized for English medical terminology. For best results, speak keywords in English (e.g., "Stomach Pain") even if the rest is Chinese.
+> 1.  **Language Bias**: MedASR requires **full English** input. It is optimized for US-native English medical terminology and does not reliably transcribe Chinese/Mandarin mixed speech. Dictate entire caregiver notes in English (e.g., "Patient has stomach pain after taking Metformin")
 > 2.  **SBAR Template**: During human-in-the-loop overrides (Wayfinding), the SBAR output uses a **deterministic template** rather than LLM generation. This is a deliberate **Safety Feature** to prevent hallucination during critical corrections.
 > 3.  **VRAM Safety**: ASR is forced to **CPU Mode** (~2s latency) on T4 GPUs to prevent OOM when running alongside MedGemma 4B.
 >
@@ -318,7 +318,7 @@ Unlike pure cloud solutions, SilverGuard CDS implements a **deployment-aware pri
 
 -   **MedASR Integration**: Local transcript processing (Simulated Dialect Routing for Demo).
 
-> **Why Edge-TTS on Kaggle?** Linux environments (T4) don't support SAPI5. `edge-tts` provides the best voice quality for Traditional Chinese on Linux. Only **generic, de-identified alert phrases** (e.g., `「請誘詢藥劌」`) are sent — never patient names or PHI.
+> **Why Edge-TTS on Kaggle?** Linux environments (T4) don't support SAPI5. `edge-tts` provides the best voice quality for Traditional Chinese on Linux. Only **generic, de-identified alert phrases** (e.g., `「請諮詢藥師」`) are sent — never patient names or PHI.
 
 > **Production Deployment**: For fully air-gapped hospital networks, deploy on Windows with SAPI5, or use offline TTS (Piper / MMS-TTS) on Linux.
 
