@@ -22,7 +22,11 @@ import os
 import sys
 import shutil
 import re
-from kaggle_secrets import UserSecretsClient
+try:
+    from kaggle_secrets import UserSecretsClient
+    IS_KAGLLE = True
+except ImportError:
+    IS_KAGLLE = False
 import subprocess
 
 print("🔍 Scanning for SilverGuard assets in /kaggle/input...")
@@ -108,28 +112,37 @@ except (FileNotFoundError, subprocess.CalledProcessError):
 
 # 3. Token Check (Hard Kill)
 print("3. [Secrets] Checking Auth Credentials...", end=" ")
-user_secrets = UserSecretsClient()
-try:
-    hf_token = user_secrets.get_secret("HUGGINGFACE_TOKEN")
-    if not hf_token or hf_token.strip() == "":
-        raise ValueError("Token is empty")
-    print("✅ HF Token Found")
-    
-    # Optional GitHub Token (Soft Check)
+if IS_KAGLLE:
+    user_secrets = UserSecretsClient()
     try:
-        gh_token = user_secrets.get_secret("GITHUB_TOKEN")
-    except:
-        gh_token = ""
+        hf_token = user_secrets.get_secret("HUGGINGFACE_TOKEN")
+        if not hf_token or hf_token.strip() == "":
+            raise ValueError("Token is empty")
+        print("✅ HF Token Found")
         
-except Exception as e:
-    print("❌ FAILED")
-    print("\n" + "!"*60)
-    print("❌ CRITICAL ERROR: 'HUGGINGFACE_TOKEN' not found in Secrets.")
-    print("👉 Please go to 'Add-ons' -> 'Secrets' -> 'Add New'")
-    print("   Label: HUGGINGFACE_TOKEN")
-    print("   Value: [Your HuggingFace Read Token]")
-    print("!"*60 + "\n")
-    sys.exit(1)
+        # Optional GitHub Token (Soft Check)
+        try:
+            gh_token = user_secrets.get_secret("GITHUB_TOKEN")
+        except:
+            gh_token = ""
+            
+    except Exception as e:
+        print("❌ FAILED")
+        print("\n" + "!"*60)
+        print("❌ CRITICAL ERROR: 'HUGGINGFACE_TOKEN' not found in Secrets.")
+        print("👉 Please go to 'Add-ons' -> 'Secrets' -> 'Add New'")
+        print("   Label: HUGGINGFACE_TOKEN")
+        print("   Value: [Your HuggingFace Read Token]")
+        print("!"*60 + "\n")
+        sys.exit(1)
+else:
+    # Local fallback
+    hf_token = os.environ.get("HUGGINGFACE_TOKEN", "")
+    gh_token = os.environ.get("GITHUB_TOKEN", "")
+    if hf_token:
+        print("✅ Using Local Env Token")
+    else:
+        print("⚠️ No Token Found (Local Mode)")
 
 # %%
 # ============================================================================
@@ -262,8 +275,8 @@ subprocess.run("pip install --no-cache-dir torch==2.6.0+cu118 torchvision==0.21.
 subprocess.run('pip install -U "transformers>=4.51.0" "accelerate>=1.3.0" "bitsandbytes>=0.45.0" "peft>=0.14.0"', shell=True, check=True)
 subprocess.run('pip install -U "gradio>=5.15.0" "fastapi>=0.115.0,<0.124.0" "pydantic>=2.10.0"', shell=True, check=True)
 subprocess.run('pip uninstall -y pillow matplotlib', shell=True) 
-# [極度重要] 鎖定 Pillow < 12.0.0 避免 _Ink ImportError 崩潰
-subprocess.run('pip install -U "pillow>=10.4.0,<12.0.0" "matplotlib>=3.9.0,<3.10.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]" "sentence-transformers" "faiss-cpu" "edge-tts" "rich<14.0.0"', shell=True, check=True)
+# [極度重要] 鎖定 Pillow < 12.0.0 避免 _Ink ImportError 崩潰，並補齊 nest_asyncio
+subprocess.run('pip install -U "pillow>=10.4.0,<12.0.0" "matplotlib>=3.9.0,<3.10.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]" "sentence-transformers" "faiss-cpu" "edge-tts" "rich<14.0.0" "nest_asyncio"', shell=True, check=True)
 subprocess.run("apt-get install -y ffmpeg", shell=True, check=False)
 print("   ✅ 所有依賴安裝完成！")
 

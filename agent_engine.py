@@ -460,12 +460,16 @@ def get_font_paths():
         return sys_bold, sys_reg
 
     # 🎯 Priority 3: Download if not available (Fallback)
+    # [KAGGLE FIX] Use absolute path for fonts to ensure findability after directory shift
+    base_font_dir = "/kaggle/working/assets/fonts" if os.path.exists("/kaggle/working") else os.path.join(os.getcwd(), "assets", "fonts")
+    os.makedirs(base_font_dir, exist_ok=True)
+    
     # Using a reliable mirroring source or direct github
     bold_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Bold.otf"
     reg_url = "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf"
     
-    bold_font_path = download_font("assets/fonts/NotoSansTC-Bold.otf", bold_url)
-    reg_font_path = download_font("assets/fonts/NotoSansTC-Regular.otf", reg_url)
+    bold_font_path = download_font(os.path.join(base_font_dir, "NotoSansTC-Bold.otf"), bold_url)
+    reg_font_path = download_font(os.path.join(base_font_dir, "NotoSansTC-Regular.otf"), reg_url)
     
     return bold_font_path, reg_font_path
 
@@ -3196,6 +3200,8 @@ def demo_elder_friendly_output():
                 "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
                 "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
                 "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Bold.otf",
+                "/kaggle/working/assets/fonts/NotoSansTC-Bold.otf",
+                "/kaggle/working/assets/fonts/NotoSansTC-Regular.otf",
                 "assets/fonts/NotoSansTC-Bold.otf", 
                 "assets/fonts/NotoSansTC-Regular.otf"
             ]
