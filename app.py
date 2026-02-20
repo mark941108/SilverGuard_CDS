@@ -174,7 +174,7 @@ def bootstrap_system():
                 {"code": "BC23456792", "name_en": "Glucophage", "name_zh": "庫魯化", "generic": "Metformin", "dose": "500mg", "appearance": "白色長圓形", "indication": "降血糖", "warning": "隨餐服用減少腸胃不適", "default_usage": "BID_meals_after"},
             ],
             "Anticoagulant": [
-                 {"code": "BC23456786", "name_en": "Xarelto", "name_zh": "拜瑞妥", "generic": "Rivaroxaban", "dose": "15mg", "appearance": "紅色圓形", "indication": "預防中風/血栓", "warning": "隨餐服用。請注意出血徵兆", "default_usage": "QD_meals_with"},
+                 {"code": "BC23456786", "name_en": "Xarelto", "name_zh": "拜瑞妥", "generic": "Rivaroxaban", "dose": "20mg", "appearance": "紅色圓形", "indication": "預防中風/血栓", "warning": "隨餐服用。請注意出血徵兆", "default_usage": "QD_meals_with"},
                  {"code": "BC77778888", "name_en": "Warfarin", "name_zh": "可化凝", "generic": "Warfarin", "dose": "5mg", "appearance": "粉紅色圓形", "indication": "抗凝血", "warning": "需定期監測INR", "default_usage": "QD_bedtime"},
                  {"code": "BC55556666", "name_en": "Bokey", "name_zh": "伯基", "generic": "Aspirin", "dose": "100mg", "appearance": "白色圓形", "indication": "預防血栓", "warning": "胃潰瘍患者慎用", "default_usage": "QD_breakfast_after"},
                  {"code": "BC_ASPIRIN_EC", "name_en": "Aspirin E.C.", "name_zh": "阿斯匹靈腸溶錠", "generic": "Aspirin", "dose": "100mg", "appearance": "白色圓形", "indication": "預防血栓/心肌梗塞", "warning": "胃潰瘍患者慎用", "default_usage": "QD_breakfast_after"},
@@ -1137,9 +1137,10 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     
     # [V13 Fix] 移除 emoji,改用純文字
     draw.text((50, y_off), "用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
-    # [FIX] 鎖定日期，確保 Demo 連戲 (例如鎖定為決賽日)
-    fixed_date = "2026-02-28" 
-    draw.text((WIDTH - 350, y_off + 20), f"日期: {fixed_date}", fill=COLORS["text_muted"], font=font_body)
+    # [Timezone Fix] 使用 UTC+8 動態日期，防止清晨測試出現「昨日漏洞」(Yesterday Bug)
+    now_tw = datetime.now(TZ_TW)
+    today_date = now_tw.strftime("%Y-%m-%d")
+    draw.text((WIDTH - 350, y_off + 20), f"日期: {today_date}", fill=COLORS["text_muted"], font=font_body)
     
     y_off += 120
     draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
