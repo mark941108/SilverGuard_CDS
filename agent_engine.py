@@ -344,6 +344,7 @@ except ImportError:
 import glob
 # [終極修正] 全域動態雷達 (Omni-Radar)：無視目錄層級
 print("🔍 啟動全域雷達掃描 V17 資料集...")
+V17_DATA_DIR = "" # [FIX] Initialize to prevent NameError
 v17_train_json = None
 # 1. 優先掃描 Kaggle /kaggle/input
 kaggle_v17 = glob.glob("/kaggle/input/**/dataset_v17_train.json", recursive=True)
@@ -1091,7 +1092,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 MODEL_ID = "google/medgemma-1.5-4b-it"
 
 # [V17 INTEGRATION] 智能路徑切換 (與 Line 306 邏輯一致)
-v17_train_json = os.path.join(V17_DATA_DIR, "dataset_v17_train.json")
+v17_train_json = os.path.join(V17_DATA_DIR, "dataset_v17_train.json") if V17_DATA_DIR else ""
 if USE_V17_DATA and os.path.exists(v17_train_json):
     # V17 Mode: Use hyper-realistic dataset
     BASE_DIR = V17_DATA_DIR
@@ -3530,7 +3531,7 @@ def demo_elder_friendly_output():
         # V5 Fix: Use Test Split (prevent data leakage)
         # [V17 FIX] 動態路徑：優先使用 V17 測試集
         # [V17 FIX] Robust Path Handling for Eval
-        target_v17_test = os.path.join(V17_DATA_DIR, "dataset_v17_test.json")
+        target_v17_test = os.path.join(V17_DATA_DIR, "dataset_v17_test.json") if V17_DATA_DIR else ""
     
         if os.path.exists(target_v17_test):
             json_path = target_v17_test

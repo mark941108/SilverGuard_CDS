@@ -267,8 +267,8 @@ def get_confidence_status(confidence, predicted_status="UNKNOWN", custom_thresho
     if custom_threshold is not None:
         threshold = custom_threshold
     else:
-        # [Audit Fix] Lowered to 0.60 for quantized model stability (Round 90)
-        threshold = 0.60 if predicted_status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"] else 0.65
+        # [V1.0 Impact] Dual-Threshold System: Recall for Risk (0.50), Precision for Safety (0.70)
+        threshold = 0.50 if predicted_status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"] else 0.70
         
     if confidence >= threshold:
         return "HIGH_CONFIDENCE", f"✅ Conf: {confidence:.1%} (Th: {threshold})"

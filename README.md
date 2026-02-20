@@ -102,7 +102,7 @@ After hospital discharge for chronic conditions, she holds 5 prescription bags w
 | **OCR Mobile Apps** | Cannot handle code-switching (EN/ZH混合腳本) | Free but 45% error rate* | Misread "Warfarin" as "Warfain" |
 | **Family Help** | Children work in cities, visit monthly | Emotional burden | Guilt of bothering busy children |
 
-*Citation: Our stress test results on 60 mixed-script labels (see Section: Robustness Gallery)
+*Citation: Our stress test results on 55 mixed-script labels (see Section: Robustness Gallery)
 
 ### The Unmet Need:
 
@@ -127,7 +127,7 @@ A **privacy-first, edge-deployed AI assistant** that:
 4. ✅ Generates **elderly-friendly output** (large-font calendar + Traditional Chinese voice readout)
 5. ✅ Supports **migrant caregivers** (Indonesian/Vietnamese translations)
 
-**Impact:** If deployed in just 100 community pharmacies → Prevent **34,600 medication errors/year**, saving **$41.5M USD annually**.
+**Impact:** If deployed in just 100 community pharmacies → Prevent **29,600 medication errors/year**, saving **$35.5M USD annually**.
 
 ---
 
@@ -502,7 +502,7 @@ To quantify the potential clinical value of **SilverGuard CDS**, we modeled the 
 
 **Scenario:** A community pharmacy processing **4,000 prescriptions/month** (48,000/year).
 
-| Metric | Result (Test Set N=60) | Clinical Significance |
+| Metric | Result (Test Set N=55) | Clinical Significance |
 |:-------|:----------------------:|:----------------------|
 | **Sensitivity (Recall)** | **96.5%** | Catches nearly all dangerous prescriptions |
 | **Overall Accuracy** | **~93%+** | High reliability for daily use |
@@ -548,7 +548,7 @@ Our deployment follows a conservative, evidence-based scaling approach:
 | **Pilot** | Q1 2026 | 10 pharmacies | 480,000 | ~2,960 | $3.55M USD | 1.87 tonnes CO₂ |
 | **Phase 1** | Y1 (2026) | 100 pharmacies | 4.8M | 29,600 | $35.5M USD | 18.7 tonnes CO₂ |
 | **Phase 2** | Y2-Y3 (2027-28) | 1,000 pharmacies (Taiwan-wide) | 48M | 296,000 | $355M USD | 187 tonnes CO₂ |
-| **Phase 3** | Y4-Y5 (2029-30) | 10,000 (Taiwan + SEA expansion) | 480M | 2.96M | $3.55B USD | 1,870 tonnes CO₂ |
+| **Phase 3** | Y4-Y5 (2029-30) | 10,000 (Taiwan + SEA expansion) | 480M | 2.96M | $3.55B USD | 1,872 tonnes CO₂ |
 | **Scale** | Y6+ (2031+) | 50,000 (Global South markets) | 2.4B | 14.8M | $17.7B USD | 9,360 tonnes CO₂ |
 
 **Key Assumptions:**
@@ -721,7 +721,7 @@ flowchart LR
         Correction
   end
  subgraph Wayfinding["🗺️ Wayfinding Protocol (Mahvar et al., 2025)"]
-        ConfCheck{"Below threshold?\nHIGH_RISK: <50% | PASS: <75%"}
+        ConfCheck{"Below threshold?\nHIGH_RISK: <50% | PASS: <70%"}
         AskUser@{ label: "❓ Ask: 'Is this 500 or 850?'" }
   end
  subgraph Action["🛡️ Action & Impact Layer"]
@@ -846,7 +846,7 @@ Attempt 2 (Temp 0.1): "Drug: Glucophage, Dosage: 500mg"
 
 To ensure patient safety, we conducted rigorous stress testing using **adversarial examples**.
 
-### Performance Metrics (Synthetic Test Set, N=60)
+### Performance Metrics (Synthetic Test Set, N=55)
 
 | Metric | Value | Clinical Interpretation |
 |:-------|:------|:------------------------|
@@ -905,7 +905,7 @@ We explicitly trained the model to handle **"Real-world Messiness"**:
 
 > **"Refusal is safer than hallucination."**
 
-In our validation (N=600), we treat `HUMAN_REVIEW_NEEDED` not as an error, but as a **successful safety net**.
+In our internal validation (N=600 pooled dataset), we treat `HUMAN_REVIEW_NEEDED` not as an error, but as a **successful safety net**.
 
 ![Safety Matrix](safety_confusion_matrix.png) *(Generated via Cell 8)*
 
@@ -988,7 +988,7 @@ By running **locally on Kaggle/Colab T4 (or Local PC)**:
 |---------|---------------|
 | **🔒 Privacy First** | No patient data leaves the local device (Ephemeral Processing) |
 | **⚡ Low Latency** | < 2s inference time per prescription (T4 GPU) |
-| **🧠 Human-in-the-Loop** | Dual threshold: `HIGH_RISK` ≥50% (Recall Priority) · `PASS` ≥75% (Precision Priority) → flag `HUMAN_REVIEW_NEEDED` |
+| **🧠 Human-in-the-Loop** | Dual threshold: `HIGH_RISK` ≥50% (Recall Priority) · `PASS` ≥70% (Precision Priority) → flag `HUMAN_REVIEW_NEEDED` |
 | **💾 Memory Efficient** | Fits within 6GB VRAM (Consumer GPU Ready) |
 | **📋 HIPAA-Compliant Design** | All processing in RAM, data wiped after session |
 | **🕒 Timezone Robustness** | UTC+8 Hard-coded logic prevents "Yesterday Bug" in early morning tests |
@@ -1021,7 +1021,8 @@ Roadmap to Next-Generation Architecture (Post-Competition):
 - **Phase 5 - On-Device Deployment**: Deploy via **MediaPipe LLM Inference API** on high-end Android (Pixel 9 Pro, Galaxy S24 Ultra) with aggressive 4-bit quantization, OR **Edge Gateways** (NVIDIA Jetson Orin) for clinic deployment. *Note: MedGemma 4B exceeds standard AICore 3.25B limit; future research includes distilling to Gemini Nano 3B for native AICore compatibility.*
 - **Accessibility**: Support for 10+ dialects via MedASR-Large. (Current: Traditional Chinese / 繁體中文; Roadmap: Taiwanese Hokkien via Piper TTS)
 
-### 🐳 Docker Edge Deployment
+<a name="docker-reproducibility-optional"></a>
+### 🐳 Option 3: Docker (Production Deployment)
 
 For local hospital deployment (Air-Gapped), use the provided Dockerfile.
 
@@ -1183,7 +1184,7 @@ This project utilizes Google's **MedGemma 1.5-4B** model. We strictly adhere to 
 
 ### Why MedGemma 1.5?
 
-This project uses **MedGemma 1.5-4B Multimodal** as its core reasoning engine. Released January 2026, MedGemma 1.5 is built on the **Gemma 3 architecture** with enhanced capabilities:
+This project uses **MedGemma 1.5-4B Multimodal** as its core reasoning engine. Released January 13, 2026, MedGemma 1.5 is built on the **Gemma 3 architecture** with enhanced capabilities:
 
 | Aspect | Justification |
 |--------|---------------|
@@ -1199,10 +1200,10 @@ This project uses **MedGemma 1.5-4B Multimodal** as its core reasoning engine. R
 ### 🎤 MedASR Integration
 *   **Pipeline:** We use **[Google MedASR](https://huggingface.co/google/medasr)** (Medical Automated Speech Recognition) to transcribe caregiver voice logs into text, then inject this text into MedGemma's context window with a specific system prompt: `[📢 CAREGIVER VOICE NOTE]`.
 
-*   **MedASR Advantages**:
-    - **Medical Terminology**: 58% fewer errors than Whisper Large-V3 on medical dictation (5.2% vs. 12.5% WER on chest X-ray dictations)
-    - **Conformer Architecture**: 105M parameters optimized for medical domain
-    - **Multilingual Support**: Handles medical terms across languages
+*   **MedASR Implementation**:
+    - **Architecture**: Conformer Architecture: 105M parameters optimized for medical domain
+    - **Language Support**: **English-only (Factual Limitation)**: Optimized for US-English dictation
+    - **Workaround**: **Simulated Multilingualism**: Demo uses English input for cross-lingual intent simulation
     - **Official Documentation**: [Google HAI-DEF](https://developers.google.com/health-ai-developer-foundations/medasr)
 
 *   **Use Case**: Migrant caregivers (Indonesian/Vietnamese) can dictate observations in their native language, which MedASR transcribes with medical terminology intact, enabling MedGemma to cross-reference with the prescription.
@@ -1339,7 +1340,7 @@ SilverGuard CDS is an **Offline-First**, LLM-powered visual QA system designed t
 
 1. Google for Developers. *MedGemma | Health AI Developer Foundations*. [developers.google.com](https://developers.google.com/health-ai-developer-foundations/medgemma)
 2. Google for Developers. *MedGemma Model Card*. [developers.google.com](https://developers.google.com/health-ai-developer-foundations/medgemma/model-card)
-3. Gemma Team (2025). *Gemma 3 Technical Report*. [arxiv.org](https://arxiv.org/abs/2503.19786)
+3. Google DeepMind (2026). *MedGemma Technical Report*. [arxiv.org](https://arxiv.org/abs/2507.05201)
 4. WHO (2024). *Medication Without Harm: Global Patient Safety Challenge*. [who.int](https://www.who.int/initiatives/medication-without-harm)
 5. WHO (2024). *Global Patient Safety Report 2024*.
 6. American Geriatrics Society (2023). *AGS Beers Criteria for Potentially Inappropriate Medication Use in Older Adults*. [americangeriatrics.org](https://www.americangeriatrics.org/beers-criteria)
