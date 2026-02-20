@@ -1087,35 +1087,37 @@ To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disc
 
 ---
 
-## 🔬 Reproducibility Guide (Advanced)
+## 🔬 Reproducibility Guide
 
-> **For judges who want to deep-dive into the technical implementation and reproduce results on Kaggle**
+> **Our pre-configured Kaggle Notebook is the recommended way to verify results — no setup required.**
 
-### 🚀 Quick Start: Kaggle Execution
+### 🚀 Option A: Pre-Built Notebook (Recommended)
 
-We recommend two ways for judges to verify the pipeline. **Option A** is the fastest and most reliable (using provided data).
+[![Run on Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://www.kaggle.com/code/markwang941108/silverguard-cds-demo)
 
-#### Option A: Speed Run (1-2 Minutes) - Recommended
-Use this if you have the **SilverGuard Impact Dataset** attached to your Kaggle notebook.
-1.  **Attach Dataset**: Search for `mark941108/silverguard-v17-impact` in Kaggle's "Add Data" sidebar.
-2.  **Paste & Run**: Use the **Bootstrap Script** below. It will detect the dataset and skip time-consuming generation.
+**[▶ SilverGuard CDS Demo — Open in Kaggle](https://www.kaggle.com/code/markwang941108/silverguard-cds-demo)**
 
-#### Option B: Full Reproduction (10-15 Minutes)
-Use this to see the **Full Synthetic Generation & Training** pipeline in action.
-1.  **Paste & Run**: Use the **Bootstrap Script** below. It will automatically generate the 896x896 V17 dataset and initiate fine-tuning (MedGemma 1.5).
+> ✅ **Zero setup.** All dependencies, fine-tuned weights, and V17 dataset are pre-loaded.  
+> ✅ **GPU-ready.** Just Fork & Run — results appear within minutes.  
+> ✅ **Skips training.** Loads the saved QLoRA checkpoint directly into the 4-Stage Agentic Pipeline.
+
+**Steps:**
+1. Click the link above → **Fork** the notebook
+2. Add your `HUGGINGFACE_TOKEN` in **Add-ons → Secrets**
+3. **Run All** — done.
 
 ---
 
-### Step-by-Step Instructions
-**Step 1:** Create a new Kaggle Notebook (Accelerator: **GPU T4 x2**)  
-**Step 2:** Add your `GITHUB_TOKEN` and `HUGGINGFACE_TOKEN` to **Kaggle Secrets**.  
-**Step 3:** Paste and run this **Bootstrap Script** in the first cell:
+### Option B: Full Reproduction from Source
+
+For judges who want to verify the full training pipeline end-to-end:
+
+**Prerequisites:** GPU T4 x2 | `HUGGINGFACE_TOKEN` in Kaggle Secrets
 
 ```python
 from kaggle_secrets import UserSecretsClient
-import os, shutil, glob, stat
+import os, shutil, glob
 
-# 1. Auth & Config
 user_secrets = UserSecretsClient()
 gh_token = ""
 try:
@@ -1123,47 +1125,20 @@ try:
 except:
     pass
 
-# 2. Clone Repository
-print("📦 Cloning SilverGuard CDS...")
 !rm -rf SilverGuard
 !git clone https://{gh_token}@github.com/mark941108/SilverGuard.git
-
-# 3. ROOT MIGRATION
-print("📂 Moving files to Root...")
-!cp -r SilverGuard/* . 2>/dev/null || :
-!cp -r SilverGuard/.* . 2>/dev/null || :
-!rm -rf SilverGuard
-
-# 4. Install Dependencies
-print("🔧 Installing Platinum Dependencies...")
+!cp -r SilverGuard/* . && rm -rf SilverGuard
 !pip install -q -r requirements.txt
-!pip install -q torchaudio librosa soundfile
-
-# 5. Launch MedGemma Impact Pipeline
-print("🚀 Launching MedGemma Impact Pipeline...")
-
-# Automated Data Check (Omni-Radar logic)
-v17_check = glob.glob("/kaggle/input/**/dataset_v17_train.json", recursive=True) + \
-            glob.glob("**/dataset_v17_train.json", recursive=True)
-
-if not v17_check:
-    print("🎨 V17 Data missing! Generating Hyper-Realistic Dataset...")
-    !python generate_v17_fusion.py
-else:
-    print(f"✅ V17 Dataset found at {v17_check[0]} (Skipping Generation)")
-
-# Run main engine
 !python agent_engine.py
 ```
 
-### Pipeline Stages (Automated)
-The main script automates the entire flow:
+### Pipeline Stages
 ```text
 Stage 1: Environment Setup & HuggingFace Auth
-Stage 2: Synthetic Data Generation (600 images + Taiwan Standard Risk Injection)
+Stage 2: Synthetic Data Generation (600 images, 896×896, Taiwan Standard)
 Stage 3: QLoRA Fine-Tuning (MedGemma 1.5-4B, 3 epochs)
 Stage 4: Agentic Pipeline Testing & Confusion Matrix
-Stage 5: High Risk Demo & SilverGuard CDS UI
+Stage 5: High Risk Demo & SilverGuard CDS UI (Gradio)
 ```
 
 
