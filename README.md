@@ -541,18 +541,19 @@ Our deployment follows a conservative, evidence-based scaling approach:
 
 | Phase | Timeline | Coverage | Prescriptions/Year | ADEs Prevented | Economic Impact | Carbon Reduction |
 |-------|----------|----------|-------------------|----------------|-----------------|------------------|
-| **Pilot** | Q1 2026 | 10 pharmacies | 480,000 | ~2,960 | $3.55M USD | 1.87 tonnes CO₂ |
+| **Pilot** | H2 2026 *(Post-Competition)* | 10 pharmacies | 480,000 | ~2,960 | $3.55M USD | 1.87 tonnes CO₂ |
 | **Phase 1** | Y1 (2026) | 100 pharmacies | 4.8M | 29,600 | $35.5M USD | 18.7 tonnes CO₂ |
 | **Phase 2** | Y2-Y3 (2027-28) | 1,000 pharmacies (Taiwan-wide) | 48M | 296,000 | $355M USD | 187 tonnes CO₂ |
 | **Phase 3** | Y4-Y5 (2029-30) | 10,000 (Taiwan + SEA expansion) | 480M | 2.96M | $3.55B USD | 1,872 tonnes CO₂ |
-| **Scale** | Y6+ (2031+) | 50,000 (Global South markets) | 2.4B | 14.8M | $17.7B USD | 9,360 tonnes CO₂ |
+| **Scale** *(Speculative Vision)* | Y6+ (2031+) | 50,000 (Global South markets) | 2.4B | 14.8M | $17.7B USD | 9,360 tonnes CO₂ |
 
 **Key Assumptions:**
 1. **Taiwan Market**: ~6,000 community pharmacies nationally
 2. **Error Rate**: 1.6% (WHO Global Medication Error Rate, conservative)
 3. **AI Catch Rate**: 96.5% (based on validation set)
-4. **Cost per ADE**: $1,200 USD (Taiwan NHI average, includes hospitalization)
-5. **Carbon Calculation**: 3.9g CO₂ saved per query (vs. cloud API)
+4. **ADE Rate**: ~40% of caught medication errors are estimated to cause actual Adverse Drug Events (clinically significant harm) — used to derive ADEs Prevented column
+5. **Cost per ADE**: $1,200 USD (Taiwan NHI average, includes hospitalization)
+6. **Carbon Calculation**: 3.9g CO₂ saved per query (vs. cloud API)
 
 **Phasing Rationale:**
 - **Pilot**: Validate real-world accuracy, collect pharmacist feedback
@@ -573,7 +574,7 @@ Our deployment follows a conservative, evidence-based scaling approach:
 2. **Indonesia** (2028) - Migrant worker integration
    - 280M population, caregiver training programs
    - Bahasa Indonesia TTS already implemented
-   - Partnership with BPJS Kesehatan (public insurance)
+   - Potential alignment with BPJS Kesehatan (public insurance system)
 
 3. **Vietnam** (2028-2029) - Similar demographics
    - 100M population, aging rapidly
@@ -602,8 +603,8 @@ Our deployment follows a conservative, evidence-based scaling approach:
 **Parallel FDA Strategy (for global credibility):**
 - **Pathway**: Software as Medical Device (SaMD) - Class II (510k)
 - **Predicate Devices**: e-prescribing error detection systems
-- **Timeline**: 12-18 months
-- **Cost**: ~$150K USD (including clinical study data)
+- **Timeline**: 12-18 months *(estimate)*
+- **Cost**: ~$100-300K USD *(rough estimate, varies by clinical study scope)*
 
 ### 🛡️ Failure Mode & Effects Analysis (FMEA)
 
