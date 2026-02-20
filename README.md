@@ -123,7 +123,7 @@ A **privacy-first, edge-deployed AI assistant** that:
 ### ⚡ Option 1: 1-Minute Kaggle Auto-Deploy (Judges' Path - Recommended)
 Don't want to configure environments? Our self-bootstrapping script handles dependencies, data generation, and model quantization automatically.
 
-1. Open our **[Kaggle Notebook Implementation](https://www.kaggle.com/code/markwang941108/silverguard-impact-research-v8)**.
+1. Open our **[Kaggle Notebook Implementation](https://www.kaggle.com/code/markwang941108/silverguard-cds-demo)**.
 2. Add `HUGGINGFACE_TOKEN` to **Kaggle Secrets** (Add-ons → Secrets).
 3. **Accept Gated Model Terms** (Critical):
    - Visit [google/medasr](https://huggingface.co/google/medasr) -> Click "Agree"
@@ -397,7 +397,7 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 > | **MedGemma Inference** | ✅ Local | ✅ Local | ❌ None |
 > | **Drug Image Analysis** | ✅ Local | ✅ Local | ❌ None |
 > | **Safety Logic Check** | ✅ Local | ✅ Local | ❌ None |
-> \* **Privacy Safeguard**: The gTTS API only receives **de-identified, generic phrases** (e.g., "請記得飯後服藥"). Patient names are replaced with "阿公/阿嬤" via `clean_text_for_tts()` before transmission. Set `OFFLINE_MODE=True` for fully air-gapped deployment.
+> \* **Privacy Safeguard**: The Edge-TTS API only receives **de-identified, generic phrases** (e.g., "請記得飯後服藥"). Patient names/data are replaced with "阿公/阿嬤" via `clean_text_for_tts()` (defined in `app.py`) before transmission. Set `OFFLINE_MODE=True` for fully air-gapped deployment.
 
 
 > [!IMPORTANT]
