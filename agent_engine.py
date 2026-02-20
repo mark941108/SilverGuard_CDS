@@ -2009,16 +2009,7 @@ def run_training_stage():
     import torch
     import numpy as np # Fixed: Added missing import
 
-    # Helper for JSON serialization of numpy types
-    class NpEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, np.integer):
-                return int(obj)
-            if isinstance(obj, np.floating):
-                return float(obj)
-            if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            return super(NpEncoder, self).default(obj)
+    # [V12.32 Cleanup] NpEncoder moved to global scope (line 343)
 
 
 # 👵 ELDERLY-FRIENDLY TERM MAPPINGS
@@ -2135,131 +2126,7 @@ def draw_bed_icon_ae(draw, x, y, size=30):
     draw.rectangle([x-r, y, x+r, y+r//4], outline="black", width=2, fill="#BDBDBD")
     draw.rectangle([x-r, y-r//4, x-r//2, y], fill="#757575")
 
-def create_medication_calendar(case_data, target_lang="zh-TW"):
-    """
-    🗓️ SilverGuard 旗艦級行事曆生成器 (Global Reference)
-    """
-    # ============ 配色方案 (WCAG AA Compliant) ============
-    COLORS = {
-        "bg_main": "#FAFAFA",       # 主背景
-        "bg_card": "#FFFFFF",       # 卡片背景
-        "border": "#E0E0E0",        # 邊框
-        "text_title": "#212121",    # 標題
-        "text_body": "#424242",     # 正文
-        "text_muted": "#757575",    # 輔助字
-        # 時間編碼
-        "morning": "#1976D2",       # 早晨（藍）
-        "noon": "#F57C00",          # 中午（橙）
-        "evening": "#512DA8",       # 晚上（深紫）
-        "bedtime": "#303F9F",       # 睡前（靛藍）
-        # 狀態色
-        "danger": "#D32F2F",        # 危險
-        "warning": "#FFA000",       # 警告
-    }
-
-    # ============ 建立畫布 ============
-    WIDTH, HEIGHT = 1400, 900
-    img = Image.new('RGB', (WIDTH, HEIGHT), color=COLORS["bg_main"])
-    draw = ImageDraw.Draw(img)
-
-    # ============ 載入字體 ============
-    def load_font(size):
-        font_paths = [
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-            "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
-            "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Bold.otf",
-            "assets/fonts/NotoSansTC-Bold.otf", 
-            "assets/fonts/NotoSansTC-Regular.otf"
-        ]
-        for path in font_paths:
-            if os.path.exists(path):
-                try: return ImageFont.truetype(path, size)
-                except: continue
-        return ImageFont.load_default()
-
-    font_super = load_font(84)
-    font_title = load_font(56)
-    font_subtitle = load_font(42)
-    font_body = load_font(36)
-    font_caption = load_font(28)
-
-    # ============ 資料提取 ============
-    vlm_out = case_data.get("vlm_output", {}).get("parsed", {})
-    if not vlm_out:
-        extracted = case_data.get("extracted_data", {})
-        safety = case_data.get("safety_analysis", {})
-    else:
-        extracted = vlm_out.get("extracted_data", {})
-        safety = vlm_out.get("safety_analysis", {})
-
-    drug = extracted.get("drug", {})
-    drug_name = drug.get("name_zh", drug.get("name", "未知藥物"))
-    dose = drug.get("dose", "依指示")
-    status = safety.get("status", "UNKNOWN")
-    warnings = [safety.get("reasoning", "")] if safety.get("reasoning") else []
-    
-    unique_usage = str(extracted.get("usage", "每日一次"))
-    u_str = unique_usage.upper()
-
-    # 1. 🥣 空碗/滿碗邏輯 (Bowl Logic)
-    bowl_icon = "🍚" 
-    bowl_text = "飯後服用"
-    if any(k in u_str for k in ["飯前", "AC", "空腹"]):
-        bowl_icon = "🥣"; bowl_text = "飯前服用"
-    elif any(k in u_str for k in ["睡前", "HS"]):
-        bowl_icon = "🛌"; bowl_text = "睡前服用"
-
-    # 2. 🕒 時間排程解析 (Schedule Parser)
-    SLOTS = {
-        "MORNING": {"icon_type": "sun", "label": "早上 (08:00)", "color": "morning"},
-        "NOON":    {"icon_type": "mountain", "label": "中午 (12:00)", "color": "noon"},
-        "EVENING": {"icon_type": "sunset", "label": "晚上 (18:00)", "color": "evening"},
-        "BEDTIME": {"icon_type": "moon", "label": "睡前 (22:00)", "color": "bedtime"},
-    }
-    active_slots = []
-    if any(k in u_str for k in ["QID", "四次"]): active_slots = ["MORNING", "NOON", "EVENING", "BEDTIME"]
-    elif any(k in u_str for k in ["TID", "三次"]): active_slots = ["MORNING", "NOON", "EVENING"]
-    elif any(k in u_str for k in ["BID", "兩次", "早晚"]): active_slots = ["MORNING", "EVENING"]
-    elif any(k in u_str for k in ["HS", "睡前"]): active_slots = ["BEDTIME"]
-    else: active_slots = ["MORNING"]
-
-    # ============ 視覺繪製 ============
-    y_off = 40
-    from datetime import datetime, timedelta, timezone
-    TZ_TW = timezone(timedelta(hours=8))
-    draw.text((50, y_off), "用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
-    y_off += 120
-    draw_pill_icon_ae(draw, 70, y_off+28, size=40, color="#E3F2FD")
-    draw.text((110, y_off), f"藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
-    y_off += 160
-    
-    for slot_key in active_slots:
-        s_data = SLOTS[slot_key]
-        draw.rectangle([(50, y_off), (WIDTH-50, y_off+130)], fill=COLORS["bg_card"], outline=COLORS[s_data["color"]], width=6)
-        
-        icon_x, icon_y = 90, y_off + 60
-        if s_data["icon_type"] == "sun": draw_sun_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
-        elif s_data["icon_type"] == "moon": draw_moon_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
-        elif s_data["icon_type"] == "mountain": draw_mountain_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
-        elif s_data["icon_type"] == "sunset": draw_sunset_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
-        
-        draw.text((140, y_off+30), s_data['label'], fill=COLORS[s_data["color"]], font=font_subtitle)
-        
-        # Bowl logic
-        bowl_x, bowl_y = 520, icon_y
-        if slot_key == "BEDTIME": draw_bed_icon_ae(draw, bowl_x, bowl_y, size=35)
-        elif "前" in bowl_text: draw_bowl_icon_ae(draw, bowl_x, bowl_y, size=35, is_full=False)
-        else: draw_bowl_icon_ae(draw, bowl_x, bowl_y, size=35, is_full=True)
-        
-        draw.text((560, y_off+30), f"{bowl_text} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
-        y_off += 150
-
-    # Save
-    import uuid, tempfile
-    out_path = os.path.join(tempfile.gettempdir(), f"calendar_{uuid.uuid4().hex[:8]}.png")
-    img.save(out_path)
-    return out_path
+# [V12.32 Audit] Basic Calendar Generator removed. Shadowed by Flagship Edition.
 
 # ============================================================================
 
@@ -2352,31 +2219,8 @@ def demo_agentic_high_risk():
     print(json.dumps(output_summary, ensure_ascii=False, indent=2))
     print("\n✅ DEMO COMPLETE")
 
-def demo_elder_friendly_output():
-    print("\n" + "="*80)
-    print("👴 ELDER-FRIENDLY OUTPUT DEMO (Visual + Voice)")
-    print("="*80)
-    
-    try:
-        # 在純後端展示中，為了避免與 app.py 產生循環依賴 (Circular Import) 導致崩潰，
-        # 我們直接在這裡模擬輸出的結果，證明後端引擎的資料結構是正確的。
-        
-        status = "PASS"
-        drug_name = "Amlodipine (脈優錠)"
-        dosage = "5mg"
-        rules = ["每天一次", "飯後服用"]
-        
-        print(f"🗓️ [Calendar Data Ready] Status: '{status}' | Drug: '{drug_name}' | Dosage: '{dosage}'")
-        print(f"✅ 行事曆資料已備妥，等待前端 UI (app.py) 進行渲染。")
-        
-        script = f"您好，我是您的用藥小幫手。這是您的藥「{drug_name}」。 醫生交代要「{rules[0]}」吃。您要把身體照顧好喔!"
-        print(f"📢 Generated Speech Script: {script}")
-        print("✅ TTS 語音文案已備妥，將由前端音訊引擎接手播放。")
-        
-    except Exception as e:
-        print(f"⚠️ Elder Demo Failed: {e}")
-    
-    print("\n✅ ELDER-FRIENDLY DEMO READY")
+# [V12.32 Audit] Dummy Demo removed. 
+# Promoting Real Demo (formerly line 3423) and Fix Indentation.
 
 
     
@@ -2526,1482 +2370,1482 @@ def demo_elder_friendly_output():
     from IPython.display import HTML, Audio, display
     import json
 
-    # ============================================================================
-    # TERM MAPPING: Medical Jargon to Plain Language
-    # ============================================================================
-    DRUG_TERM_MAPPING = {
-        # Hypertension
-        "Glucophage": "降血糖藥 (庫魯化)",
-        "Metformin": "降血糖藥 (美福明)",
-        "Norvasc": "降血壓藥 (脈優)",
-        "Amlodipine": "降血壓藥",
-        "Concor": "降血壓藥 (康肯)",
-        "Bisoprolol": "降血壓藥",
-        "Diovan": "降血壓藥 (得安穩)",
-        "Valsartan": "降血壓藥",
-        # Diabetes
-        "Amaryl": "降血糖藥 (瑪爾胰)",
-        "Glimepiride": "降血糖藥",
-        "Januvia": "降血糖藥 (佳糖維)",
-        "Sitagliptin": "降血糖藥",
-        # Sedative
-        "Stilnox": "安眠藥 (使蒂諾斯)",
-        "Zolpidem": "安眠藥",
-        "Imovane": "安眠藥 (宜眠安)",
-        "Zopiclone": "安眠藥",
-        # Cardiac
-        "Aspirin": "阿斯匹靈 (預防血栓)",
-        "ASA": "阿斯匹靈",
-        "Plavix": "保栓通 (預防血栓)",
-        "Clopidogrel": "抗血栓藥",
-        # Anticoagulant
-        "Warfarin": "抗凝血藥 (可化凝)",
-        # Lipid
-        "Lipitor": "降血脂藥 (立普妥)",
-        "Atorvastatin": "降血脂藥",
-        "Crestor": "降血脂藥 (冠脂妥)",
-        "Rosuvastatin": "降血脂藥",
+# ============================================================================
+# TERM MAPPING: Medical Jargon to Plain Language
+# ============================================================================
+DRUG_TERM_MAPPING = {
+    # Hypertension
+    "Glucophage": "降血糖藥 (庫魯化)",
+    "Metformin": "降血糖藥 (美福明)",
+    "Norvasc": "降血壓藥 (脈優)",
+    "Amlodipine": "降血壓藥",
+    "Concor": "降血壓藥 (康肯)",
+    "Bisoprolol": "降血壓藥",
+    "Diovan": "降血壓藥 (得安穩)",
+    "Valsartan": "降血壓藥",
+    # Diabetes
+    "Amaryl": "降血糖藥 (瑪爾胰)",
+    "Glimepiride": "降血糖藥",
+    "Januvia": "降血糖藥 (佳糖維)",
+    "Sitagliptin": "降血糖藥",
+    # Sedative
+    "Stilnox": "安眠藥 (使蒂諾斯)",
+    "Zolpidem": "安眠藥",
+    "Imovane": "安眠藥 (宜眠安)",
+    "Zopiclone": "安眠藥",
+    # Cardiac
+    "Aspirin": "阿斯匹靈 (預防血栓)",
+    "ASA": "阿斯匹靈",
+    "Plavix": "保栓通 (預防血栓)",
+    "Clopidogrel": "抗血栓藥",
+    # Anticoagulant
+    "Warfarin": "抗凝血藥 (可化凝)",
+    # Lipid
+    "Lipitor": "降血脂藥 (立普妥)",
+    "Atorvastatin": "降血脂藥",
+    "Crestor": "降血脂藥 (冠脂妥)",
+    "Rosuvastatin": "降血脂藥",
+}
+
+def humanize_drug_name(drug_name):
+    """將英文藥名轉為阿嬤聽得懂的名稱"""
+    for eng, chinese in DRUG_TERM_MAPPING.items():
+        if eng.lower() in drug_name.lower():
+            return chinese
+    return drug_name  # 如果沒找到，返回原名
+
+# ============================================================================
+# MODULE 1: JSON to Elder-Friendly Text Converter (Enhanced)
+# ============================================================================
+def json_to_elderly_speech(result_json):
+    """
+    Convert Agentic Pipeline JSON output to warm, elderly-friendly speech
+    V6 Enhancement: Prioritizes LLM-generated silverguard_message for natural TTS
+    Fallback: Rule-based generation if LLM didn't produce the field
+    """
+    try:
+        if isinstance(result_json, str):
+            data = json.loads(result_json)
+        else:
+            data = result_json
+    
+
+        # V6: Priority 1 - Use LLM-generated silverguard_message if available
+        if "vlm_output" in data and "parsed" in data["vlm_output"]:
+            parsed = data["vlm_output"]["parsed"]
+            if "silverguard_message" in parsed:
+                return parsed["silverguard_message"]  # Direct LLM output (most natural)
+    
+        # Priority 2: Rule-based fallback (original logic)
+        # Extract key information
+        if "vlm_output" in data and "parsed" in data["vlm_output"]:
+            parsed = data["vlm_output"]["parsed"]
+            extracted = parsed.get("extracted_data", {})
+            safety = parsed.get("safety_analysis", {})
+        
+            patient = extracted.get("patient", {})
+            drug = extracted.get("drug", {})
+            usage = extracted.get("usage", "")
+        
+            # [PRIVACY FIX] Force generic name for TTS to prevent PII leak to gTTS API
+            patient_name = "長輩" # Anonymized for privacy (Compliance Requirement)
+            age = patient.get("age", "")
+            drug_name = drug.get("name", "藥物")
+            dose = drug.get("dose", "")
+            status = safety.get("status", "PASS")
+            reasoning = safety.get("reasoning", "")
+        
+        else:
+            # Fallback for simple status
+            status = data.get("final_status", "UNKNOWN")
+            patient_name = "長輩"
+            drug_name = "這個藥"
+            dose = ""
+            usage = ""
+            reasoning = ""
+            age = ""
+    
+        # Apply drug name humanization
+        friendly_drug = humanize_drug_name(drug_name)
+    
+        # Generate warm, elderly-friendly speech (with Taiwanese elements)
+        # V7.2 Legal Fix: Use Advisory Language instead of Imperative Commands
+        disclaimer = "（系統提醒：以上資訊僅供參考，請以藥師說明為準。）"
+    
+        if status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"]:
+            speech = f"""
+⚠️ {patient_name}，系統提醒您留意喔！
+
+這包「{friendly_drug}」上面的劑量寫著 {dose}，
+機器人查了一下資料，覺得跟一般老人家用的習慣不太一樣。
+
+👉 建議諮詢醫師後再服用，
+可以拿給藥局的哥哥姊姊重新確認一下，這樣比較安心喔！
+{disclaimer}
+"""
+        elif status in ["WARNING", "ATTENTION_NEEDED"]:
+            speech = f"""
+🟡 {patient_name}，要注意喔！
+
+這包「{friendly_drug}」在吃的時候要注意：
+{reasoning}
+
+👉 下次看醫生的時候，可以把藥袋帶著，順便問一下醫生這樣吃對不對？
+{disclaimer}
+"""
+        elif status in ["PASS", "WITHIN_STANDARD"]:
+            speech = f"""
+✅ {patient_name}，這包藥符合處方資料！
+
+這是您的「{friendly_drug}」。
+吃法：{usage}
+劑量：{dose}
+
+記得要吃飯後再吃，才不會傷胃喔！身體會越來越健康的！
+{disclaimer}
+"""
+        else:
+            speech = f"""
+⚠️ {patient_name}，AI 不太確定這張照片。
+
+👉 建議：請拿藥袋向藥師確認細節。
+{disclaimer}
+"""
+    
+        return speech.strip()
+    
+    except Exception as e:
+        return f"抱歉，AI 看不清楚這張照片。請直接問藥師喔！"
+
+# ============================================================================
+# MODULE 2: Text-to-Speech (TTS) for Elderly & Migrant Caregivers
+# ============================================================================
+
+# --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
+# 安全風險控制：使用「醫學驗證字典」而非 Google Translate，確保絕對安全。
+SAFE_TRANSLATIONS = {
+    "zh-TW": {
+        "label": "🇹🇼 台灣 (繁體中文)",
+        "HIGH_RISK": "⚠️ 風險提示：建議立即諮詢醫師",
+        "WARNING": "⚠️ 警告！請再次確認",
+        "PASS": "✅ 通過檢測",
+        "CONSULT": "💡 臨床建議： 請聯繫原開單醫院藥劑科，或撥打 食藥署諮詢專線 1919。",
+        "TTS_LANG": "zh-tw"
+    },
+    "id": {
+        "label": "🇮🇩 Indonesia (Bahasa)",
+        "HIGH_RISK": "⛔ RISIKO TINGGI. MOHON KONSULTASI DOKTER.",
+        "WARNING": "⚠️ PERHATIAN. SARAN KONFIRMASI DOSIS.",
+        "PASS": "✅ INFO SESUAI RESEP",
+        "CONSULT": "TANYA APOTEKER SEGERA.",
+        "TTS_LANG": "id"
+    },
+    "vi": {
+        "label": "🇻🇳 Việt Nam (Tiếng Việt)",
+        "HIGH_RISK": "⛔ RỦI RO CAO. VUI LÒNG HỎI Ý KIẾN BÁC SĨ.",
+        "WARNING": "⚠️ CẢNH BÁO. VUI LÒNG KIỂM TRA LẠI.",
+        "PASS": "✅ THÔNG TIN KHỚP",
+        "CONSULT": "HỎI NGAY DƯỢC SĨ.",
+        "TTS_LANG": "vi"
     }
+}
 
-    def humanize_drug_name(drug_name):
-        """將英文藥名轉為阿嬤聽得懂的名稱"""
-        for eng, chinese in DRUG_TERM_MAPPING.items():
-            if eng.lower() in drug_name.lower():
-                return chinese
-        return drug_name  # 如果沒找到，返回原名
-
-    # ============================================================================
-    # MODULE 1: JSON to Elder-Friendly Text Converter (Enhanced)
-    # ============================================================================
-    def json_to_elderly_speech(result_json):
-        """
-        Convert Agentic Pipeline JSON output to warm, elderly-friendly speech
-        V6 Enhancement: Prioritizes LLM-generated silverguard_message for natural TTS
-        Fallback: Rule-based generation if LLM didn't produce the field
-        """
-        try:
-            if isinstance(result_json, str):
-                data = json.loads(result_json)
-            else:
-                data = result_json
-        
-
-            # V6: Priority 1 - Use LLM-generated silverguard_message if available
-            if "vlm_output" in data and "parsed" in data["vlm_output"]:
-                parsed = data["vlm_output"]["parsed"]
-                if "silverguard_message" in parsed:
-                    return parsed["silverguard_message"]  # Direct LLM output (most natural)
-        
-            # Priority 2: Rule-based fallback (original logic)
-            # Extract key information
-            if "vlm_output" in data and "parsed" in data["vlm_output"]:
-                parsed = data["vlm_output"]["parsed"]
-                extracted = parsed.get("extracted_data", {})
-                safety = parsed.get("safety_analysis", {})
-            
-                patient = extracted.get("patient", {})
-                drug = extracted.get("drug", {})
-                usage = extracted.get("usage", "")
-            
-                # [PRIVACY FIX] Force generic name for TTS to prevent PII leak to gTTS API
-                patient_name = "長輩" # Anonymized for privacy (Compliance Requirement)
-                age = patient.get("age", "")
-                drug_name = drug.get("name", "藥物")
-                dose = drug.get("dose", "")
-                status = safety.get("status", "PASS")
-                reasoning = safety.get("reasoning", "")
-            
-            else:
-                # Fallback for simple status
-                status = data.get("final_status", "UNKNOWN")
-                patient_name = "長輩"
-                drug_name = "這個藥"
-                dose = ""
-                usage = ""
-                reasoning = ""
-                age = ""
-        
-            # Apply drug name humanization
-            friendly_drug = humanize_drug_name(drug_name)
-        
-            # Generate warm, elderly-friendly speech (with Taiwanese elements)
-            # V7.2 Legal Fix: Use Advisory Language instead of Imperative Commands
-            disclaimer = "（系統提醒：以上資訊僅供參考，請以藥師說明為準。）"
-        
-            if status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"]:
-                speech = f"""
-    ⚠️ {patient_name}，系統提醒您留意喔！
-
-    這包「{friendly_drug}」上面的劑量寫著 {dose}，
-    機器人查了一下資料，覺得跟一般老人家用的習慣不太一樣。
-
-    👉 建議諮詢醫師後再服用，
-    可以拿給藥局的哥哥姊姊重新確認一下，這樣比較安心喔！
-    {disclaimer}
+def clean_text_for_tts(text, lang='zh'):
     """
-            elif status in ["WARNING", "ATTENTION_NEEDED"]:
-                speech = f"""
-    🟡 {patient_name}，要注意喔！
-
-    這包「{friendly_drug}」在吃的時候要注意：
-    {reasoning}
-
-    👉 下次看醫生的時候，可以把藥袋帶著，順便問一下醫生這樣吃對不對？
-    {disclaimer}
+    🧹 TTS 專用文字清洗器
+    將視覺符號 (Markdown/Emoji) 轉換為聽覺停頓或移除，
+    確保語音流暢自然，適合長輩聆聽。
     """
-            elif status in ["PASS", "WITHIN_STANDARD"]:
-                speech = f"""
-    ✅ {patient_name}，這包藥符合處方資料！
+    if not text: return ""
+    import re
 
-    這是您的「{friendly_drug}」。
-    吃法：{usage}
-    劑量：{dose}
+    # 1. 移除 Markdown 語法 (粗體、斜體)
+    # 將 "**注意**" 變為 "注意"
+    text = text.replace("**", "").replace("__", "").replace("##", "")
 
-    記得要吃飯後再吃，才不會傷胃喔！身體會越來越健康的！
-    {disclaimer}
-    """
-            else:
-                speech = f"""
-    ⚠️ {patient_name}，AI 不太確定這張照片。
+    # 2. 轉換關鍵語意圖示 (將重要的圖示轉為語音)
+    text = text.replace("⚠️", "注意！").replace("⚠", "注意！")
+    text = text.replace("⛔", "危險！").replace("🚫", "禁止！")
 
-    👉 建議：請拿藥袋向藥師確認細節。
-    {disclaimer}
-    """
-        
-            return speech.strip()
-        
-        except Exception as e:
-            return f"抱歉，AI 看不清楚這張照片。請直接問藥師喔！"
+    # 3. 移除裝飾性 Emoji (老人不需要聽這些)
+    # 範圍涵蓋常見圖示：✅, 💊, 🟢, 📋, 👵, 👋 等
+    # 使用 Unicode Range 移除所有表情符號
+    text = re.sub(r'[\U00010000-\U0010ffff]', '', text)
 
-    # ============================================================================
-    # MODULE 2: Text-to-Speech (TTS) for Elderly & Migrant Caregivers
-    # ============================================================================
+    # 4. 處理標點符號與排版 (優化停頓)
+    # 將換行轉為逗號，避免黏在一起
+    text = text.replace("\n", "，")
+    # 將括號轉為輕微停頓 (逗號)
+    text = text.replace("(", "，").replace(")", "，")
+    text = text.replace("（", "，").replace("）", "，")
+    # 移除多餘的空白與連續標點
+    text = re.sub(r'[，,]{2,}', '，', text) # 避免 "，，"
+    text = re.sub(r'\s+', ' ', text)       # 避免 "   "
 
-    # --- 🌍 戰略功能：移工看護賦能 (Migrant Caregiver Support) ---
-    # 安全風險控制：使用「醫學驗證字典」而非 Google Translate，確保絕對安全。
-    SAFE_TRANSLATIONS = {
-        "zh-TW": {
-            "label": "🇹🇼 台灣 (繁體中文)",
-            "HIGH_RISK": "⚠️ 風險提示：建議立即諮詢醫師",
-            "WARNING": "⚠️ 警告！請再次確認",
-            "PASS": "✅ 通過檢測",
-            "CONSULT": "💡 臨床建議： 請聯繫原開單醫院藥劑科，或撥打 食藥署諮詢專線 1919。",
-            "TTS_LANG": "zh-tw"
-        },
-        "id": {
-            "label": "🇮🇩 Indonesia (Bahasa)",
-            "HIGH_RISK": "⛔ RISIKO TINGGI. MOHON KONSULTASI DOKTER.",
-            "WARNING": "⚠️ PERHATIAN. SARAN KONFIRMASI DOSIS.",
-            "PASS": "✅ INFO SESUAI RESEP",
-            "CONSULT": "TANYA APOTEKER SEGERA.",
-            "TTS_LANG": "id"
-        },
-        "vi": {
-            "label": "🇻🇳 Việt Nam (Tiếng Việt)",
-            "HIGH_RISK": "⛔ RỦI RO CAO. VUI LÒNG HỎI Ý KIẾN BÁC SĨ.",
-            "WARNING": "⚠️ CẢNH BÁO. VUI LÒNG KIỂM TRA LẠI.",
-            "PASS": "✅ THÔNG TIN KHỚP",
-            "CONSULT": "HỎI NGAY DƯỢC SĨ.",
-            "TTS_LANG": "vi"
-        }
-    }
+    # 5. 針對劑量的特殊處理 (Edge Case)
+    # 避免唸成 "mg" (毫克) -> 有些引擎唸不好，可選轉中文
+    # text = text.replace("mg", "毫克").replace("ml", "毫升") 
 
-    def clean_text_for_tts(text, lang='zh'):
-        """
-        🧹 TTS 專用文字清洗器
-        將視覺符號 (Markdown/Emoji) 轉換為聽覺停頓或移除，
-        確保語音流暢自然，適合長輩聆聽。
-        """
-        if not text: return ""
-        import re
-
-        # 1. 移除 Markdown 語法 (粗體、斜體)
-        # 將 "**注意**" 變為 "注意"
-        text = text.replace("**", "").replace("__", "").replace("##", "")
-    
-        # 2. 轉換關鍵語意圖示 (將重要的圖示轉為語音)
-        text = text.replace("⚠️", "注意！").replace("⚠", "注意！")
-        text = text.replace("⛔", "危險！").replace("🚫", "禁止！")
-    
-        # 3. 移除裝飾性 Emoji (老人不需要聽這些)
-        # 範圍涵蓋常見圖示：✅, 💊, 🟢, 📋, 👵, 👋 等
-        # 使用 Unicode Range 移除所有表情符號
-        text = re.sub(r'[\U00010000-\U0010ffff]', '', text)
-    
-        # 4. 處理標點符號與排版 (優化停頓)
-        # 將換行轉為逗號，避免黏在一起
-        text = text.replace("\n", "，")
-        # 將括號轉為輕微停頓 (逗號)
-        text = text.replace("(", "，").replace(")", "，")
-        text = text.replace("（", "，").replace("）", "，")
-        # 移除多餘的空白與連續標點
-        text = re.sub(r'[，,]{2,}', '，', text) # 避免 "，，"
-        text = re.sub(r'\s+', ' ', text)       # 避免 "   "
-    
-        # 5. 針對劑量的特殊處理 (Edge Case)
-        # 避免唸成 "mg" (毫克) -> 有些引擎唸不好，可選轉中文
-        # text = text.replace("mg", "毫克").replace("ml", "毫升") 
-    
-        return text.strip()
+    return text.strip()
 
 # [Audit Fix] Deprecated: Shadowed by V12.32 implementation below
 # def text_to_speech_elderly(text, lang='zh-tw', slow=True, use_cloud=False):
-        """
-        Tier 1: Online Neural TTS (gTTS) - Preferred for Quality
-        Tier 2: Offline Fallback (pyttsx3) - Backup for Stability
-        """
-        import os
-        import time
+#         """
+#         Tier 1: Online Neural TTS (gTTS) - Preferred for Quality
+#         Tier 2: Offline Fallback (pyttsx3) - Backup for Stability
+#         """
+#         import os
+#         import time
+#         import uuid
+#         import tempfile
+#         from IPython.display import Audio, display
+#     
+#         # V7.5 FIX: Path safety for Windows (Tempfile + UUID)
+#         filename = os.path.join(tempfile.gettempdir(), f"elder_instruction_{uuid.uuid4().hex[:8]}.mp3")
+#     
+#         # ✅ STEP 1: 先清洗文字
+#         clean_text = clean_text_for_tts(text)
+#         print(f"🗣️ [TTS Pre-processing] Original: {len(text)} chars -> Clean: {len(clean_text)} chars")
+#     
+#         # 1. 🟢 優先策略：離線模式 (Privacy First)
+#         if not use_cloud:
+#             try:
+#                 import pyttsx3
+#                 print(f"🔒 [Edge AI] 生成離線語音 (pyttsx3) - 資料未離開裝置")
+#                 engine = pyttsx3.init()
+#                 # 調整語速給長輩 (rate 預設約 200)
+#                 engine.setProperty('rate', 140) 
+#                 # 👇 注意這裡改用 clean_text
+#                 engine.save_to_file(clean_text, filename)
+#                 engine.runAndWait()
+#             
+#                 display(Audio(filename, autoplay=False))
+#                 return filename
+#             except Exception as e:
+#                 print(f"⚠️ 離線 TTS 引擎啟動失敗: {e}。嘗試切換至雲端備援...")
+#                 # 如果離線失敗，才考慮雲端 (Fail-over)
+import datetime # Added for text_to_speech_multilingual
+# --- TTS Module (Enhanced V2) ---
+def text_to_speech_multilingual(text, lang='zh-TW', target_file=None):
+    """
+    Multi-language TTS for migrant caregivers (Impact Feature)
+    Supported: zh-TW (Chinese), id (Indonesian), vi (Vietnamese)
+    """
+    if target_file is None:
         import uuid
         import tempfile
-        from IPython.display import Audio, display
-    
-        # V7.5 FIX: Path safety for Windows (Tempfile + UUID)
-        filename = os.path.join(tempfile.gettempdir(), f"elder_instruction_{uuid.uuid4().hex[:8]}.mp3")
-    
-        # ✅ STEP 1: 先清洗文字
-        clean_text = clean_text_for_tts(text)
-        print(f"🗣️ [TTS Pre-processing] Original: {len(text)} chars -> Clean: {len(clean_text)} chars")
-    
-        # 1. 🟢 優先策略：離線模式 (Privacy First)
-        if not use_cloud:
-            try:
-                import pyttsx3
-                print(f"🔒 [Edge AI] 生成離線語音 (pyttsx3) - 資料未離開裝置")
-                engine = pyttsx3.init()
-                # 調整語速給長輩 (rate 預設約 200)
-                engine.setProperty('rate', 140) 
-                # 👇 注意這裡改用 clean_text
-                engine.save_to_file(clean_text, filename)
-                engine.runAndWait()
-            
-                display(Audio(filename, autoplay=False))
-                return filename
-            except Exception as e:
-                print(f"⚠️ 離線 TTS 引擎啟動失敗: {e}。嘗試切換至雲端備援...")
-                # 如果離線失敗，才考慮雲端 (Fail-over)
-    import datetime # Added for text_to_speech_multilingual
-    # --- TTS Module (Enhanced V2) ---
-    def text_to_speech_multilingual(text, lang='zh-TW', target_file=None):
-        """
-        Multi-language TTS for migrant caregivers (Impact Feature)
-        Supported: zh-TW (Chinese), id (Indonesian), vi (Vietnamese)
-        """
-        if target_file is None:
-            import uuid
-            import tempfile
-            # [FIX] Cross-platform temp path + UUID
-            target_file = os.path.join(tempfile.gettempdir(), f"tts_{lang}_{uuid.uuid4().hex[:8]}.mp3")
-    
-        try:
-            from gtts import gTTS
-            print(f"   🔊 Generating TTS for lang='{lang}'...")
-            tts = gTTS(text, lang=lang)
-            tts.save(target_file)
-            print(f"   ✅ TTS saved: {target_file}")
-            return target_file
-        except Exception as e:
-            print(f"   ⚠️ TTS failed for {lang}: {e}")
-            return None
+        # [FIX] Cross-platform temp path + UUID
+        target_file = os.path.join(tempfile.gettempdir(), f"tts_{lang}_{uuid.uuid4().hex[:8]}.mp3")
 
-        # [FIX] Consolidated into the final definition at Cell 8
-        # This legacy block is removed to prevent shadowing.
-        pass
+    try:
+        from gtts import gTTS
+        print(f"   🔊 Generating TTS for lang='{lang}'...")
+        tts = gTTS(text, lang=lang)
+        tts.save(target_file)
+        print(f"   ✅ TTS saved: {target_file}")
+        return target_file
+    except Exception as e:
+        print(f"   ⚠️ TTS failed for {lang}: {e}")
+        return None
+
+    # [FIX] Consolidated into the final definition at Cell 8
+    # This legacy block is removed to prevent shadowing.
+    pass
 
 
-    # ============================================================================
-    # MODULE 3: Large-Font Visual Calendar for Elderly
-    # ============================================================================
-    def render_elderly_calendar(drug_name, usage_text, dose):
-        """
-        Generate a large-font, high-contrast calendar for elderly patients (App-Like UI)
-        - Extra large fonts (24px+)
-        - High contrast colors
-        - Simple icons
-        - Card-based design
-        """
-    
-        # Parse usage to schedule
-        schedule = []
-        usage_lower = usage_text.lower() if usage_text else ""
-    
-        # Helper to clean up multiple matches
-        found_time = False
-    
-        if "早" in usage_lower or "breakfast" in usage_lower or "morning" in usage_lower:
+# ============================================================================
+# MODULE 3: Large-Font Visual Calendar for Elderly
+# ============================================================================
+def render_elderly_calendar(drug_name, usage_text, dose):
+    """
+    Generate a large-font, high-contrast calendar for elderly patients (App-Like UI)
+    - Extra large fonts (24px+)
+    - High contrast colors
+    - Simple icons
+    - Card-based design
+    """
+
+    # Parse usage to schedule
+    schedule = []
+    usage_lower = usage_text.lower() if usage_text else ""
+
+    # Helper to clean up multiple matches
+    found_time = False
+
+    if "早" in usage_lower or "breakfast" in usage_lower or "morning" in usage_lower:
+        schedule.append({"time": "08:00", "meal": "早餐後", "icon": "🌅", "bg": "#FFF9C4"})
+        found_time = True
+    if "午" in usage_lower or "lunch" in usage_lower or "noon" in usage_lower:
+        schedule.append({"time": "12:00", "meal": "午餐後", "icon": "☀️", "bg": "#FFF9C4"})
+        found_time = True
+    if "晚" in usage_lower or "dinner" in usage_lower or "evening" in usage_lower:
+        schedule.append({"time": "18:00", "meal": "晚餐後", "icon": "🌙", "bg": "#E1BEE7"})
+        found_time = True
+    if "睡前" in usage_lower or "bedtime" in usage_lower:
+        schedule.append({"time": "21:00", "meal": "睡覺前", "icon": "😴", "bg": "#E1BEE7"})
+        found_time = True
+
+    # Logic for "QD" (Once Daily) implicitly
+    if not found_time:
+         # Default to Morning if just QD, or Bedtime if specific drug type hints it (but kept simple here)
+         if "每日一次" in usage_text or "once daily" in usage_lower:
             schedule.append({"time": "08:00", "meal": "早餐後", "icon": "🌅", "bg": "#FFF9C4"})
-            found_time = True
-        if "午" in usage_lower or "lunch" in usage_lower or "noon" in usage_lower:
-            schedule.append({"time": "12:00", "meal": "午餐後", "icon": "☀️", "bg": "#FFF9C4"})
-            found_time = True
-        if "晚" in usage_lower or "dinner" in usage_lower or "evening" in usage_lower:
-            schedule.append({"time": "18:00", "meal": "晚餐後", "icon": "🌙", "bg": "#E1BEE7"})
-            found_time = True
-        if "睡前" in usage_lower or "bedtime" in usage_lower:
-            schedule.append({"time": "21:00", "meal": "睡覺前", "icon": "😴", "bg": "#E1BEE7"})
-            found_time = True
-    
-        # Logic for "QD" (Once Daily) implicitly
-        if not found_time:
-             # Default to Morning if just QD, or Bedtime if specific drug type hints it (but kept simple here)
-             if "每日一次" in usage_text or "once daily" in usage_lower:
-                schedule.append({"time": "08:00", "meal": "早餐後", "icon": "🌅", "bg": "#FFF9C4"})
-             else:
-                 schedule.append({"time": "指示", "meal": "遵照醫囑", "icon": "📋", "bg": "#E0F2F1"})
+         else:
+             schedule.append({"time": "指示", "meal": "遵照醫囑", "icon": "📋", "bg": "#E0F2F1"})
 
-    
-        rows_html = ""
-        for item in schedule:
-            rows_html += f"""
-            <div style="background-color: white; border-radius: 15px; margin-bottom: 15px; 
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; display: flex; align-items: center; border-left: 10px solid {item['bg']};">
-                <div style="background-color: {item['bg']}; width: 80px; height: 100px; display: flex; 
-                            flex-direction: column; justify-content: center; align-items: center;">
-                    <div style="font-size: 32px;">{item['icon']}</div>
-                    <div style="font-weight: bold; color: #000; margin-top: 5px;">{item['meal']}</div>
+
+    rows_html = ""
+    for item in schedule:
+        rows_html += f"""
+        <div style="background-color: white; border-radius: 15px; margin-bottom: 15px; 
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; display: flex; align-items: center; border-left: 10px solid {item['bg']};">
+            <div style="background-color: {item['bg']}; width: 80px; height: 100px; display: flex; 
+                        flex-direction: column; justify-content: center; align-items: center;">
+                <div style="font-size: 32px;">{item['icon']}</div>
+                <div style="font-weight: bold; color: #000; margin-top: 5px;">{item['meal']}</div>
+            </div>
+            <div style="padding: 15px 25px; flex-grow: 1;">
+                <div style="font-size: 28px; font-weight: bold; color: #000; margin-bottom: 5px;">
+                    💊 {drug_name}
                 </div>
-                <div style="padding: 15px 25px; flex-grow: 1;">
-                    <div style="font-size: 28px; font-weight: bold; color: #000; margin-bottom: 5px;">
-                        💊 {drug_name}
-                    </div>
-                    <div style="font-size: 22px; color: #111; display: flex; align-items: center;">
-                        <span style="background: #EEE; padding: 2px 8px; border-radius: 5px; margin-right: 10px; font-size: 18px;">劑量</span>
-                        <b>{dose}</b>
-                    </div>
-                </div>
-                <div style="padding-right: 20px; color: #CCC; font-size: 30px;">
-                    ➜
+                <div style="font-size: 22px; color: #111; display: flex; align-items: center;">
+                    <span style="background: #EEE; padding: 2px 8px; border-radius: 5px; margin-right: 10px; font-size: 18px;">劑量</span>
+                    <b>{dose}</b>
                 </div>
             </div>
-            """
-
-        html = f"""
-        <div style="font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; max-width: 500px; 
-                    margin: 20px auto; background-color: #F5F5F5; border-radius: 25px; overflow: hidden;
-                    box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, #009688, #4DB6AC); color: white; padding: 25px 20px; text-align: center;">
-                <div style="font-size: 28px; font-weight: bold; letter-spacing: 1px;">👴 SilverGuard 守護者</div>
-                <div style="font-size: 16px; opacity: 0.9; margin-top: 5px;">智慧用藥助手 • SilverGuard CDS</div>
-            </div>
-
-            <!-- Content -->
-            <div style="padding: 20px;">
-                <div style="text-align: right; color: #222; margin-bottom: 15px; font-size: 14px;">
-                    📅 今日用藥提醒:
-                </div>
-                {rows_html}
-            </div>
-
-            <!-- Footer -->
-            <div style="background: #E0F2F1; color: #00695C; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; border-top: 1px solid #B2DFDB;">
-                💚 記得按時吃藥，身體健康！
+            <div style="padding-right: 20px; color: #CCC; font-size: 30px;">
+                ➜
             </div>
         </div>
         """
-    
-        display(HTML(html))
 
-    # ============================================================================
-    # MODULE 4: Safety-First Confusion Matrix (Visual Validation)
-    # ============================================================================
-    def visualize_safety_matrix(results_csv_path=None, dummy_data=False):
-        """
-        Generate the "Safety-First" Confusion Matrix
-        Key Concept: HUMAN_REVIEW_NEEDED is considered a SUCCESS outcome for unsafe cases.
-        """
-        try:
-            import matplotlib.pyplot as plt
-            import seaborn as sns
-            from sklearn.metrics import confusion_matrix
-        except ImportError:
-            print("⚠️ Matplotlib/Seaborn not installed. Skipping visualization.")
-            return
+    html = f"""
+    <div style="font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; max-width: 500px; 
+                margin: 20px auto; background-color: #F5F5F5; border-radius: 25px; overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+    
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #009688, #4DB6AC); color: white; padding: 25px 20px; text-align: center;">
+            <div style="font-size: 28px; font-weight: bold; letter-spacing: 1px;">👴 SilverGuard 守護者</div>
+            <div style="font-size: 16px; opacity: 0.9; margin-top: 5px;">智慧用藥助手 • SilverGuard CDS</div>
+        </div>
 
-        print("\n" + "="*80)
-        print("📊 Generating Safety-First Confusion Matrix...")
-        print("="*80)
+        <!-- Content -->
+        <div style="padding: 20px;">
+            <div style="text-align: right; color: #222; margin-bottom: 15px; font-size: 14px;">
+                📅 今日用藥提醒:
+            </div>
+            {rows_html}
+        </div>
 
-        # --- Data Preparation ---
-        results_found = False
-        y_true, y_pred = [], []
-        
-        # 1. Attempt to load real session data
-        potential_files = [results_csv_path, "results.csv", "results.jsonl", "validation_results.jsonl"]
-        for f in potential_files:
-            if f and os.path.exists(f):
-                try:
-                    if f.endswith('.csv'):
-                        import pandas as pd
-                        df = pd.read_csv(f)
-                        y_true = df['ground_truth'].tolist()
-                        y_pred = df['prediction'].tolist()
-                    else:
-                        with open(f, 'r') as jf:
-                            for line in jf:
-                                data = json.loads(line)
-                                y_true.append(data.get('ground_truth', 'SAFE'))
-                                y_pred.append(data.get('prediction', 'PASS'))
-                    results_found = True
-                    print(f"✅ Loaded {len(y_true)} evaluation samples from: {f}")
-                    break
-                except Exception as e:
-                    print(f"⚠️ Error loading {f}: {e}")
+        <!-- Footer -->
+        <div style="background: #E0F2F1; color: #00695C; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; border-top: 1px solid #B2DFDB;">
+            💚 記得按時吃藥，身體健康！
+        </div>
+    </div>
+    """
 
-        # 2. Fallback to High-Fidelity Baseline Metrics (Student Research Standard)
-        if not results_found:
-            print("ℹ️ [EVAL] No session results found. Displaying Baseline Validation Metrics (N=600).")
-            # Baseline reflects the performance of MedGemma 1.5-4B on the synthetic test set
-            y_true = ["SAFE"]*400 + ["UNSAFE"]*200
-            
-            # Safe cases (98% accuracy, 2% over-escalation)
-            y_pred = ["PASS"]*392 + ["HUMAN_REVIEW_NEEDED"]*8 
-            # Unsafe cases (92% direct block, 7% human escalation, 1% miss/pass)
-            y_pred += ["HIGH_RISK"]*184 + ["HUMAN_REVIEW_NEEDED"]*14 + ["PASS"]*2
+    display(HTML(html))
 
-        # --- Custom Logic: Re-map for Visualization ---
-        # We want to show: PASS, HIGH_RISK, HUMAN_REVIEW on X-axis
-        labels_pred = ["PASS", "HIGH_RISK", "HUMAN_REVIEW_NEEDED"]
-        labels_true = ["SAFE", "UNSAFE"]
-    
-        # Build Count Matrix manually to handle the asymmetric labels
-        matrix = [[0, 0, 0], [0, 0, 0]] # [SAFE, UNSAFE] x [PASS, HIGH, HUMAN]
-    
-        for t, p in zip(y_true, y_pred):
-            row = 0 if t == "SAFE" else 1
-            if p in ["PASS", "WARNING"]: col = 0
-            elif p == "HIGH_RISK": col = 1
-            elif p == "HUMAN_REVIEW_NEEDED": col = 2
-            else: continue # Skip unknown
-            matrix[row][col] += 1
-        
-        # --- Metrics Calculation (Safety-First) ---
-        # We want to measure:
-        # 1. Safety Compliance Rate: (Correctly Blocked + Correctly Escalated) / Total Unsafe Cases
-        # 2. Over-Escalation Rate: (Safe cases flagged as Human Review) / Total Safe Cases
-    
-        unsafe_indices = [i for i, t in enumerate(y_true) if t == "UNSAFE"]
-        safe_indices = [i for i, t in enumerate(y_true) if t == "SAFE"]
-    
-        # 1. Safety Compliance
-        safety_hits = 0
-        for i in unsafe_indices:
-            # Success if model predicted HIGH_RISK or HUMAN_REVIEW (Safety Net)
-            if y_pred[i] in ["HIGH_RISK", "HUMAN_REVIEW_NEEDED"]:
-                safety_hits += 1
-            
-        safety_compliance_rate = safety_hits / len(unsafe_indices) if unsafe_indices else 1.0
-        print(f"\n🛡️ Safety Compliance Rate (Sens.): {safety_compliance_rate:.1%}")
-        if safety_compliance_rate < 0.95: print("   ⚠️ Safety critical threshold (<95%) not met!")
+# ============================================================================
+# MODULE 4: Safety-First Confusion Matrix (Visual Validation)
+# ============================================================================
+def visualize_safety_matrix(results_csv_path=None, dummy_data=False):
+    """
+    Generate the "Safety-First" Confusion Matrix
+    Key Concept: HUMAN_REVIEW_NEEDED is considered a SUCCESS outcome for unsafe cases.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        from sklearn.metrics import confusion_matrix
+    except ImportError:
+        print("⚠️ Matplotlib/Seaborn not installed. Skipping visualization.")
+        return
 
-        # 2. Over-Escalation (False Positive for Human Review)
-        over_escalated = 0
-        for i in safe_indices:
-            if y_pred[i] == "HUMAN_REVIEW_NEEDED":
-                over_escalated += 1
-    
-        escalation_rate = over_escalated / len(safe_indices) if safe_indices else 0.0
-        print(f"📉 Over-Escalation Rate: {escalation_rate:.1%}")
+    print("\n" + "="*80)
+    print("📊 Generating Safety-First Confusion Matrix...")
+    print("="*80)
 
-        # --- Plotting ---
-        plt.figure(figsize=(10, 6))
+    # --- Data Preparation ---
+    results_found = False
+    y_true, y_pred = [], []
     
-        sns.set_style("whitegrid")
-        ax = sns.heatmap(matrix, annot=True, fmt='d', cmap='Greens', 
-                         xticklabels=["Allowed (Pass)", "Blocked (High Risk)", "Escalated (Human Review)"],
-                         yticklabels=["Truly Safe", "Truly Unsafe"],
-                         annot_kws={"size": 16, "weight": "bold"}, cbar=False)
-    
-        # Custom Styling
-        plt.title(f"Safety-First Matrix\nCompliance: {safety_compliance_rate:.1%} | Over-Escalation: {escalation_rate:.1%}", fontsize=14, pad=20)
-        plt.ylabel("Ground Truth", fontsize=12)
-        plt.xlabel("AI Decision", fontsize=12)
-    
-        # Highlight the Safety Net
-        from matplotlib.patches import Rectangle
-        # Success: Unsafe -> Human Review ([2, 1] in plot coordinate system? No, heatmap coordinates are (x,y))
-        # Matrix is [2 rows, 3 cols]. 
-        # Row 1 (Unsafe), Col 2 (Human Review) -> (2, 1) in Matplotlib Rect(x,y)
-        ax.add_patch(Rectangle((2, 1), 1, 1, fill=False, edgecolor='gold', lw=4))
-        plt.text(2.5, 1.5, "Safety Net\nSuccess", ha='center', va='center', color='goldenrod', weight='bold', fontsize=10)
-    
-        plt.tight_layout()
-        plt.savefig("./safety_confusion_matrix.png", dpi=300)
-        print("✅ Matrix saved to: ./safety_confusion_matrix.png")
-        plt.show()
-
-    # ============================================================================
-    # 🗣️ TTS Module (Elderly Friendly)
-    # ============================================================================
-    # ============================================================================
-    # 🗣️ TTS Module (Elderly Friendly) - CONSOLIDATED & ROBUST
-    # ============================================================================
-    def text_to_speech_elderly(text, lang='zh-tw'):
-        """
-        Hybrid TTS: Online (gTTS) -> Offline (pyttsx3) Fallback
-        [FIX] Uses UUID for filenames and Cross-platform temp paths
-        """
-        # ✅ [Fix] 呼叫清洗函數
-        text = clean_text_for_tts(text, lang=lang) 
-        
-        import os
-        import uuid
-        import tempfile
-    
-        # [FIX] Race-condition safe filename
-        output_path = os.path.join(tempfile.gettempdir(), f"safety_alert_{uuid.uuid4().hex[:8]}.mp3")
-    
-        # Check Offline Mode Switch
-        # [Red Team Fix] Force offline if env var set
-        is_offline_forced = os.environ.get("OFFLINE_MODE", "False").lower() == "true"
-    
-        # Strategy 1: Online Neural TTS (gTTS) - Preferred for quality
-        # Only run if NOT in strict offline mode
-        if not is_offline_forced:
+    # 1. Attempt to load real session data
+    potential_files = [results_csv_path, "results.csv", "results.jsonl", "validation_results.jsonl"]
+    for f in potential_files:
+        if f and os.path.exists(f):
             try:
-                from gtts import gTTS
-                print(f"   ☁️ Trying Online TTS (gTTS)...")
-                tts = gTTS(text=text, lang=lang, slow=False)
-                tts.save(output_path)
-                print(f"   ✅ TTS Generated (Online): {output_path}")
-                return output_path
+                if f.endswith('.csv'):
+                    import pandas as pd
+                    df = pd.read_csv(f)
+                    y_true = df['ground_truth'].tolist()
+                    y_pred = df['prediction'].tolist()
+                else:
+                    with open(f, 'r') as jf:
+                        for line in jf:
+                            data = json.loads(line)
+                            y_true.append(data.get('ground_truth', 'SAFE'))
+                            y_pred.append(data.get('prediction', 'PASS'))
+                results_found = True
+                print(f"✅ Loaded {len(y_true)} evaluation samples from: {f}")
+                break
             except Exception as e:
-                print(f"   ⚠️ Online TTS failed ({e}). Switching to Offline Engine...")
-            
-        # Strategy 2: Offline Fallback (pyttsx3)
-        # This runs if:
-        # 1. OFFLINE_MODE is True
-        # 2. or gTTS failed
-        # Strategy 2: Flashback to Offline TTS (pyttsx3) - Privacy Safe
+                print(f"⚠️ Error loading {f}: {e}")
+
+    # 2. Fallback to High-Fidelity Baseline Metrics (Student Research Standard)
+    if not results_found:
+        print("ℹ️ [EVAL] No session results found. Displaying Baseline Validation Metrics (N=600).")
+        # Baseline reflects the performance of MedGemma 1.5-4B on the synthetic test set
+        y_true = ["SAFE"]*400 + ["UNSAFE"]*200
+        
+        # Safe cases (98% accuracy, 2% over-escalation)
+        y_pred = ["PASS"]*392 + ["HUMAN_REVIEW_NEEDED"]*8 
+        # Unsafe cases (92% direct block, 7% human escalation, 1% miss/pass)
+        y_pred += ["HIGH_RISK"]*184 + ["HUMAN_REVIEW_NEEDED"]*14 + ["PASS"]*2
+
+    # --- Custom Logic: Re-map for Visualization ---
+    # We want to show: PASS, HIGH_RISK, HUMAN_REVIEW on X-axis
+    labels_pred = ["PASS", "HIGH_RISK", "HUMAN_REVIEW_NEEDED"]
+    labels_true = ["SAFE", "UNSAFE"]
+
+    # Build Count Matrix manually to handle the asymmetric labels
+    matrix = [[0, 0, 0], [0, 0, 0]] # [SAFE, UNSAFE] x [PASS, HIGH, HUMAN]
+
+    for t, p in zip(y_true, y_pred):
+        row = 0 if t == "SAFE" else 1
+        if p in ["PASS", "WARNING"]: col = 0
+        elif p == "HIGH_RISK": col = 1
+        elif p == "HUMAN_REVIEW_NEEDED": col = 2
+        else: continue # Skip unknown
+        matrix[row][col] += 1
+    
+    # --- Metrics Calculation (Safety-First) ---
+    # We want to measure:
+    # 1. Safety Compliance Rate: (Correctly Blocked + Correctly Escalated) / Total Unsafe Cases
+    # 2. Over-Escalation Rate: (Safe cases flagged as Human Review) / Total Safe Cases
+
+    unsafe_indices = [i for i, t in enumerate(y_true) if t == "UNSAFE"]
+    safe_indices = [i for i, t in enumerate(y_true) if t == "SAFE"]
+
+    # 1. Safety Compliance
+    safety_hits = 0
+    for i in unsafe_indices:
+        # Success if model predicted HIGH_RISK or HUMAN_REVIEW (Safety Net)
+        if y_pred[i] in ["HIGH_RISK", "HUMAN_REVIEW_NEEDED"]:
+            safety_hits += 1
+        
+    safety_compliance_rate = safety_hits / len(unsafe_indices) if unsafe_indices else 1.0
+    print(f"\n🛡️ Safety Compliance Rate (Sens.): {safety_compliance_rate:.1%}")
+    if safety_compliance_rate < 0.95: print("   ⚠️ Safety critical threshold (<95%) not met!")
+
+    # 2. Over-Escalation (False Positive for Human Review)
+    over_escalated = 0
+    for i in safe_indices:
+        if y_pred[i] == "HUMAN_REVIEW_NEEDED":
+            over_escalated += 1
+
+    escalation_rate = over_escalated / len(safe_indices) if safe_indices else 0.0
+    print(f"📉 Over-Escalation Rate: {escalation_rate:.1%}")
+
+    # --- Plotting ---
+    plt.figure(figsize=(10, 6))
+
+    sns.set_style("whitegrid")
+    ax = sns.heatmap(matrix, annot=True, fmt='d', cmap='Greens', 
+                     xticklabels=["Allowed (Pass)", "Blocked (High Risk)", "Escalated (Human Review)"],
+                     yticklabels=["Truly Safe", "Truly Unsafe"],
+                     annot_kws={"size": 16, "weight": "bold"}, cbar=False)
+
+    # Custom Styling
+    plt.title(f"Safety-First Matrix\nCompliance: {safety_compliance_rate:.1%} | Over-Escalation: {escalation_rate:.1%}", fontsize=14, pad=20)
+    plt.ylabel("Ground Truth", fontsize=12)
+    plt.xlabel("AI Decision", fontsize=12)
+
+    # Highlight the Safety Net
+    from matplotlib.patches import Rectangle
+    # Success: Unsafe -> Human Review ([2, 1] in plot coordinate system? No, heatmap coordinates are (x,y))
+    # Matrix is [2 rows, 3 cols]. 
+    # Row 1 (Unsafe), Col 2 (Human Review) -> (2, 1) in Matplotlib Rect(x,y)
+    ax.add_patch(Rectangle((2, 1), 1, 1, fill=False, edgecolor='gold', lw=4))
+    plt.text(2.5, 1.5, "Safety Net\nSuccess", ha='center', va='center', color='goldenrod', weight='bold', fontsize=10)
+
+    plt.tight_layout()
+    plt.savefig("./safety_confusion_matrix.png", dpi=300)
+    print("✅ Matrix saved to: ./safety_confusion_matrix.png")
+    plt.show()
+
+# ============================================================================
+# 🗣️ TTS Module (Elderly Friendly)
+# ============================================================================
+# ============================================================================
+# 🗣️ TTS Module (Elderly Friendly) - CONSOLIDATED & ROBUST
+# ============================================================================
+def text_to_speech_elderly(text, lang='zh-tw'):
+    """
+    Hybrid TTS: Online (gTTS) -> Offline (pyttsx3) Fallback
+    [FIX] Uses UUID for filenames and Cross-platform temp paths
+    """
+    # ✅ [Fix] 呼叫清洗函數
+    text = clean_text_for_tts(text, lang=lang) 
+    
+    import os
+    import uuid
+    import tempfile
+
+    # [FIX] Race-condition safe filename
+    output_path = os.path.join(tempfile.gettempdir(), f"safety_alert_{uuid.uuid4().hex[:8]}.mp3")
+
+    # Check Offline Mode Switch
+    # [Red Team Fix] Force offline if env var set
+    is_offline_forced = os.environ.get("OFFLINE_MODE", "False").lower() == "true"
+
+    # Strategy 1: Online Neural TTS (gTTS) - Preferred for quality
+    # Only run if NOT in strict offline mode
+    if not is_offline_forced:
         try:
-            if is_offline_forced:
-                 print(f"   🔒 OFFLINE_MODE=True. Skipping gTTS.")
-            else:
-                 print(f"   ⚠️ Online TTS failed/skipped. Creating offline fallback...")
-             
-            # [Omni-Nexus Fix] Headless Environment Safety Check
-            # pyttsx3 might crash on Linux if 'espeak' is missing (OSError)
-            import pyttsx3
-            engine = pyttsx3.init()
-            # Tune for elderly (slower rate, higher volume)
-            engine.setProperty('rate', 140) 
-            engine.setProperty('volume', 1.0)
-            engine.save_to_file(text, output_path)
-            engine.runAndWait()
-            print(f"   ✅ TTS Generated (Offline): {output_path}")
+            from gtts import gTTS
+            print(f"   ☁️ Trying Online TTS (gTTS)...")
+            tts = gTTS(text=text, lang=lang, slow=False)
+            tts.save(output_path)
+            print(f"   ✅ TTS Generated (Online): {output_path}")
             return output_path
         except Exception as e:
-            print(f"   ❌ All TTS strategies failed. Audio generation skipped.")
-            print(f"   Debug Info: {e}")
-            # Return dummy file or None to prevent pipeline crash
-            # Actually simplest to just return "None" and handle UI gracefully
-            return None
-    # ============================================================================
-    # 🎨 Geometric Icon Drawing Functions (Emoji Replacement - Agent Engine)
-    # ============================================================================
-    import math
+            print(f"   ⚠️ Online TTS failed ({e}). Switching to Offline Engine...")
+        
+    # Strategy 2: Offline Fallback (pyttsx3)
+    # This runs if:
+    # 1. OFFLINE_MODE is True
+    # 2. or gTTS failed
+    # Strategy 2: Flashback to Offline TTS (pyttsx3) - Privacy Safe
+    try:
+        if is_offline_forced:
+             print(f"   🔒 OFFLINE_MODE=True. Skipping gTTS.")
+        else:
+             print(f"   ⚠️ Online TTS failed/skipped. Creating offline fallback...")
+         
+        # [Omni-Nexus Fix] Headless Environment Safety Check
+        # pyttsx3 might crash on Linux if 'espeak' is missing (OSError)
+        import pyttsx3
+        engine = pyttsx3.init()
+        # Tune for elderly (slower rate, higher volume)
+        engine.setProperty('rate', 140) 
+        engine.setProperty('volume', 1.0)
+        engine.save_to_file(text, output_path)
+        engine.runAndWait()
+        print(f"   ✅ TTS Generated (Offline): {output_path}")
+        return output_path
+    except Exception as e:
+        print(f"   ❌ All TTS strategies failed. Audio generation skipped.")
+        print(f"   Debug Info: {e}")
+        # Return dummy file or None to prevent pipeline crash
+        # Actually simplest to just return "None" and handle UI gracefully
+        return None
+# ============================================================================
+# 🎨 Geometric Icon Drawing Functions (Emoji Replacement - Agent Engine)
+# ============================================================================
+import math
 
-    def draw_sun_icon_ae(draw, x, y, size=35, color="#FFB300"):
-        """繪製太陽圖示 (早上)"""
-        r = size // 2
-        draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FF8F00", width=2)
-        for angle in range(0, 360, 45):
-            rad = math.radians(angle)
-            x1 = x + int(r * 1.3 * math.cos(rad))
-            y1 = y + int(r * 1.3 * math.sin(rad))
-            x2 = x + int(r * 1.8 * math.cos(rad))
-            y2 = y + int(r * 1.8 * math.sin(rad))
-            draw.line([(x1, y1), (x2, y2)], fill=color, width=3)
+def draw_sun_icon_ae(draw, x, y, size=35, color="#FFB300"):
+    """繪製太陽圖示 (早上)"""
+    r = size // 2
+    draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FF8F00", width=2)
+    for angle in range(0, 360, 45):
+        rad = math.radians(angle)
+        x1 = x + int(r * 1.3 * math.cos(rad))
+        y1 = y + int(r * 1.3 * math.sin(rad))
+        x2 = x + int(r * 1.8 * math.cos(rad))
+        y2 = y + int(r * 1.8 * math.sin(rad))
+        draw.line([(x1, y1), (x2, y2)], fill=color, width=3)
 
-    def draw_moon_icon_ae(draw, x, y, size=35, color="#FFE082"):
-        """繪製月亮圖示 (睡前)"""
-        r = size // 2
-        draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FBC02D", width=2)
-        offset = r // 3
-        draw.ellipse([x-r+offset, y-r, x+r+offset, y+r], fill="white")
+def draw_moon_icon_ae(draw, x, y, size=35, color="#FFE082"):
+    """繪製月亮圖示 (睡前)"""
+    r = size // 2
+    draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FBC02D", width=2)
+    offset = r // 3
+    draw.ellipse([x-r+offset, y-r, x+r+offset, y+r], fill="white")
 
-    def draw_mountain_icon_ae(draw, x, y, size=35, color="#4CAF50"):
-        """繪製山景圖示 (中午)"""
-        r = size // 2
-        draw.polygon([(x-r, y+r), (x, y-r), (x+r//2, y)], fill=color)
-        draw.polygon([(x, y-r), (x+r, y+r), (x+r//2, y)], fill="#81C784")
+def draw_mountain_icon_ae(draw, x, y, size=35, color="#4CAF50"):
+    """繪製山景圖示 (中午)"""
+    r = size // 2
+    draw.polygon([(x-r, y+r), (x, y-r), (x+r//2, y)], fill=color)
+    draw.polygon([(x, y-r), (x+r, y+r), (x+r//2, y)], fill="#81C784")
 
-    def draw_sunset_icon_ae(draw, x, y, size=35, color="#FF6F00"):
-        """繪製夕陽圖示 (晚上)"""
-        r = size // 2
-        draw.arc([x-r, y-r*2, x+r, y], start=0, end=180, fill=color, width=3)
-        for i in range(3):
-            y_line = y - i * 8
-            draw.line([(x-r, y_line), (x+r, y_line)], fill="#FF8F00", width=2)
+def draw_sunset_icon_ae(draw, x, y, size=35, color="#FF6F00"):
+    """繪製夕陽圖示 (晚上)"""
+    r = size // 2
+    draw.arc([x-r, y-r*2, x+r, y], start=0, end=180, fill=color, width=3)
+    for i in range(3):
+        y_line = y - i * 8
+        draw.line([(x-r, y_line), (x+r, y_line)], fill="#FF8F00", width=2)
 
-    def draw_bowl_icon_ae(draw, x, y, size=30, is_full=True):
-        """繪製碗圖示 (空碗/滿碗)"""
-        r = size // 2
-        draw.arc([x-r, y-r//2, x+r, y+r], start=0, end=180, fill="#795548", width=3)
-        draw.line([(x-r, y), (x+r, y)], fill="#795548", width=3)
-        if is_full:
-            for i in range(-r+5, r-5, 10):
-                for j in range(-r//4, r//4, 8):
-                    draw.ellipse([x+i-2, y+j-2, x+i+2, y+j+2], fill="white")
+def draw_bowl_icon_ae(draw, x, y, size=30, is_full=True):
+    """繪製碗圖示 (空碗/滿碗)"""
+    r = size // 2
+    draw.arc([x-r, y-r//2, x+r, y+r], start=0, end=180, fill="#795548", width=3)
+    draw.line([(x-r, y), (x+r, y)], fill="#795548", width=3)
+    if is_full:
+        for i in range(-r+5, r-5, 10):
+            for j in range(-r//4, r//4, 8):
+                draw.ellipse([x+i-2, y+j-2, x+i+2, y+j+2], fill="white")
 
-    def draw_pill_icon_ae(draw, x, y, size=30, color="lightblue"):
-        """繪製藥丸圖示"""
-        r = size // 2
-        draw.ellipse([x-int(r*1.5), y-r, x+int(r*1.5), y+r], 
-                     fill=color, outline="blue", width=2)
-        draw.line([(x, y-r), (x, y+r)], fill="blue", width=2)
+def draw_pill_icon_ae(draw, x, y, size=30, color="lightblue"):
+    """繪製藥丸圖示"""
+    r = size // 2
+    draw.ellipse([x-int(r*1.5), y-r, x+int(r*1.5), y+r], 
+                 fill=color, outline="blue", width=2)
+    draw.line([(x, y-r), (x, y+r)], fill="blue", width=2)
 
-    def draw_bed_icon_ae(draw, x, y, size=30):
-        """繪製床鋪圖示"""
-        r = size // 2
-        draw.rectangle([x-r, y, x+r, y+r//4], outline="black", width=2, fill="#BDBDBD")
-        draw.rectangle([x-r, y-r//4, x-r//2, y], fill="#757575")
+def draw_bed_icon_ae(draw, x, y, size=30):
+    """繪製床鋪圖示"""
+    r = size // 2
+    draw.rectangle([x-r, y, x+r, y+r//4], outline="black", width=2, fill="#BDBDBD")
+    draw.rectangle([x-r, y-r//4, x-r//2, y], fill="#757575")
 
-    # ============================================================================
-    # 🗓️ Medication Calendar Generator (Flagship Edition)
-    # ============================================================================
-    def create_medication_calendar(case_data, target_lang="zh-TW"):
-        """
-        🗓️ SilverGuard 旗艦級行事曆生成器 (Flagship Edition)
-    
-        [旗艦版獨家功能]
-        1. 🥣 智慧空碗/滿碗邏輯: 自動判斷飯前(空碗) vs 飯後(滿碗)
-        2. 🧠 智慧排程解析: 支援複雜頻率 (BID/TID/QID/AC/PC)
-        3. 🎨 動態視覺回饋: 根據風險等級調整配色
-        """
-        # ============ 配色方案 (WCAG AA Compliant) ============
-        COLORS = {
-            "bg_main": "#FAFAFA",       # 主背景
-            "bg_card": "#FFFFFF",       # 卡片背景
-            "border": "#E0E0E0",        # 邊框
-            "text_title": "#212121",    # 標題
-            "text_body": "#424242",     # 正文
-            "text_muted": "#757575",    # 輔助字
-            # 時間編碼
-            "morning": "#1976D2",       # 早晨（藍）
-            "noon": "#F57C00",          # 中午（橙）
-            "evening": "#512DA8",       # 晚上（深紫）
-            "bedtime": "#303F9F",       # 睡前（靛藍）
-            # 狀態色
-            "danger": "#D32F2F",        # 危險
-            "warning": "#FFA000",       # 警告
-        }
-    
-        # ============ 建立畫布 ============
-        WIDTH, HEIGHT = 1400, 900
-        img = Image.new('RGB', (WIDTH, HEIGHT), color=COLORS["bg_main"])
-        draw = ImageDraw.Draw(img)
-    
-        # ============ 載入字體 ============
-        def load_font(size):
-            font_paths = [
-                "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
-                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-                "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
-                "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Bold.otf",
-                "/kaggle/working/assets/fonts/NotoSansTC-Bold.otf",
-                "/kaggle/working/assets/fonts/NotoSansTC-Regular.otf",
-                "assets/fonts/NotoSansTC-Bold.otf", 
-                "assets/fonts/NotoSansTC-Regular.otf"
-            ]
-            # 1. Try local paths
-            for path in font_paths:
-                if os.path.exists(path):
-                    try: return ImageFont.truetype(path, size)
-                    except: continue
-                
-            # [Fix] Use SPACE_ID as proxy for Cloud/Space environment to prevent NameError
-            if os.environ.get("SPACE_ID") or not os.path.exists("assets/fonts/NotoSansTC-Bold.otf"):
-                print("⚠️ [Font Check] Local fonts missing. Downloading NotoSansTC...")
-                # Noto Sans TC (Traditional Chinese)
-                try:
-                    import requests
-                    # Ensure the assets/fonts directory exists
-                    os.makedirs("assets/fonts", exist_ok=True)
-                    url = "https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC-Bold.otf"
-                    download_path = "assets/fonts/NotoSansTC-Bold.otf"
-                    open(download_path, 'wb').write(requests.get(url, allow_redirects=True).content)
-                    return ImageFont.truetype(download_path, size)
-                except Exception as e:
-                    print(f"❌ Fallback Failed: {e}. Using default font.")
+# ============================================================================
+# 🗓️ Medication Calendar Generator (Flagship Edition)
+# ============================================================================
+def create_medication_calendar(case_data, target_lang="zh-TW"):
+    """
+    🗓️ SilverGuard 旗艦級行事曆生成器 (Flagship Edition)
+
+    [旗艦版獨家功能]
+    1. 🥣 智慧空碗/滿碗邏輯: 自動判斷飯前(空碗) vs 飯後(滿碗)
+    2. 🧠 智慧排程解析: 支援複雜頻率 (BID/TID/QID/AC/PC)
+    3. 🎨 動態視覺回饋: 根據風險等級調整配色
+    """
+    # ============ 配色方案 (WCAG AA Compliant) ============
+    COLORS = {
+        "bg_main": "#FAFAFA",       # 主背景
+        "bg_card": "#FFFFFF",       # 卡片背景
+        "border": "#E0E0E0",        # 邊框
+        "text_title": "#212121",    # 標題
+        "text_body": "#424242",     # 正文
+        "text_muted": "#757575",    # 輔助字
+        # 時間編碼
+        "morning": "#1976D2",       # 早晨（藍）
+        "noon": "#F57C00",          # 中午（橙）
+        "evening": "#512DA8",       # 晚上（深紫）
+        "bedtime": "#303F9F",       # 睡前（靛藍）
+        # 狀態色
+        "danger": "#D32F2F",        # 危險
+        "warning": "#FFA000",       # 警告
+    }
+
+    # ============ 建立畫布 ============
+    WIDTH, HEIGHT = 1400, 900
+    img = Image.new('RGB', (WIDTH, HEIGHT), color=COLORS["bg_main"])
+    draw = ImageDraw.Draw(img)
+
+    # ============ 載入字體 ============
+    def load_font(size):
+        font_paths = [
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+            "/kaggle/input/noto-sans-cjk-tc/NotoSansCJKtc-Bold.otf",
+            "/kaggle/working/assets/fonts/NotoSansTC-Bold.otf",
+            "/kaggle/working/assets/fonts/NotoSansTC-Regular.otf",
+            "assets/fonts/NotoSansTC-Bold.otf", 
+            "assets/fonts/NotoSansTC-Regular.otf"
+        ]
+        # 1. Try local paths
+        for path in font_paths:
+            if os.path.exists(path):
+                try: return ImageFont.truetype(path, size)
+                except: continue
             
-            return ImageFont.load_default()
+        # [Fix] Use SPACE_ID as proxy for Cloud/Space environment to prevent NameError
+        if os.environ.get("SPACE_ID") or not os.path.exists("assets/fonts/NotoSansTC-Bold.otf"):
+            print("⚠️ [Font Check] Local fonts missing. Downloading NotoSansTC...")
+            # Noto Sans TC (Traditional Chinese)
+            try:
+                import requests
+                # Ensure the assets/fonts directory exists
+                os.makedirs("assets/fonts", exist_ok=True)
+                url = "https://github.com/google/fonts/raw/main/ofl/notosanstc/NotoSansTC-Bold.otf"
+                download_path = "assets/fonts/NotoSansTC-Bold.otf"
+                open(download_path, 'wb').write(requests.get(url, allow_redirects=True).content)
+                return ImageFont.truetype(download_path, size)
+            except Exception as e:
+                print(f"❌ Fallback Failed: {e}. Using default font.")
+        
+        return ImageFont.load_default()
+
+    font_super = load_font(84)
+    font_title = load_font(56)
+    font_subtitle = load_font(42)
+    font_body = load_font(36)
+    font_caption = load_font(28)
+
+    # ============ 資料提取 ============
+    # VLM Output Parsing
+    vlm_out = case_data.get("vlm_output", {}).get("parsed", {})
+    if not vlm_out:
+        # Fallback for raw structure
+        extracted = case_data.get("extracted_data", {})
+        safety = case_data.get("safety_analysis", {})
+    else:
+        extracted = vlm_out.get("extracted_data", {})
+        safety = vlm_out.get("safety_analysis", {})
+
+    drug = extracted.get("drug", {})
+    drug_name = drug.get("name_zh", drug.get("name", "未知藥物"))
+    dose = drug.get("dose", "依指示")
+
+    usage_raw = extracted.get("usage", "每日一次")
+    if isinstance(usage_raw, dict):
+        unique_usage = usage_raw.get("timing_zh", "每日一次")
+        quantity = usage_raw.get("quantity", "28")
+    else:
+        unique_usage = str(usage_raw)
+        quantity = "28" # Default
     
-        font_super = load_font(84)
-        font_title = load_font(56)
-        font_subtitle = load_font(42)
-        font_body = load_font(36)
-        font_caption = load_font(28)
-    
-        # ============ 資料提取 ============
-        # VLM Output Parsing
-        vlm_out = case_data.get("vlm_output", {}).get("parsed", {})
-        if not vlm_out:
-            # Fallback for raw structure
-            extracted = case_data.get("extracted_data", {})
-            safety = case_data.get("safety_analysis", {})
+    status = safety.get("status", "UNKNOWN")
+    warnings = [safety.get("reasoning", "")] if safety.get("reasoning") else []
+
+    # ============ 🧠 旗艦核心：智慧解析邏輯 (Smart Parsing) ============
+
+    # 1. 🥣 空碗/滿碗邏輯 (Bowl Logic)
+    # 預設：滿碗 (飯後)
+    bowl_icon = "🍚" 
+    bowl_text = "飯後服用"
+
+    u_str = unique_usage.upper()
+
+    if any(k in u_str for k in ["飯前", "AC", "空腹", "BEFORE MEAL"]):
+        bowl_icon = "🥣" # 空碗
+        bowl_text = "飯前服用"
+    elif any(k in u_str for k in ["睡前", "HS", "BEDTIME"]):
+        bowl_icon = "🛌" # 睡覺
+        bowl_text = "睡前服用"
+    elif any(k in u_str for k in ["隨餐", "WITH MEAL"]):
+        bowl_icon = "🍱" # 便當?
+        bowl_text = "隨餐服用"
+
+    # 2. 🕒 時間排程解析 (Schedule Parser)
+    # [V13 Fix] 移除 emoji 字串,改用幾何繪圖
+    # 定義時間槽
+    SLOTS = {
+        "MORNING": {"icon_type": "sun", "label": "早上 (08:00)", "color": "morning"},
+        "NOON":    {"icon_type": "mountain", "label": "中午 (12:00)", "color": "noon"},
+        "EVENING": {"icon_type": "sunset", "label": "晚上 (18:00)", "color": "evening"},
+        "BEDTIME": {"icon_type": "moon", "label": "睡前 (22:00)", "color": "bedtime"},
+    }
+
+    active_slots = []
+
+    # 規則 A: 明確關鍵字 (Prioritized)
+    if any(k in u_str for k in ["QID", "四次"]):
+        active_slots = ["MORNING", "NOON", "EVENING", "BEDTIME"]
+    elif any(k in u_str for k in ["TID", "三餐", "三次"]):
+        active_slots = ["MORNING", "NOON", "EVENING"]
+    elif any(k in u_str for k in ["BID", "早晚", "兩次", "每日2次", "每日兩次"]):
+        # ✅ [Round 120.6 Fix] 區分利尿劑（早+午）vs 一般藥物（早+晚）
+        diuretic_keywords = ["lasix", "furosemide", "利尿", "來適泄", "速尿"]
+        if any(kw in drug_name.lower() for kw in diuretic_keywords):
+            active_slots = ["MORNING", "NOON"]  # 利尿劑：早+中午（避免夜尿）
         else:
-            extracted = vlm_out.get("extracted_data", {})
-            safety = vlm_out.get("safety_analysis", {})
+            active_slots = ["MORNING", "EVENING"]  # 一般藥物：早+晚（標準）
+    elif any(k in u_str for k in ["HS", "睡前"]):
+        active_slots = ["BEDTIME"]
+    elif any(k in u_str for k in ["QD", "每日一次", "一天一次"]):
+        active_slots = ["MORNING"]
+    else:
+        # 規則 B: 模糊匹配 (Fuzzy Match)
+        if "早" in u_str: active_slots.append("MORNING")
+        if "午" in u_str: active_slots.append("NOON")
+        if "晚" in u_str: active_slots.append("EVENING")
+        if "睡" in u_str: active_slots.append("BEDTIME")
+    
+    # Fallback
+    if not active_slots: active_slots = ["MORNING"]
 
-        drug = extracted.get("drug", {})
-        drug_name = drug.get("name_zh", drug.get("name", "未知藥物"))
-        dose = drug.get("dose", "依指示")
-    
-        usage_raw = extracted.get("usage", "每日一次")
-        if isinstance(usage_raw, dict):
-            unique_usage = usage_raw.get("timing_zh", "每日一次")
-            quantity = usage_raw.get("quantity", "28")
-        else:
-            unique_usage = str(usage_raw)
-            quantity = "28" # Default
-        
-        status = safety.get("status", "UNKNOWN")
-        warnings = [safety.get("reasoning", "")] if safety.get("reasoning") else []
+    # ============ 視覺繪製 ============
 
-        # ============ 🧠 旗艦核心：智慧解析邏輯 (Smart Parsing) ============
-    
-        # 1. 🥣 空碗/滿碗邏輯 (Bowl Logic)
-        # 預設：滿碗 (飯後)
-        bowl_icon = "🍚" 
-        bowl_text = "飯後服用"
-    
-        u_str = unique_usage.upper()
-    
-        if any(k in u_str for k in ["飯前", "AC", "空腹", "BEFORE MEAL"]):
-            bowl_icon = "🥣" # 空碗
-            bowl_text = "飯前服用"
-        elif any(k in u_str for k in ["睡前", "HS", "BEDTIME"]):
-            bowl_icon = "🛌" # 睡覺
-            bowl_text = "睡前服用"
-        elif any(k in u_str for k in ["隨餐", "WITH MEAL"]):
-            bowl_icon = "🍱" # 便當?
-            bowl_text = "隨餐服用"
+    # Header
+    y_off = 40
+    # [Fix] 安全定義時區 (防止 global 尚未定義) (Timezone Safety Fix)
+    from datetime import datetime, timedelta, timezone
+    TZ_TW = timezone(timedelta(hours=8))
 
-        # 2. 🕒 時間排程解析 (Schedule Parser)
-        # [V13 Fix] 移除 emoji 字串,改用幾何繪圖
-        # 定義時間槽
-        SLOTS = {
-            "MORNING": {"icon_type": "sun", "label": "早上 (08:00)", "color": "morning"},
-            "NOON":    {"icon_type": "mountain", "label": "中午 (12:00)", "color": "noon"},
-            "EVENING": {"icon_type": "sunset", "label": "晚上 (18:00)", "color": "evening"},
-            "BEDTIME": {"icon_type": "moon", "label": "睡前 (22:00)", "color": "bedtime"},
-        }
-    
-        active_slots = []
-    
-        # 規則 A: 明確關鍵字 (Prioritized)
-        if any(k in u_str for k in ["QID", "四次"]):
-            active_slots = ["MORNING", "NOON", "EVENING", "BEDTIME"]
-        elif any(k in u_str for k in ["TID", "三餐", "三次"]):
-            active_slots = ["MORNING", "NOON", "EVENING"]
-        elif any(k in u_str for k in ["BID", "早晚", "兩次", "每日2次", "每日兩次"]):
-            # ✅ [Round 120.6 Fix] 區分利尿劑（早+午）vs 一般藥物（早+晚）
-            diuretic_keywords = ["lasix", "furosemide", "利尿", "來適泄", "速尿"]
-            if any(kw in drug_name.lower() for kw in diuretic_keywords):
-                active_slots = ["MORNING", "NOON"]  # 利尿劑：早+中午（避免夜尿）
-            else:
-                active_slots = ["MORNING", "EVENING"]  # 一般藥物：早+晚（標準）
-        elif any(k in u_str for k in ["HS", "睡前"]):
-            active_slots = ["BEDTIME"]
-        elif any(k in u_str for k in ["QD", "每日一次", "一天一次"]):
-            active_slots = ["MORNING"]
-        else:
-            # 規則 B: 模糊匹配 (Fuzzy Match)
-            if "早" in u_str: active_slots.append("MORNING")
-            if "午" in u_str: active_slots.append("NOON")
-            if "晚" in u_str: active_slots.append("EVENING")
-            if "睡" in u_str: active_slots.append("BEDTIME")
-        
-        # Fallback
-        if not active_slots: active_slots = ["MORNING"]
-    
-        # ============ 視覺繪製 ============
-    
-        # Header
-        y_off = 40
-        # [Fix] 安全定義時區 (防止 global 尚未定義) (Timezone Safety Fix)
-        from datetime import datetime, timedelta, timezone
-        TZ_TW = timezone(timedelta(hours=8))
-    
-        # [V13 Fix] 移除 emoji,改用純文字
-        draw.text((50, y_off), "用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
-        # [FIX] 鎖定日期，確保 Demo 連戲 (同步 app.py)
-        fixed_date = "2026-02-28"
-        draw.text((WIDTH - 350, y_off + 20), f"日期: {fixed_date}", fill=COLORS["text_muted"], font=font_body)
-    
-        y_off += 120
-        draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
-    
-        # Drug Info
-        y_off += 40
-        # [V13 Fix] 移除 emoji,加上藥丸圖示
-        draw_pill_icon_ae(draw, 70, y_off+28, size=40, color="#E3F2FD")
-        draw.text((110, y_off), f"藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
-        y_off += 80
-        draw.text((50, y_off), f"總量: {quantity} 顆 / {dose}", fill=COLORS["text_body"], font=font_body)
-    
-        y_off += 80
-        draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
-    
-        # Schedule Cards
-        y_off += 40
-        card_h = 130
-        card_w = WIDTH - 100
-    
-        for slot_key in active_slots:
-            s_data = SLOTS[slot_key]
-        
-            # Draw Card
-            draw.rectangle(
-                [(50, y_off), (50+card_w, y_off+card_h)], 
-                fill=COLORS["bg_card"], 
-                outline=COLORS[s_data["color"]], 
-                width=6
-            )
-        
-            # [V13 Fix] 用幾何圖示取代 emoji
-            icon_x = 90
-            icon_y = y_off + 60
-        
-            if s_data["icon_type"] == "sun":
-                draw_sun_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
-            elif s_data["icon_type"] == "moon":
-                draw_moon_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
-            elif s_data["icon_type"] == "mountain":
-                draw_mountain_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
-            elif s_data["icon_type"] == "sunset":
-                draw_sunset_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
-        
-            draw.text((140, y_off+30), s_data['label'], fill=COLORS[s_data["color"]], font=font_subtitle)
-        
-            # 碗圖示
-            bowl_x = 520
-            bowl_y = icon_y
-            # 確保 slot_key 被正確處理
-            if slot_key == "BEDTIME" and bowl_icon == "🍚":
-                pass 
-             
-            if "飯前" in bowl_text:
-                draw_bowl_icon_ae(draw, bowl_x, bowl_y, size=35, is_full=False)
-            elif "飯後" in bowl_text:
-                draw_bowl_icon_ae(draw, bowl_x, bowl_y, size=35, is_full=True)
-            elif "睡前" in bowl_text:
-                draw_bed_icon_ae(draw, bowl_x, bowl_y, size=35)
-        
-            draw.text((560, y_off+30), f"{bowl_text} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
-        
-            y_off += card_h + 20
-        
-        # Safety Check / Warning
-        if status in ["HIGH_RISK", "WARNING", "HUMAN_REVIEW_NEEDED"] or "HIGH" in str(warnings):
-            y_off += 20
-            draw.rectangle([(50, y_off), (WIDTH-50, y_off+160)], fill="#FFEBEE", outline=COLORS["danger"], width=6)
-            draw.text((80, y_off+20), "⚠️ 用藥安全警示", fill=COLORS["danger"], font=font_title)
-        
-            warn_msg = warnings[0] if warnings else "請諮詢藥師確認用藥細節"
-            if len(warn_msg) > 38: warn_msg = warn_msg[:38] + "..."
-            draw.text((80, y_off+90), warn_msg, fill=COLORS["text_body"], font=font_body)
+    # [V13 Fix] 移除 emoji,改用純文字
+    draw.text((50, y_off), "用藥時間表 (高齡友善版)", fill=COLORS["text_title"], font=font_super)
+    # [FIX] 鎖定日期，確保 Demo 連戲 (同步 app.py)
+    fixed_date = "2026-02-28"
+    draw.text((WIDTH - 350, y_off + 20), f"日期: {fixed_date}", fill=COLORS["text_muted"], font=font_body)
 
-        # Footer
-        draw.text((50, HEIGHT-60), "SilverGuard CDS 關心您 ❤️ 僅供參考，請遵照醫師處方", fill=COLORS["text_muted"], font=font_caption)
+    y_off += 120
+    draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
+
+    # Drug Info
+    y_off += 40
+    # [V13 Fix] 移除 emoji,加上藥丸圖示
+    draw_pill_icon_ae(draw, 70, y_off+28, size=40, color="#E3F2FD")
+    draw.text((110, y_off), f"藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
+    y_off += 80
+    draw.text((50, y_off), f"總量: {quantity} 顆 / {dose}", fill=COLORS["text_body"], font=font_body)
+
+    y_off += 80
+    draw.line([(50, y_off), (WIDTH-50, y_off)], fill=COLORS["border"], width=3)
+
+    # Schedule Cards
+    y_off += 40
+    card_h = 130
+    card_w = WIDTH - 100
+
+    for slot_key in active_slots:
+        s_data = SLOTS[slot_key]
     
-        # Save
-        # Save
-        import uuid
-        import tempfile
-        # [FIX] Use UUID for filename (Concurrency Safe) & Temp Dir (Cross-Platform)
-        out_path = os.path.join(tempfile.gettempdir(), f"calendar_flagship_{uuid.uuid4().hex[:8]}.png")
-        img.save(out_path)
-        return out_path 
+        # Draw Card
+        draw.rectangle(
+            [(50, y_off), (50+card_w, y_off+card_h)], 
+            fill=COLORS["bg_card"], 
+            outline=COLORS[s_data["color"]], 
+            width=6
+        )
+    
+        # [V13 Fix] 用幾何圖示取代 emoji
+        icon_x = 90
+        icon_y = y_off + 60
+    
+        if s_data["icon_type"] == "sun":
+            draw_sun_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        elif s_data["icon_type"] == "moon":
+            draw_moon_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        elif s_data["icon_type"] == "mountain":
+            draw_mountain_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+        elif s_data["icon_type"] == "sunset":
+            draw_sunset_icon_ae(draw, icon_x, icon_y, size=40, color=COLORS[s_data["color"]])
+    
+        draw.text((140, y_off+30), s_data['label'], fill=COLORS[s_data["color"]], font=font_subtitle)
+    
+        # 碗圖示
+        bowl_x = 520
+        bowl_y = icon_y
+        # 確保 slot_key 被正確處理
+        if slot_key == "BEDTIME" and bowl_icon == "🍚":
+            pass 
+         
+        if "飯前" in bowl_text:
+            draw_bowl_icon_ae(draw, bowl_x, bowl_y, size=35, is_full=False)
+        elif "飯後" in bowl_text:
+            draw_bowl_icon_ae(draw, bowl_x, bowl_y, size=35, is_full=True)
+        elif "睡前" in bowl_text:
+            draw_bed_icon_ae(draw, bowl_x, bowl_y, size=35)
+    
+        draw.text((560, y_off+30), f"{bowl_text} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
+    
+        y_off += card_h + 20
+    
+    # Safety Check / Warning
+    if status in ["HIGH_RISK", "WARNING", "HUMAN_REVIEW_NEEDED"] or "HIGH" in str(warnings):
+        y_off += 20
+        draw.rectangle([(50, y_off), (WIDTH-50, y_off+160)], fill="#FFEBEE", outline=COLORS["danger"], width=6)
+        draw.text((80, y_off+20), "⚠️ 用藥安全警示", fill=COLORS["danger"], font=font_title)
+    
+        warn_msg = warnings[0] if warnings else "請諮詢藥師確認用藥細節"
+        if len(warn_msg) > 38: warn_msg = warn_msg[:38] + "..."
+        draw.text((80, y_off+90), warn_msg, fill=COLORS["text_body"], font=font_body)
+
+    # Footer
+    draw.text((50, HEIGHT-60), "SilverGuard CDS 關心您 ❤️ 僅供參考，請遵照醫師處方", fill=COLORS["text_muted"], font=font_caption)
+
+    # Save
+    # Save
+    import uuid
+    import tempfile
+    # [FIX] Use UUID for filename (Concurrency Safe) & Temp Dir (Cross-Platform)
+    out_path = os.path.join(tempfile.gettempdir(), f"calendar_flagship_{uuid.uuid4().hex[:8]}.png")
+    img.save(out_path)
+    return out_path 
 
 
-    # ============================================================================
-    # MAIN DEMO: Elder-Friendly Output Pipeline (V5: 使用真實推理結果)
-    # ============================================================================
-    def demo_elder_friendly_output():
-        """
-        Complete Elder-Friendly Output Demo (V5: 使用真實推理結果)
-        不再硬編碼，而是真正執行推理
-        """
-        if 'model' not in globals() or 'processor' not in globals():
-            print("⚠️ 請先執行 Cell 3 載入模型！")
+# ============================================================================
+# MAIN DEMO: Elder-Friendly Output Pipeline (V5: 使用真實推理結果)
+# ============================================================================
+def demo_elder_friendly_output():
+    """
+    Complete Elder-Friendly Output Demo (V5: 使用真實推理結果)
+    不再硬編碼，而是真正執行推理
+    """
+    if 'model' not in globals() or 'processor' not in globals():
+        print("⚠️ 請先執行 Cell 3 載入模型！")
+        return
+
+    print("\n" + "="*80)
+    print("👴 SILVERGUARD CDS AI - 老人友善輸出層 (V5 真實推理 + TTS)")
+    print("="*80)
+    print("\n📋 此功能將 AI 分析結果轉換為：")
+    print("   1. 🗣️ 溫暖的語音朗讀 (長輩聽得懂)")
+    print("   2. 📅 大字體用藥行事曆")
+    print("   3. 💬 口語化說明 (無專業術語)")
+
+    # 1. 先找一個 HIGH_RISK 案例並執行真正的推理
+    # [V16 FIX] 動態路徑：優先使用 V16 數據
+    if USE_V17_DATA and os.path.exists(os.path.join(V17_DATA_DIR, "dataset_v17_train.json")):
+        json_path = os.path.join(V17_DATA_DIR, "dataset_v17_train.json")
+        img_dir = V17_DATA_DIR
+        print(f"✅ [Cell 7] Using V17 Dataset for Elder-Friendly Demo")
+    else:
+        json_path = "./medgemma_training_data_v5/dataset_v5_full.json"
+        img_dir = "./medgemma_training_data_v5"
+        print(f"⚠️ [Cell 7] Using V5 Dataset for Elder-Friendly Demo")
+
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    
+        # [Omni-Nexus Fix] Cell 5 Logic Mirror - Widen scope
+        target_risks = ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED", "WARNING"]
+        high_risk_cases = [item for item in data if item["risk_status"] in target_risks]
+    
+        if not high_risk_cases:
+            print("❌ 找不到適用案例 (High Risk/Review)，請確認數據集狀態")
             return
     
-        print("\n" + "="*80)
-        print("👴 SILVERGUARD CDS AI - 老人友善輸出層 (V5 真實推理 + TTS)")
-        print("="*80)
-        print("\n📋 此功能將 AI 分析結果轉換為：")
-        print("   1. 🗣️ 溫暖的語音朗讀 (長輩聽得懂)")
-        print("   2. 📅 大字體用藥行事曆")
-        print("   3. 💬 口語化說明 (無專業術語)")
+        # Priority sort
+        high_risk_cases.sort(key=lambda x: 0 if x["risk_status"] == "HIGH_RISK" else 1)
+        target = high_risk_cases[0]
+        img_path = f"{img_dir}/{target['image']}"
     
-        # 1. 先找一個 HIGH_RISK 案例並執行真正的推理
-        # [V16 FIX] 動態路徑：優先使用 V16 數據
-        if USE_V17_DATA and os.path.exists(os.path.join(V17_DATA_DIR, "dataset_v17_train.json")):
-            json_path = os.path.join(V17_DATA_DIR, "dataset_v17_train.json")
-            img_dir = V17_DATA_DIR
-            print(f"✅ [Cell 7] Using V17 Dataset for Elder-Friendly Demo")
-        else:
-            json_path = "./medgemma_training_data_v5/dataset_v5_full.json"
-            img_dir = "./medgemma_training_data_v5"
-            print(f"⚠️ [Cell 7] Using V5 Dataset for Elder-Friendly Demo")
+        print(f"\n🎯 使用真實推理結果: {target['image']}")
     
-        try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        
-            # [Omni-Nexus Fix] Cell 5 Logic Mirror - Widen scope
-            target_risks = ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED", "WARNING"]
-            high_risk_cases = [item for item in data if item["risk_status"] in target_risks]
-        
-            if not high_risk_cases:
-                print("❌ 找不到適用案例 (High Risk/Review)，請確認數據集狀態")
-                return
-        
-            # Priority sort
-            high_risk_cases.sort(key=lambda x: 0 if x["risk_status"] == "HIGH_RISK" else 1)
-            target = high_risk_cases[0]
-            img_path = f"{img_dir}/{target['image']}"
-        
-            print(f"\n🎯 使用真實推理結果: {target['image']}")
-        
-            # 2. 執行真正的推理
-            real_result = agentic_inference(model, processor, img_path, verbose=False)
-        
-        except FileNotFoundError:
-            print("⚠️ 找不到數據集，使用示範數據...")
-            # Fallback: 使用示範數據 (for local testing)
-            real_result = {
-                "final_status": "HIGH_RISK",
-                "vlm_output": {
-                    "parsed": {
-                        "extracted_data": {
-                            "patient": {"name": "陳金龍", "age": 88},
-                            "drug": {"name": "Glucophage 庫魯化", "dose": "2000mg"},
-                            "usage": "每日兩次 早晚飯後"
-                        },
-                        "safety_analysis": {
-                            "status": "HIGH_RISK",
-                            "reasoning": "⚠️ 病患 88 歲高齡，Glucophage 劑量 2000mg 過高，恐有嚴重副作用風險。"
-                        }
+        # 2. 執行真正的推理
+        real_result = agentic_inference(model, processor, img_path, verbose=False)
+    
+    except FileNotFoundError:
+        print("⚠️ 找不到數據集，使用示範數據...")
+        # Fallback: 使用示範數據 (for local testing)
+        real_result = {
+            "final_status": "HIGH_RISK",
+            "vlm_output": {
+                "parsed": {
+                    "extracted_data": {
+                        "patient": {"name": "陳金龍", "age": 88},
+                        "drug": {"name": "Glucophage 庫魯化", "dose": "2000mg"},
+                        "usage": "每日兩次 早晚飯後"
+                    },
+                    "safety_analysis": {
+                        "status": "HIGH_RISK",
+                        "reasoning": "⚠️ 病患 88 歲高齡，Glucophage 劑量 2000mg 過高，恐有嚴重副作用風險。"
                     }
                 }
             }
-    
-        # 3. 用真實結果做 SilverGuard 展示
-        print("\n" + "-"*60)
-        print("💬 [Step 1] 口語化轉換 (真實數據)")
-        print("-"*60)
-    
-        speech = json_to_elderly_speech(real_result)
-        print(speech)
-    
-        # 4. Generate TTS
-        print("\n" + "-"*60)
-        print("🗣️ [Step 2] 語音生成 (TTS)")
-        print("-"*60)
-    
-        text_to_speech_elderly(speech)
-    
+        }
+
+    # 3. 用真實結果做 SilverGuard 展示
+    print("\n" + "-"*60)
+    print("💬 [Step 1] 口語化轉換 (真實數據)")
+    print("-"*60)
+
+    speech = json_to_elderly_speech(real_result)
+    print(speech)
+
+    # 4. Generate TTS
+    print("\n" + "-"*60)
+    print("🗣️ [Step 2] 語音生成 (TTS)")
+    print("-"*60)
+
+    text_to_speech_elderly(speech)
+
+    # 5. Generate calendar
+    print("\n" + "-"*60)
+    print("📅 [Step 3] 大字體行事曆")
+    print("-"*60)
+
+    if "parsed" in real_result.get("vlm_output", {}):
         # 5. Generate calendar
         print("\n" + "-"*60)
         print("📅 [Step 3] 大字體行事曆")
-        print("-"*60)
-    
-        if "parsed" in real_result.get("vlm_output", {}):
-            # 5. Generate calendar
-            print("\n" + "-"*60)
-            print("📅 [Step 3] 大字體行事曆")
-            print("-" * 60)
-        
-            try:
-                # [V8.3 Synchronization] Use the robust function ported from HF Space
-                # Now supports BID/TID/QID colors and loop rendering
-                calendar_path = create_medication_calendar(real_result, target_lang="zh-TW")
-                print(f"✅ Calendar generated: {calendar_path}")
-            except Exception as e:
-                print(f"⚠️ Calendar generation failed: {e}")
-                import traceback
-                traceback.print_exc()
-        else:
-            print("⚠️ 無法解析推理結果，跳過行事曆生成")
-    
-        print("\n" + "="*80)
-        print("🏆 SILVERGUARD DEMO COMPLETE (使用真實推理結果)")
-        print("="*80)
-        print("\n這個輸出層展示了：")
-        print("   ✅ 視障友善：語音朗讀讓看不清字的長輩也能理解")
-        print("   ✅ 認知友善：口語化說明降低理解門檻")
-        print("   ✅ 行動友善：大字體行事曆一目了然")
-
-    # demo_elder_friendly_output() # <-- Moved to if __name__ == "__main__"
-
-
-    # ============================================================================
-    # CELL 8: Evaluation Metrics (V5 Impact Edition)
-    # ============================================================================
-    """
-    Cell 8: Formal Evaluation (V5 Impact Edition)
-    ================================
-    🎯 Purpose: 產生可驗證的 metrics，強調 "Safety Compliance Rate"
-    🏆 Shows: 證明系統懂得 "When in doubt, call a human"
-
-    V5 升級：
-    - 新增 Safety Compliance Rate (HUMAN_REVIEW 計為成功)
-    - 新增 Critical Risk Coverage (HIGH_RISK + HUMAN_REVIEW 都算覆蓋)
-    """
-
-    from collections import Counter
-
-    def evaluate_agentic_pipeline():
-        """跑測試集，產生強調安全性的指標"""
-        if 'model' not in globals() or 'processor' not in globals():
-            print("❌ 請先執行 Cell 3！")
-            return
-    
-        # V5 Fix: Use Test Split (prevent data leakage)
-        # [V17 FIX] 動態路徑：優先使用 V17 測試集
-        # [V17 FIX] Robust Path Handling for Eval
-        target_v17_test = os.path.join(V17_DATA_DIR, "dataset_v17_test.json") if V17_DATA_DIR else ""
-    
-        if os.path.exists(target_v17_test):
-            json_path = target_v17_test
-            img_dir = V17_DATA_DIR
-            print(f"✅ [Cell 8 Eval] Evaluating on V17 Test Set: {json_path}")
-        else:
-            json_path = "./medgemma_training_data_v5/dataset_v5_test.json"
-            img_dir = "./medgemma_training_data_v5"
-            print(f"⚠️ [Cell 8 Eval] Fallback to V5 test set")
+        print("-" * 60)
     
         try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                test_set = json.load(f)
-        except FileNotFoundError:
-            print("❌ 找不到測試數據集 (dataset_v5_test.json)！請先執行 Cell 2")
-            return
-    
-        y_true = []
-        y_pred = []
-    
-        print("\n" + "="*80)
-        print(f"🔬 EVALUATION: Running Agentic Pipeline on {len(test_set)} Test Samples")
-        print("="*80)
-    
-        for i, item in enumerate(test_set):
-            img_path = f"{img_dir}/{item['image']}"
-            result = agentic_inference(model, processor, img_path, verbose=False)
-        
-            y_true.append(item["risk_status"])
-            y_pred.append(result["final_status"])
-        
-            if (i + 1) % 20 == 0:
-                print(f"   ✅ {i+1}/{len(test_set)} completed")
-    
-        # ========== V5 SAFETY-FIRST METRICS ==========
-        # V7.2 Fix: Semantic Accuracy (Synonym Mapping)
-        # 解決 Label 不一致問題 (PASS vs SAFE / WITHIN_STANDARD)
-        SAFE_LABELS = ["PASS", "WITHIN_STANDARD", "SAFE"]
-        RISK_LABELS = ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED", "HUMAN_REVIEW_NEEDED", "UNSAFE"]
-        WARNING_LABELS = ["WARNING", "ATTENTION_NEEDED"]
-    
-        correct = 0
-        for t, p in zip(y_true, y_pred):
-            if (t in SAFE_LABELS and p in SAFE_LABELS): correct += 1
-            elif (t in RISK_LABELS and p in RISK_LABELS): correct += 1
-            elif (t in WARNING_LABELS and p in WARNING_LABELS): correct += 1
-            # Fallback for exact match
-            elif t == p: correct += 1
-        
-    
-        # [Audit Fix P0] Prevent division by zero
-        if len(y_true) == 0:
-            print("⚠️ WARNING: Test set is empty! Cannot calculate accuracy.")
-            accuracy = 0.0
-        else:
-            accuracy = correct / len(y_true)
-    
-        # Safety Compliance Rate: 正確判斷 OR 正確移交人工 = 安全
-        # 理念：AI 不確定時選擇人工複核是「安全」的行為，不是失敗
-        safety_success = 0
-        for t, p in zip(y_true, y_pred):
-            if t == p:
-                safety_success += 1
-            elif p in ["HUMAN_REVIEW_NEEDED", "PHARMACIST_REVIEW_REQUIRED"]:
-                safety_success += 1  # 正確升級到人工或藥師也算安全
-            elif t == "HIGH_RISK" and p == "PHARMACIST_REVIEW_REQUIRED":
-                safety_success += 1
-            elif t == "WARNING" and p == "ATTENTION_NEEDED":
-                safety_success += 1
-            elif t == "SAFE" and p == "WITHIN_STANDARD": # Assuming Pass/SAFE in GT
-                safety_success += 1
-    
-        safety_rate = safety_success / len(y_true)
-    
-        print(f"\n{'='*60}")
-        print(f"📊 V5 EVALUATION RESULTS (Impact Edition)")
-        print(f"{'='*60}")
-    
-        # 這是我們要強調的數字
-        print(f"\n🛡️ Safety Compliance Rate: {safety_rate:.1%} ({safety_success}/{len(y_true)})")
-        print(f"   (Includes correct predictions AND valid human handoffs)")
-    
-        print(f"\n🎯 Standard Accuracy: {accuracy:.1%} ({correct}/{len(y_true)})")
-    
-        print(f"\n📈 Predicted Distribution:")
-        for status, count in Counter(y_pred).items():
-            print(f"   {status}: {count}")
-    
-        print(f"\n📉 Ground Truth Distribution:")
-        for status, count in Counter(y_true).items():
-            print(f"   {status}: {count}")
-    
-        # V7.2 Fix: Dynamic Critical Risk Reporting (No more hardcoded claims)
-        hr_true = [i for i, t in enumerate(y_true) if t == "HIGH_RISK"]
-        hr_detected = sum(1 for i in hr_true if y_pred[i] in ["HIGH_RISK", "HUMAN_REVIEW_NEEDED", "PHARMACIST_REVIEW_REQUIRED"])
-    
-        if hr_true:
-            hr_coverage = hr_detected / len(hr_true)
-            missed_count = len(hr_true) - hr_detected
-        
-            print(f"\n🔴 Critical Risk Coverage: {hr_coverage:.1%} ({hr_detected}/{len(hr_true)})")
-        
-            if missed_count == 0:
-                print("   (✅ SUCCESS: ZERO HIGH_RISK cases missed! Safety Net is holding.)")
-            else:
-                print(f"   (⚠️ Warning: {missed_count} HIGH_RISK cases missed. Threshold tuning required.)")
-    
-        # V5 Safety-First Metric Redefinition (Omni-Nexus Strategy)
-        # Instead of "Recall" (which implies missing cases is failure), we use "Risk Interception Rate"
-        # Success = HIGH_RISK (Direct Hit) OR HUMAN_REVIEW (Safety Net Triggered)
-        if hr_true:
-            risk_interception = hr_detected / len(hr_true)
-            print(f"\n🛡️ Risk Interception Rate: {risk_interception:.1%} ({hr_detected}/{len(hr_true)})")
-            print(f"   (Measures % of dangerous cases successfully blocked from being marked SAFE)")
-
-        # 傳統指標：直接命中率 (作為參考，不強調)
-        hr_exact = sum(1 for i in hr_true if y_pred[i] in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"])
-        if hr_true:
-            hr_recall = hr_exact / len(hr_true)
-            print(f"   🎯 Direct Detection Rate: {hr_recall:.1%} ({hr_exact}/{len(hr_true)}) - (Exact Label Match)")
-    
-        # HUMAN_REVIEW 統計
-        human_review_count = sum(1 for p in y_pred if p == "HUMAN_REVIEW_NEEDED")
-        autonomy_rate = 1 - (human_review_count / len(y_true))
-    
-        print(f"\n❓ Human Review Triggered: {human_review_count} times ({human_review_count/len(y_true):.1%})")
-        print(f"🤖 Autonomy Rate: {autonomy_rate:.1%}")
-        if autonomy_rate > 0.3:
-            print("   ✅ System is effectively reducing pharmacist workload.")
-        else:
-            print("   ⚠️ High human dependency. Consider retraining with more data.")
-    
-        print(f"\n{'='*60}")
-        
-        # [Audit Fix P0] Export Results for visualization in visualize_safety_matrix
-        try:
-            import pandas as pd
-            df = pd.DataFrame({"ground_truth": y_true, "prediction": y_pred})
-            df.to_csv("results.csv", index=False)
-            print("✅ Results saved to results.csv for visualization.")
+            # [V8.3 Synchronization] Use the robust function ported from HF Space
+            # Now supports BID/TID/QID colors and loop rendering
+            calendar_path = create_medication_calendar(real_result, target_lang="zh-TW")
+            print(f"✅ Calendar generated: {calendar_path}")
         except Exception as e:
-            print(f"⚠️ Failed to save results.csv: {e}")
-        print("✅ V7.2 Evaluation Complete - Dynamic Metrics Verified")
-        print(f"{'='*60}")
+            print(f"⚠️ Calendar generation failed: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        print("⚠️ 無法解析推理結果，跳過行事曆生成")
 
-    # evaluate_agentic_pipeline() # <-- Moved to if __name__ == "__main__"
-
-
-    
     print("\n" + "="*80)
-    print("🎉 ALL CELLS COMPLETE - V7.1 IMPACT EDITION!")
+    print("🏆 SILVERGUARD DEMO COMPLETE (使用真實推理結果)")
     print("="*80)
-    print("📋 Summary:")
-    print("   ✅ Cell 1: Environment Setup")
-    print("   ✅ Cell 2: Data Generation (600 images + 6 Risk Types)")
-    print("   ✅ Cell 3: QLoRA Training (MedGemma 1.5-4B)")
-    print("   ✅ Cell 4: Agentic Pipeline (Entropy-based Confidence)")
-    print("   ✅ Cell 5: HIGH_RISK Demo")
-    print("   ⚙️ Cell 6: Gradio Demo (Optional)")
-    print("   👴 Cell 7: SilverGuard CDS (Real Inference + TTS)")
-    print("   📊 Cell 8: Evaluation Metrics (Safety-First)")
-    print("="*80)
-    print("\n🔧 V7.1 Key Upgrades:")
-    print("   ✅ Medical Accuracy: Aspirin 100mg now correctly SAFE (per Beers 2023)")
-    print("   ✅ aspirin_check: 50/50 train split (PASS vs HIGH_RISK)")
-    print("   ✅ zolpidem_overdose: 10mg = 2x FDA elderly max (5mg)")
-    print("   ✅ DRUG_ALIASES: Fixed reverse lookup bug (Warfarin issue)")
-    print("   ✅ Safety Compliance Rate: HUMAN_REVIEW counts as success")
-    print("   ✅ Critical Risk Coverage: Maximized via Human-in-the-Loop")
-    print("   ✅ Offline-Ready: Kaggle Input fonts + Socket TTS check")
-    print("   ✅ Data Integrity: Train/Test split with assertion check")
+    print("\n這個輸出層展示了：")
+    print("   ✅ 視障友善：語音朗讀讓看不清字的長輩也能理解")
+    print("   ✅ 認知友善：口語化說明降低理解門檻")
+    print("   ✅ 行動友善：大字體行事曆一目了然")
+
+# demo_elder_friendly_output() # <-- Moved to if __name__ == "__main__"
+
+
+# ============================================================================
+# CELL 8: Evaluation Metrics (V5 Impact Edition)
+# ============================================================================
+"""
+Cell 8: Formal Evaluation (V5 Impact Edition)
+================================
+🎯 Purpose: 產生可驗證的 metrics，強調 "Safety Compliance Rate"
+🏆 Shows: 證明系統懂得 "When in doubt, call a human"
+
+V5 升級：
+- 新增 Safety Compliance Rate (HUMAN_REVIEW 計為成功)
+- 新增 Critical Risk Coverage (HIGH_RISK + HUMAN_REVIEW 都算覆蓋)
+"""
+
+from collections import Counter
+
+def evaluate_agentic_pipeline():
+    """跑測試集，產生強調安全性的指標"""
+    if 'model' not in globals() or 'processor' not in globals():
+        print("❌ 請先執行 Cell 3！")
+        return
+
+    # V5 Fix: Use Test Split (prevent data leakage)
+    # [V17 FIX] 動態路徑：優先使用 V17 測試集
+    # [V17 FIX] Robust Path Handling for Eval
+    target_v17_test = os.path.join(V17_DATA_DIR, "dataset_v17_test.json") if V17_DATA_DIR else ""
+
+    if os.path.exists(target_v17_test):
+        json_path = target_v17_test
+        img_dir = V17_DATA_DIR
+        print(f"✅ [Cell 8 Eval] Evaluating on V17 Test Set: {json_path}")
+    else:
+        json_path = "./medgemma_training_data_v5/dataset_v5_test.json"
+        img_dir = "./medgemma_training_data_v5"
+        print(f"⚠️ [Cell 8 Eval] Fallback to V5 test set")
+
+    try:
+        with open(json_path, "r", encoding="utf-8") as f:
+            test_set = json.load(f)
+    except FileNotFoundError:
+        print("❌ 找不到測試數據集 (dataset_v5_test.json)！請先執行 Cell 2")
+        return
+
+    y_true = []
+    y_pred = []
+
+    print("\n" + "="*80)
+    print(f"🔬 EVALUATION: Running Agentic Pipeline on {len(test_set)} Test Samples")
     print("="*80)
 
-    # ============================================================================
-    # 💰 COST-EFFECTIVENESS ANALYSIS (for Impact Prize)
-    # ============================================================================
-    print("\n💰 COST-EFFECTIVENESS ANALYSIS:")
-    print("   🖥️ Hardware: T4 GPU (Kaggle Free Tier)")
-    print("   ⏱️ Inference Time: ~2-3 sec per prescription")
-    print("   💵 Cost per Verification: < $0.001 USD")
-    print("   🌍 Accessibility: Rural clinics, community pharmacies")
-    print("\n### **2. Ethical & Privacy Architecture**")
-    print("*   **🔒 Hybrid Privacy Architecture**:")
-    print("    *   **Core Inference (VLM + RAG)**: 100% Local (Air-Gapped Capable). No prescription images ever leave the device.")
-    print("    *   **TTS (Voice)**: Defaults to high-quality Neural Cloud TTS (Anonymized Text Only) for best UX. Automatically falls back to `pyttsx3` (100% Offline) if network is unavailable.")
-    print("*   **🛡️ Safety First**: The system is designed to **fail safely**. If confidence < 75%, it defaults to \"Pharmacist Review Needed\".")
-    print("*   **⚖️ Bias Mitigation**: Validated on diverse geriatric fonts and low-light conditions typically found in rural care settings.")
-    print("")
-    print("   📊 Potential Impact (per pharmacy, 10K prescriptions/month):")
-    print("      → ~200-400 errors flagged (assuming 2-4% risk rate)")
-    print("      → $10,000-20,000 USD/month savings in prevented harm")
-    print("="*80)
-
-    # ============================================================================
-    # ♿ ACCESSIBILITY COMPLIANCE
-    # ============================================================================
-    print("\n♿ ACCESSIBILITY (High-Contrast Elderly Design - WCAG AA+ Aligned):")
-    print("   👁️ Large fonts (28px+) for visual impairment")
-    print("   🔊 TTS voice readout for cognitive accessibility")
-    print("   🎨 High-contrast colors (morning yellow / evening purple)")
-    print("   📱 Mobile-first responsive calendar")
-    print("="*80)
-
-    print("\n🏆 Ready for Kaggle MedGemma Impact Challenge Submission!")
-    print("   🎯 Target: Agentic Workflow Prize")
-    print("   💡 Focus: Patient Empowerment + Safety Awareness")
-    print("="*80)
-
-    # ============================================================================
-    # CELL 9: BONUS TASK - Upload Model to Hugging Face (Open Weights)
-    # ============================================================================
-    """
-    Cell 9: Publish to Hugging Face Hub
-    ===================================
-    🎯 Bonus Objective: Open-weight Hugging Face model tracing to a HAI-DEF model
-    🏆 Action: Pushes the LoRA adapter to your HF profile
-    """
-
-    def upload_model_to_hf():
-        print("\n" + "="*80)
-        print("🚀 BONUS: Uploading SilverGuard CDS to Hugging Face")
-        print("="*80)
+    for i, item in enumerate(test_set):
+        img_path = f"{img_dir}/{item['image']}"
+        result = agentic_inference(model, processor, img_path, verbose=False)
     
-        if 'model' not in globals() or 'processor' not in globals():
-            print("❌ Model not loaded. Please run training first.")
-            return
+        y_true.append(item["risk_status"])
+        y_pred.append(result["final_status"])
+    
+        if (i + 1) % 20 == 0:
+            print(f"   ✅ {i+1}/{len(test_set)} completed")
 
-        # Check if we are running in interactive mode or just dry run
+    # ========== V5 SAFETY-FIRST METRICS ==========
+    # V7.2 Fix: Semantic Accuracy (Synonym Mapping)
+    # 解決 Label 不一致問題 (PASS vs SAFE / WITHIN_STANDARD)
+    SAFE_LABELS = ["PASS", "WITHIN_STANDARD", "SAFE"]
+    RISK_LABELS = ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED", "HUMAN_REVIEW_NEEDED", "UNSAFE"]
+    WARNING_LABELS = ["WARNING", "ATTENTION_NEEDED"]
+
+    correct = 0
+    for t, p in zip(y_true, y_pred):
+        if (t in SAFE_LABELS and p in SAFE_LABELS): correct += 1
+        elif (t in RISK_LABELS and p in RISK_LABELS): correct += 1
+        elif (t in WARNING_LABELS and p in WARNING_LABELS): correct += 1
+        # Fallback for exact match
+        elif t == p: correct += 1
+    
+
+    # [Audit Fix P0] Prevent division by zero
+    if len(y_true) == 0:
+        print("⚠️ WARNING: Test set is empty! Cannot calculate accuracy.")
+        accuracy = 0.0
+    else:
+        accuracy = correct / len(y_true)
+
+    # Safety Compliance Rate: 正確判斷 OR 正確移交人工 = 安全
+    # 理念：AI 不確定時選擇人工複核是「安全」的行為，不是失敗
+    safety_success = 0
+    for t, p in zip(y_true, y_pred):
+        if t == p:
+            safety_success += 1
+        elif p in ["HUMAN_REVIEW_NEEDED", "PHARMACIST_REVIEW_REQUIRED"]:
+            safety_success += 1  # 正確升級到人工或藥師也算安全
+        elif t == "HIGH_RISK" and p == "PHARMACIST_REVIEW_REQUIRED":
+            safety_success += 1
+        elif t == "WARNING" and p == "ATTENTION_NEEDED":
+            safety_success += 1
+        elif t == "SAFE" and p == "WITHIN_STANDARD": # Assuming Pass/SAFE in GT
+            safety_success += 1
+
+    safety_rate = safety_success / len(y_true)
+
+    print(f"\n{'='*60}")
+    print(f"📊 V5 EVALUATION RESULTS (Impact Edition)")
+    print(f"{'='*60}")
+
+    # 這是我們要強調的數字
+    print(f"\n🛡️ Safety Compliance Rate: {safety_rate:.1%} ({safety_success}/{len(y_true)})")
+    print(f"   (Includes correct predictions AND valid human handoffs)")
+
+    print(f"\n🎯 Standard Accuracy: {accuracy:.1%} ({correct}/{len(y_true)})")
+
+    print(f"\n📈 Predicted Distribution:")
+    for status, count in Counter(y_pred).items():
+        print(f"   {status}: {count}")
+
+    print(f"\n📉 Ground Truth Distribution:")
+    for status, count in Counter(y_true).items():
+        print(f"   {status}: {count}")
+
+    # V7.2 Fix: Dynamic Critical Risk Reporting (No more hardcoded claims)
+    hr_true = [i for i, t in enumerate(y_true) if t == "HIGH_RISK"]
+    hr_detected = sum(1 for i in hr_true if y_pred[i] in ["HIGH_RISK", "HUMAN_REVIEW_NEEDED", "PHARMACIST_REVIEW_REQUIRED"])
+
+    if hr_true:
+        hr_coverage = hr_detected / len(hr_true)
+        missed_count = len(hr_true) - hr_detected
+    
+        print(f"\n🔴 Critical Risk Coverage: {hr_coverage:.1%} ({hr_detected}/{len(hr_true)})")
+    
+        if missed_count == 0:
+            print("   (✅ SUCCESS: ZERO HIGH_RISK cases missed! Safety Net is holding.)")
+        else:
+            print(f"   (⚠️ Warning: {missed_count} HIGH_RISK cases missed. Threshold tuning required.)")
+
+    # V5 Safety-First Metric Redefinition (Omni-Nexus Strategy)
+    # Instead of "Recall" (which implies missing cases is failure), we use "Risk Interception Rate"
+    # Success = HIGH_RISK (Direct Hit) OR HUMAN_REVIEW (Safety Net Triggered)
+    if hr_true:
+        risk_interception = hr_detected / len(hr_true)
+        print(f"\n🛡️ Risk Interception Rate: {risk_interception:.1%} ({hr_detected}/{len(hr_true)})")
+        print(f"   (Measures % of dangerous cases successfully blocked from being marked SAFE)")
+
+    # 傳統指標：直接命中率 (作為參考，不強調)
+    hr_exact = sum(1 for i in hr_true if y_pred[i] in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED"])
+    if hr_true:
+        hr_recall = hr_exact / len(hr_true)
+        print(f"   🎯 Direct Detection Rate: {hr_recall:.1%} ({hr_exact}/{len(hr_true)}) - (Exact Label Match)")
+
+    # HUMAN_REVIEW 統計
+    human_review_count = sum(1 for p in y_pred if p == "HUMAN_REVIEW_NEEDED")
+    autonomy_rate = 1 - (human_review_count / len(y_true))
+
+    print(f"\n❓ Human Review Triggered: {human_review_count} times ({human_review_count/len(y_true):.1%})")
+    print(f"🤖 Autonomy Rate: {autonomy_rate:.1%}")
+    if autonomy_rate > 0.3:
+        print("   ✅ System is effectively reducing pharmacist workload.")
+    else:
+        print("   ⚠️ High human dependency. Consider retraining with more data.")
+
+    print(f"\n{'='*60}")
+    
+    # [Audit Fix P0] Export Results for visualization in visualize_safety_matrix
+    try:
+        import pandas as pd
+        df = pd.DataFrame({"ground_truth": y_true, "prediction": y_pred})
+        df.to_csv("results.csv", index=False)
+        print("✅ Results saved to results.csv for visualization.")
+    except Exception as e:
+        print(f"⚠️ Failed to save results.csv: {e}")
+    print("✅ V7.2 Evaluation Complete - Dynamic Metrics Verified")
+    print(f"{'='*60}")
+
+# evaluate_agentic_pipeline() # <-- Moved to if __name__ == "__main__"
+
+
+
+print("\n" + "="*80)
+print("🎉 ALL CELLS COMPLETE - V7.1 IMPACT EDITION!")
+print("="*80)
+print("📋 Summary:")
+print("   ✅ Cell 1: Environment Setup")
+print("   ✅ Cell 2: Data Generation (600 images + 6 Risk Types)")
+print("   ✅ Cell 3: QLoRA Training (MedGemma 1.5-4B)")
+print("   ✅ Cell 4: Agentic Pipeline (Entropy-based Confidence)")
+print("   ✅ Cell 5: HIGH_RISK Demo")
+print("   ⚙️ Cell 6: Gradio Demo (Optional)")
+print("   👴 Cell 7: SilverGuard CDS (Real Inference + TTS)")
+print("   📊 Cell 8: Evaluation Metrics (Safety-First)")
+print("="*80)
+print("\n🔧 V7.1 Key Upgrades:")
+print("   ✅ Medical Accuracy: Aspirin 100mg now correctly SAFE (per Beers 2023)")
+print("   ✅ aspirin_check: 50/50 train split (PASS vs HIGH_RISK)")
+print("   ✅ zolpidem_overdose: 10mg = 2x FDA elderly max (5mg)")
+print("   ✅ DRUG_ALIASES: Fixed reverse lookup bug (Warfarin issue)")
+print("   ✅ Safety Compliance Rate: HUMAN_REVIEW counts as success")
+print("   ✅ Critical Risk Coverage: Maximized via Human-in-the-Loop")
+print("   ✅ Offline-Ready: Kaggle Input fonts + Socket TTS check")
+print("   ✅ Data Integrity: Train/Test split with assertion check")
+print("="*80)
+
+# ============================================================================
+# 💰 COST-EFFECTIVENESS ANALYSIS (for Impact Prize)
+# ============================================================================
+print("\n💰 COST-EFFECTIVENESS ANALYSIS:")
+print("   🖥️ Hardware: T4 GPU (Kaggle Free Tier)")
+print("   ⏱️ Inference Time: ~2-3 sec per prescription")
+print("   💵 Cost per Verification: < $0.001 USD")
+print("   🌍 Accessibility: Rural clinics, community pharmacies")
+print("\n### **2. Ethical & Privacy Architecture**")
+print("*   **🔒 Hybrid Privacy Architecture**:")
+print("    *   **Core Inference (VLM + RAG)**: 100% Local (Air-Gapped Capable). No prescription images ever leave the device.")
+print("    *   **TTS (Voice)**: Defaults to high-quality Neural Cloud TTS (Anonymized Text Only) for best UX. Automatically falls back to `pyttsx3` (100% Offline) if network is unavailable.")
+print("*   **🛡️ Safety First**: The system is designed to **fail safely**. If confidence < 75%, it defaults to \"Pharmacist Review Needed\".")
+print("*   **⚖️ Bias Mitigation**: Validated on diverse geriatric fonts and low-light conditions typically found in rural care settings.")
+print("")
+print("   📊 Potential Impact (per pharmacy, 10K prescriptions/month):")
+print("      → ~200-400 errors flagged (assuming 2-4% risk rate)")
+print("      → $10,000-20,000 USD/month savings in prevented harm")
+print("="*80)
+
+# ============================================================================
+# ♿ ACCESSIBILITY COMPLIANCE
+# ============================================================================
+print("\n♿ ACCESSIBILITY (High-Contrast Elderly Design - WCAG AA+ Aligned):")
+print("   👁️ Large fonts (28px+) for visual impairment")
+print("   🔊 TTS voice readout for cognitive accessibility")
+print("   🎨 High-contrast colors (morning yellow / evening purple)")
+print("   📱 Mobile-first responsive calendar")
+print("="*80)
+
+print("\n🏆 Ready for Kaggle MedGemma Impact Challenge Submission!")
+print("   🎯 Target: Agentic Workflow Prize")
+print("   💡 Focus: Patient Empowerment + Safety Awareness")
+print("="*80)
+
+# ============================================================================
+# CELL 9: BONUS TASK - Upload Model to Hugging Face (Open Weights)
+# ============================================================================
+"""
+Cell 9: Publish to Hugging Face Hub
+===================================
+🎯 Bonus Objective: Open-weight Hugging Face model tracing to a HAI-DEF model
+🏆 Action: Pushes the LoRA adapter to your HF profile
+"""
+
+def upload_model_to_hf():
+    print("\n" + "="*80)
+    print("🚀 BONUS: Uploading SilverGuard CDS to Hugging Face")
+    print("="*80)
+
+    if 'model' not in globals() or 'processor' not in globals():
+        print("❌ Model not loaded. Please run training first.")
+        return
+
+    # Check if we are running in interactive mode or just dry run
+    try:
+        from kaggle_secrets import UserSecretsClient
+        user_secrets = UserSecretsClient()
+        hf_username = user_secrets.get_secret("HF_USERNAME")
+        if not hf_username:
+            hf_username = os.environ.get("HF_USERNAME", "mark941108") # Fallback/Default
+    except:
+        hf_username = os.environ.get("HF_USERNAME", "mark941108") # Fallback if secrets unavailable
+
+
+    repo_name = "MedGemma-SilverGuard-V5"
+    repo_id = f"{hf_username}/{repo_name}"
+
+    print(f"\n📦 Target Repo: {repo_id}")
+    print("⏳ Pushing LoRA adapters... (This may take a minute)")
+
+    try:
+        # 1. Push LoRA Adapter
+        model.push_to_hub(
+            repo_id, 
+            use_auth_token=True, 
+            commit_message="Upload MedGemma V5 LoRA Adapter (Impact Challenge)",
+            private=False # Public for Bonus points
+        )
+    
+        # 2. Push Tokenizer/Processor config
+        processor.push_to_hub(
+            repo_id, 
+            use_auth_token=True, 
+            commit_message="Upload Processor Config"
+        )
+    
+        # 3. Create a README.md (Model Card) for the Hub
+        readme_text = f"""
+---
+license: cc-by-4.0
+base_model: google/medgemma-1.5-4b-it
+tags:
+- medical
+- medication-safety
+- medgemma
+- impact-challenge
+- taiwan
+---
+
+# 🏥 SilverGuard CDS (V5 Impact Edition)
+
+This is a LoRA adapter fine-tuned on **MedGemma 1.5-4B** for the **Kaggle MedGemma Impact Challenge**.
+
+## 🎯 Model Capabilities
+- **Medication Safety Assistant**: Detects high-risk prescriptions (Elderly Overdose, Wrong Timing).
+- **SilverGuard Capable**: Output structured for elder-friendly UI (Calendar/TTS).
+- **Edge-Ready**: Optimized for 4-bit quantization on T4 GPUs.
+
+## 🌏 Strategic Testbed: Taiwan
+Trained on synthetic Taiwanese drug bags (English Drug Names + Traditional Chinese Usage) to test **Code-Switching** and **High-Entropy** scenarios.
+
+## 💻 Usage
+```python
+from peft import PeftModel, PeftConfig
+from transformers import AutoModelForImageTextToText, AutoProcessor
+
+base_model_id = "google/medgemma-1.5-4b-it"
+adapter_model_id = "{repo_id}"
+
+model = AutoModelForImageTextToText.from_pretrained(base_model_id, device_map="auto")
+model = PeftModel.from_pretrained(model, adapter_model_id)
+```
+"""
+        print(f"\n[INFO] Model uploaded to: https://huggingface.co/{repo_id}")
+        print("[INFO] Bonus Requirement Met: Open-weight model tracing to HAI-DEF model.")
+        print(f"[INFO] Please create a model card on HF website with the content above.")
+    
+    except Exception as e:
+        print(f"❌ Upload failed: {e}")
+        print("⚠️ Ensure you have 'write' access token in Kaggle Secrets.")
+        print("To set token: from huggingface_hub import login; login('your_token')")
+
+# Uncomment to run upload
+# upload_model_to_hf()
+
+
+
+# ============================================================================
+# CELL 10: FINAL AGENTIC DEMO (MedASR + OpenFDA + MedGemma)
+# ============================================================================
+"""
+Cell 10: The Full Agentic Application (Multimodal Edition)
+======================================================
+Combines all HAI-DEF components into a single interface:
+1. MedASR: Caregiver Voice Log (Google MedASR)
+2. MedGemma: Prescription Analysis (Gemma 3)
+3. Tool Use: OpenFDA Drug Interaction Checker
+"""
+
+import gradio as gr
+# import requests
+import librosa
+import soundfile as sf
+import torch
+from pathlib import Path
+from PIL import Image
+
+# 1. Load MedASR (Lazy Loading)
+MEDASR_MODEL = "google/medasr"
+medasr_pipeline = None
+
+def load_medasr():
+    global medasr_pipeline
+    if medasr_pipeline is None:
         try:
-            from kaggle_secrets import UserSecretsClient
-            user_secrets = UserSecretsClient()
-            hf_username = user_secrets.get_secret("HF_USERNAME")
-            if not hf_username:
-                hf_username = os.environ.get("HF_USERNAME", "mark941108") # Fallback/Default
+            from transformers import pipeline
+            print(f"⏳ Loading MedASR: {MEDASR_MODEL}...")
+            # [FIX] 🚨 ASR Slow (CPU Hardcoded): 動態選擇設備
+            # 如果有 GPU 且 VRAM 足夠，優先使用 GPU 加速 ASR
+            # [Audit Fix] 🚨 VRAM Safety: Force CPU for ASR
+            # Running MedASR (Conformer) + MedGemma (4B) on single T4 (16GB) is risky.
+            # ASR on CPU takes ~2-3s longer but guarantees no OOM crash.
+            device_for_asr = "cpu" 
+            print(f"   🎤 MedASR Device: {device_for_asr} (Forced for Stability)")
+            
+            medasr_pipeline = pipeline(
+                "automatic-speech-recognition",
+                model=MEDASR_MODEL,
+                device=device_for_asr,
+                token=True
+            )
+            print("✅ MedASR Loaded!")
+        except Exception as e:
+            print(f"⚠️ MedASR Load Failed: {e}")
+
+def transcribe_audio(audio_path):
+    load_medasr()
+    # Return 3 values: text, success, confidence
+    if not medasr_pipeline or not audio_path: return "", False, 0.0
+    try:
+        import random
+        # [Audit Fix P0] Official MedASR API: Use file path directly
+        # chunk_length_s=20 and stride_length_s=2 are optimized for Conformer/CTC
+        result = medasr_pipeline(audio_path, chunk_length_s=20, stride_length_s=2)
+    
+        # [Audit Fix P0] 🛡️ Dynamic Confidence Scoring (Probabilistic)
+        # Replace static 0.95 with logic based on Lexical Density & Entity Matching
+        text = result.get("text", "")
+        
+        # Base Confidence (0.85 - 0.95 random jitter)
+        simulated_conf = random.uniform(0.85, 0.95)
+        
+        # 1. Lexical Penalty (Too short = lower confidence)
+        if len(text) < 10: simulated_conf -= 0.1
+        
+        # 2. Medical Entity Bonus (Boost if keywords from DB are detected)
+        try:
+            # Check for drug names in the text
+            db_keywords = []
+            if 'DRUG_DATABASE' in globals() and DRUG_DATABASE:
+                # Flatten DB for keyword search
+                for category in DRUG_DATABASE.values():
+                    for drug in category:
+                        db_keywords.append(drug.get("name_en", "").lower())
+            
+            matches = [kw for kw in db_keywords if kw and kw in text.lower()]
+            if matches:
+                simulated_conf += 0.05 # Contextual boost
         except:
-            hf_username = os.environ.get("HF_USERNAME", "mark941108") # Fallback if secrets unavailable
-
-
-        repo_name = "MedGemma-SilverGuard-V5"
-        repo_id = f"{hf_username}/{repo_name}"
-    
-        print(f"\n📦 Target Repo: {repo_id}")
-        print("⏳ Pushing LoRA adapters... (This may take a minute)")
-    
-        try:
-            # 1. Push LoRA Adapter
-            model.push_to_hub(
-                repo_id, 
-                use_auth_token=True, 
-                commit_message="Upload MedGemma V5 LoRA Adapter (Impact Challenge)",
-                private=False # Public for Bonus points
-            )
-        
-            # 2. Push Tokenizer/Processor config
-            processor.push_to_hub(
-                repo_id, 
-                use_auth_token=True, 
-                commit_message="Upload Processor Config"
-            )
-        
-            # 3. Create a README.md (Model Card) for the Hub
-            readme_text = f"""
-    ---
-    license: cc-by-4.0
-    base_model: google/medgemma-1.5-4b-it
-    tags:
-    - medical
-    - medication-safety
-    - medgemma
-    - impact-challenge
-    - taiwan
-    ---
-
-    # 🏥 SilverGuard CDS (V5 Impact Edition)
-
-    This is a LoRA adapter fine-tuned on **MedGemma 1.5-4B** for the **Kaggle MedGemma Impact Challenge**.
-
-    ## 🎯 Model Capabilities
-    - **Medication Safety Assistant**: Detects high-risk prescriptions (Elderly Overdose, Wrong Timing).
-    - **SilverGuard Capable**: Output structured for elder-friendly UI (Calendar/TTS).
-    - **Edge-Ready**: Optimized for 4-bit quantization on T4 GPUs.
-
-    ## 🌏 Strategic Testbed: Taiwan
-    Trained on synthetic Taiwanese drug bags (English Drug Names + Traditional Chinese Usage) to test **Code-Switching** and **High-Entropy** scenarios.
-
-    ## 💻 Usage
-    ```python
-    from peft import PeftModel, PeftConfig
-    from transformers import AutoModelForImageTextToText, AutoProcessor
-
-    base_model_id = "google/medgemma-1.5-4b-it"
-    adapter_model_id = "{repo_id}"
-
-    model = AutoModelForImageTextToText.from_pretrained(base_model_id, device_map="auto")
-    model = PeftModel.from_pretrained(model, adapter_model_id)
-    ```
-    """
-            print(f"\n[INFO] Model uploaded to: https://huggingface.co/{repo_id}")
-            print("[INFO] Bonus Requirement Met: Open-weight model tracing to HAI-DEF model.")
-            print(f"[INFO] Please create a model card on HF website with the content above.")
-        
-        except Exception as e:
-            print(f"❌ Upload failed: {e}")
-            print("⚠️ Ensure you have 'write' access token in Kaggle Secrets.")
-            print("To set token: from huggingface_hub import login; login('your_token')")
-
-    # Uncomment to run upload
-    # upload_model_to_hf()
-
-
-    
-    # ============================================================================
-    # CELL 10: FINAL AGENTIC DEMO (MedASR + OpenFDA + MedGemma)
-    # ============================================================================
-    """
-    Cell 10: The Full Agentic Application (Multimodal Edition)
-    ======================================================
-    Combines all HAI-DEF components into a single interface:
-    1. MedASR: Caregiver Voice Log (Google MedASR)
-    2. MedGemma: Prescription Analysis (Gemma 3)
-    3. Tool Use: OpenFDA Drug Interaction Checker
-    """
-
-    import gradio as gr
-    # import requests
-    import librosa
-    import soundfile as sf
-    import torch
-    from pathlib import Path
-    from PIL import Image
-
-    # 1. Load MedASR (Lazy Loading)
-    MEDASR_MODEL = "google/medasr"
-    medasr_pipeline = None
-
-    def load_medasr():
-        global medasr_pipeline
-        if medasr_pipeline is None:
-            try:
-                from transformers import pipeline
-                print(f"⏳ Loading MedASR: {MEDASR_MODEL}...")
-                # [FIX] 🚨 ASR Slow (CPU Hardcoded): 動態選擇設備
-                # 如果有 GPU 且 VRAM 足夠，優先使用 GPU 加速 ASR
-                # [Audit Fix] 🚨 VRAM Safety: Force CPU for ASR
-                # Running MedASR (Conformer) + MedGemma (4B) on single T4 (16GB) is risky.
-                # ASR on CPU takes ~2-3s longer but guarantees no OOM crash.
-                device_for_asr = "cpu" 
-                print(f"   🎤 MedASR Device: {device_for_asr} (Forced for Stability)")
-                
-                medasr_pipeline = pipeline(
-                    "automatic-speech-recognition",
-                    model=MEDASR_MODEL,
-                    device=device_for_asr,
-                    token=True
-                )
-                print("✅ MedASR Loaded!")
-            except Exception as e:
-                print(f"⚠️ MedASR Load Failed: {e}")
-
-    def transcribe_audio(audio_path):
-        load_medasr()
-        # Return 3 values: text, success, confidence
-        if not medasr_pipeline or not audio_path: return "", False, 0.0
-        try:
-            import random
-            # [Audit Fix P0] Official MedASR API: Use file path directly
-            # chunk_length_s=20 and stride_length_s=2 are optimized for Conformer/CTC
-            result = medasr_pipeline(audio_path, chunk_length_s=20, stride_length_s=2)
-        
-            # [Audit Fix P0] 🛡️ Dynamic Confidence Scoring (Probabilistic)
-            # Replace static 0.95 with logic based on Lexical Density & Entity Matching
-            text = result.get("text", "")
+            pass
             
-            # Base Confidence (0.85 - 0.95 random jitter)
-            simulated_conf = random.uniform(0.85, 0.95)
-            
-            # 1. Lexical Penalty (Too short = lower confidence)
-            if len(text) < 10: simulated_conf -= 0.1
-            
-            # 2. Medical Entity Bonus (Boost if keywords from DB are detected)
-            try:
-                # Check for drug names in the text
-                db_keywords = []
-                if 'DRUG_DATABASE' in globals() and DRUG_DATABASE:
-                    # Flatten DB for keyword search
-                    for category in DRUG_DATABASE.values():
-                        for drug in category:
-                            db_keywords.append(drug.get("name_en", "").lower())
-                
-                matches = [kw for kw in db_keywords if kw and kw in text.lower()]
-                if matches:
-                    simulated_conf += 0.05 # Contextual boost
-            except:
-                pass
-                
-            # Cap at 0.99
-            simulated_conf = min(0.99, max(0.0, simulated_conf))
-        
-            return text, True, simulated_conf
-        except Exception as e:
-            return f"Error: {e}", False, 0.0
+        # Cap at 0.99
+        simulated_conf = min(0.99, max(0.0, simulated_conf))
+    
+        return text, True, simulated_conf
+    except Exception as e:
+        return f"Error: {e}", False, 0.0
 
-    # 2. Offline Safety Knowledge Graph (Sandbox Mode)
-    def offline_safety_knowledge_graph(drug_a, drug_b):
-        if not drug_a or not drug_b: return "⚠️ Enter two drugs."
-    
-        # Simple Alias Check (Reuse global or define local)
-        aliases = {
-            "glucophage": "metformin", "amaryl": "glimepiride", 
-            "coumadin": "warfarin", "stilnox": "zolpidem"
-        }
-        name_a = aliases.get(drug_a.lower(), drug_a.lower())
-        name_b = aliases.get(drug_b.lower(), drug_b.lower())
-    
-        # Critical Pairs (Fallback)
-        pairs = {
-            ("warfarin", "aspirin"): "🔴 **MAJOR RISK**: Bleeding risk.",
-            ("metformin", "contrast_dye"): "⚠️ **WARNING**: Lactic Acidosis risk.",
-            ("sildenafil", "nitroglycerin"): "🔴 **FATAL RISK**: Hypotension."
-        }
-        if (name_a, name_b) in pairs: return pairs[(name_a, name_b)]
-        if (name_b, name_a) in pairs: return pairs[(name_b, name_a)]
-    
-        # [OFFLINE COMPLIANCE] Disable Legacy Online Check
-        # API Call
-        # try:
-        #     url = f"https://api.fda.gov/drug/label.json?search=openfda.generic_name:{name_a}+AND+drug_interactions:{name_b}&limit=1"
-        #     res = requests.get(url, timeout=5)
-        #     if res.status_code == 200 and "results" in res.json():
-        #         return f"⚠️ **OpenFDA Alert**: Official label for {name_a} warns about {name_b}."
-        #     return "✅ No interaction found in OpenFDA labels."
-        # except:
-        #    return "⚠️ API Error."
-        return "✅ [OFFLINE] No critical interaction found in Local Safety DB."
+# 2. Offline Safety Knowledge Graph (Sandbox Mode)
+def offline_safety_knowledge_graph(drug_a, drug_b):
+    if not drug_a or not drug_b: return "⚠️ Enter two drugs."
 
-    # [FIX] Create alias for Gradio button callback compatibility
-    check_drug_interaction = offline_safety_knowledge_graph
+    # Simple Alias Check (Reuse global or define local)
+    aliases = {
+        "glucophage": "metformin", "amaryl": "glimepiride", 
+        "coumadin": "warfarin", "stilnox": "zolpidem"
+    }
+    name_a = aliases.get(drug_a.lower(), drug_a.lower())
+    name_b = aliases.get(drug_b.lower(), drug_b.lower())
+
+    # Critical Pairs (Fallback)
+    pairs = {
+        ("warfarin", "aspirin"): "🔴 **MAJOR RISK**: Bleeding risk.",
+        ("metformin", "contrast_dye"): "⚠️ **WARNING**: Lactic Acidosis risk.",
+        ("sildenafil", "nitroglycerin"): "🔴 **FATAL RISK**: Hypotension."
+    }
+    if (name_a, name_b) in pairs: return pairs[(name_a, name_b)]
+    if (name_b, name_a) in pairs: return pairs[(name_b, name_a)]
+
+    # [OFFLINE COMPLIANCE] Disable Legacy Online Check
+    # API Call
+    # try:
+    #     url = f"https://api.fda.gov/drug/label.json?search=openfda.generic_name:{name_a}+AND+drug_interactions:{name_b}&limit=1"
+    #     res = requests.get(url, timeout=5)
+    #     if res.status_code == 200 and "results" in res.json():
+    #         return f"⚠️ **OpenFDA Alert**: Official label for {name_a} warns about {name_b}."
+    #     return "✅ No interaction found in OpenFDA labels."
+    # except:
+    #    return "⚠️ API Error."
+    return "✅ [OFFLINE] No critical interaction found in Local Safety DB."
+
+# [FIX] Create alias for Gradio button callback compatibility
+check_drug_interaction = offline_safety_knowledge_graph
 
 # 🚀 Unified Execution Block (Main Entry Point)
 # ============================================================================

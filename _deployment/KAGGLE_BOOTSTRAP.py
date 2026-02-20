@@ -24,9 +24,9 @@ import shutil
 import re
 try:
     from kaggle_secrets import UserSecretsClient
-    IS_KAGLLE = True
+    IS_KAGGLE = True
 except ImportError:
-    IS_KAGLLE = False
+    IS_KAGGLE = False
 import subprocess
 
 print("🔍 Scanning for SilverGuard assets in /kaggle/input...")
@@ -112,7 +112,7 @@ except (FileNotFoundError, subprocess.CalledProcessError):
 
 # 3. Token Check (Hard Kill)
 print("3. [Secrets] Checking Auth Credentials...", end=" ")
-if IS_KAGLLE:
+if IS_KAGGLE:
     user_secrets = UserSecretsClient()
     try:
         hf_token = user_secrets.get_secret("HUGGINGFACE_TOKEN")
