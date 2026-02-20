@@ -344,33 +344,53 @@ else:
         print(f"⚠️ Stress Test Generation Failed: {e}")
 
 # ============================================================================
-# 🔥 PHASE 3: 執行主程式 (V8 Training + Inference)
+# 🔥 PHASE 3: 狀態保存與執行交接 (The Handoff Protocol)
 # ============================================================================
 print("\n" + "=" * 80)
-print("🧠 PHASE 3: Launching SilverGuard V8 Training Pipeline")
+print("🧠 PHASE 3: Generating Execution Hand-off Script")
 print("=" * 80)
 
-# 設定環境變數，讓 V8 使用 V17 數據
-v17_found = False
-if v17_train_json:
-    v17_image_dir = os.path.dirname(v17_train_json)
-    try:
-        # 檢查該路徑下是否有足夠的圖片
-        image_count = len([f for f in os.listdir(v17_image_dir) if f.endswith('.png')])
-        if image_count > 100:
-            os.environ["MEDGEMMA_USE_V17_DATA"] = "1"
-            os.environ["MEDGEMMA_V17_DIR"] = os.path.abspath(v17_image_dir)  # 使用絕對路徑
-            print(f"✅ V8 will use V17 Hyper-Realistic Dataset ({image_count} images from {v17_image_dir})")
-            v17_found = True
-        else:
-            print(f"⚠️ Found V17 dir at {v17_image_dir} but only {image_count} images (need >100)")
-    except Exception as e:
-        print(f"⚠️ Error checking {v17_image_dir}: {e}")
+# 設定環境變數狀態
+v17_env_val = "0"
+v17_dir_val = ""
 
-if not v17_found:
-    os.environ["MEDGEMMA_USE_V17_DATA"] = "0"
-    print("⚠️ V8 will use internal V5 generator (V17 dir not found in any location)")
+v17_candidates = [
+    "/kaggle/working/assets/lasa_dataset_v17_compliance", 
+    "./assets/lasa_dataset_v17_compliance",
+    "../assets/lasa_dataset_v17_compliance"
+]
 
-# 執行主程式 (註解說明：請在 Notebook 的下一個 Cell 手動執行 !python agent_engine.py，避免 Bootstrap 卡死)
-# subprocess.run(["python", "agent_engine.py"], check=True)
-print("🎉 Bootstrap Complete! Now run app.py in a separate cell.")
+for v17_image_dir in v17_candidates:
+    if os.path.exists(v17_image_dir) and os.path.isdir(v17_image_dir):
+        try:
+            image_count = len([f for f in os.listdir(v17_image_dir) if f.endswith('.png')])
+            if image_count > 100:
+                v17_env_val = "1"
+                v17_dir_val = os.path.abspath(v17_image_dir)
+                print(f"✅ V17 Dataset verified ({image_count} images at {v17_dir_val})")
+                break
+        except:
+            continue
+
+if v17_env_val == "0":
+    print("⚠️ V17 dir not found, will fallback to internal V5 generator.")
+
+# 🏆 核心修復：動態生成 Shell 腳本，確保下一個 Cell 執行時帶有正確的環境變數與路徑
+runner_script_path = "/kaggle/working/run_silverguard.sh"
+with open(runner_script_path, "w") as f:
+    f.write("#!/bin/bash\n")
+    # 強制切換到正確的目錄
+    f.write("cd /kaggle/working/SilverGuard 2>/dev/null || cd /kaggle/working\n")
+    # 寫入跨進程環境變數
+    f.write(f"export MEDGEMMA_USE_V17_DATA={v17_env_val}\n")
+    f.write(f"export MEDGEMMA_V17_DIR='{v17_dir_val}'\n")
+    # 執行主程式
+    f.write("python agent_engine.py\n")
+
+# 給予執行權限
+import stat
+os.chmod(runner_script_path, os.stat(runner_script_path).st_mode | stat.S_IEXEC)
+
+print("\n🎉 Bootstrap Complete!")
+print("👉 【極度重要】請在 Notebook 的下一個 Cell 貼上並執行以下指令：")
+print("    !bash /kaggle/working/run_silverguard.sh")
