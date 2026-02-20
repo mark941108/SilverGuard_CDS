@@ -1091,64 +1091,68 @@ To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disc
 
 > **For judges who want to deep-dive into the technical implementation and reproduce results on Kaggle**
 
-### Running on Kaggle (Bootstrap Strategy)
+### 🚀 Quick Start: Kaggle Execution
 
-To avoid path errors (FileNotFoundError) and ensure all dependencies are loaded correctly, we use the **"Root Execution Strategy"**.
+We recommend two ways for judges to verify the pipeline. **Option A** is the fastest and most reliable (using provided data).
 
-**Step 1:** Create a new Kaggle Notebook  
-**Step 2:** Add your `GITHUB_TOKEN` and `HUGGINGFACE_TOKEN` to Kaggle Secrets.  
+#### Option A: Speed Run (1-2 Minutes) - Recommended
+Use this if you have the **SilverGuard Impact Dataset** attached to your Kaggle notebook.
+1.  **Attach Dataset**: Search for `mark941108/silverguard-v17-impact` in Kaggle's "Add Data" sidebar.
+2.  **Paste & Run**: Use the **Bootstrap Script** below. It will detect the dataset and skip time-consuming generation.
+
+#### Option B: Full Reproduction (10-15 Minutes)
+Use this to see the **Full Synthetic Generation & Training** pipeline in action.
+1.  **Paste & Run**: Use the **Bootstrap Script** below. It will automatically generate the 896x896 V17 dataset and initiate fine-tuning (MedGemma 1.5).
+
+---
+
+### Step-by-Step Instructions
+**Step 1:** Create a new Kaggle Notebook (Accelerator: **GPU T4 x2**)  
+**Step 2:** Add your `GITHUB_TOKEN` and `HUGGINGFACE_TOKEN` to **Kaggle Secrets**.  
 **Step 3:** Paste and run this **Bootstrap Script** in the first cell:
 
 ```python
 from kaggle_secrets import UserSecretsClient
-import os
-import shutil
+import os, shutil, glob, stat
 
-# 1. GitHub Auth
+# 1. Auth & Config
 user_secrets = UserSecretsClient()
+gh_token = ""
 try:
     gh_token = user_secrets.get_secret("GITHUB_TOKEN")
-    print("✅ GITHUB_TOKEN Found")
 except:
-    print("❌ GITHUB_TOKEN Not Found! Check Add-ons > Secrets")
-    gh_token = ""
+    pass
 
 # 2. Clone Repository
-repo_url = f"https://{gh_token}@github.com/mark941108/SilverGuard.git"
 print("📦 Cloning SilverGuard CDS...")
 !rm -rf SilverGuard
-!git clone {repo_url}
+!git clone https://{gh_token}@github.com/mark941108/SilverGuard.git
 
-# 3. ROOT MIGRATION (Crucial for Absolute Paths)
-print("📂 Moving files to Root (Preventing Path Trap)...")
-# [STABILITY FIX] Use -r with /* AND .* to catch ALL files (hidden + regular)
+# 3. ROOT MIGRATION
+print("📂 Moving files to Root...")
 !cp -r SilverGuard/* . 2>/dev/null || :
 !cp -r SilverGuard/.* . 2>/dev/null || :
 !rm -rf SilverGuard
-!cp requirements.txt . 2>/dev/null || :
 
 # 4. Install Dependencies
-print("🔧 Installing Dependencies...")
+print("🔧 Installing Platinum Dependencies...")
 !pip install -q -r requirements.txt
 !pip install -q torchaudio librosa soundfile
 
 # 5. Launch MedGemma Impact Pipeline
 print("🚀 Launching MedGemma Impact Pipeline...")
 
-# Step 5a: Generate V17 Dataset (Mandatory if missing) 
-# We check if dataset is already there to avoid redundant generation
-import glob
-v17_check = glob.glob("**/dataset_v17_train.json", recursive=True)
-if not v17_check:
-    if os.path.exists("generate_v17_fusion.py"):
-        print("🎨 V17 Data missing! Generating Hyper-Realistic Dataset (est. 3-5 min)...")
-        !python generate_v17_fusion.py
-    else:
-        print("⚠️ Warning: generate_v17_fusion.py not found. Falling back to internal engine.")
-else:
-    print(f"✅ V17 Dataset found at {v17_check[0]}")
+# Automated Data Check (Omni-Radar logic)
+v17_check = glob.glob("/kaggle/input/**/dataset_v17_train.json", recursive=True) + \
+            glob.glob("**/dataset_v17_train.json", recursive=True)
 
-# Step 5b: Run main engine
+if not v17_check:
+    print("🎨 V17 Data missing! Generating Hyper-Realistic Dataset...")
+    !python generate_v17_fusion.py
+else:
+    print(f"✅ V17 Dataset found at {v17_check[0]} (Skipping Generation)")
+
+# Run main engine
 !python agent_engine.py
 ```
 

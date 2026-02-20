@@ -71,8 +71,9 @@ def ensure_font_exists():
             print(f"⚠️ Font download failed: {e}")
     return font_path
 
-# Execute Font Check
-FONT_PATH = ensure_font_exists()
+# Execute initial Font Check
+# (Fonts will be downloaded/verified)
+download_fonts()
 
 # ==========================================
 # ⚖️ LEGAL DISCLAIMER / 免責聲明
@@ -742,22 +743,20 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
 
 if __name__ == "__main__":
     
-    download_fonts() 
-    
     # [Audit Fix P2] Validate Font Availability BEFORE Generation
     font_ok = True
-    for style, path in FONT_PATHS.items():
-        if not os.path.exists(path):
-            print(f"❌ CRITICAL: Font {style} not available at {path}")
-            print(f"   Generated images will have GARBLED CHINESE TEXT!")
+    for style in FONT_URLS.keys():
+        path = os.path.join(ASSETS_FONTS_DIR, f"NotoSansTC-{style}.otf")
+        if not is_valid_otf(path):
+            print(f"❌ CRITICAL: Font {style} not available or corrupted at {path}")
             font_ok = False
     
     if not font_ok:
         print("\n⚠️⚠️⚠️ WARNING ⚠️⚠️⚠️")
-        print("Font files missing! Please download manually or check internet connection.")
-        print("Continuing anyway, but images will not render Chinese correctly.\n")
+        print("Font files missing or corrupted! Chinese text rendering will fail.")
+        print("We will attempt to use system defaults, but result will be poor.\n")
         import time
-        time.sleep(3)  # Give user time to cancel
+        time.sleep(2)
     else:
         print("✅ Font validation passed\n")
     

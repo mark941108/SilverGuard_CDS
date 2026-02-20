@@ -184,7 +184,7 @@ def ensure_font_exists():
     os.makedirs(font_dir, exist_ok=True)
     
     def is_valid_otf(path):
-        if not os.path.exists(path) or os.path.getsize(path) < 1000000:
+        if not os.path.exists(path) or os.path.getsize(path) < 1000000: # Usually >10MB
             return False
         try:
             with open(path, "rb") as f:
@@ -201,7 +201,13 @@ def ensure_font_exists():
         if not is_valid_otf(p):
             print(f"⬇️ Downloading {name} font (~15MB)...")
             try:
+                # Try main first, fallback to master if possible (or just log 404)
                 r = requests.get(url, stream=True, timeout=60)
+                if r.status_code != 200:
+                    # Fallback URL attempt
+                    url_master = url.replace("/main/", "/master/")
+                    r = requests.get(url_master, stream=True, timeout=60)
+                
                 if r.status_code == 200:
                     with open(p, "wb") as f:
                         for chunk in r.iter_content(chunk_size=1024*1024):
@@ -209,9 +215,9 @@ def ensure_font_exists():
                     if is_valid_otf(p):
                         print(f"✅ {name} font ready and verified.")
                     else:
-                        print(f"❌ {name} download failed header validation.")
+                        print(f"❌ {name} download failed header validation (likely HTML).")
                 else:
-                    print(f"❌ {name} HTTP {r.status_code}")
+                    print(f"❌ {name} HTTP {r.status_code}. Using fallback logic.")
             except Exception as e:
                 print(f"⚠️ {name} download failed: {e}")
     return paths
