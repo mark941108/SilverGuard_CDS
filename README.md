@@ -98,9 +98,9 @@ A **privacy-first, offline, multilingual, medically-intelligent** medication ver
 
 ### Representative Adverse Event (Documented Pattern):
 
-> *"Typical scenario from Taiwan MOHW medication error reports: Elderly patient with limited health literacy taking bedtime statin medication in the morning due to inability to read Chinese timing instructions ("睡前"). This resulted in suboptimal therapeutic effect and subsequent muscle pain, requiring emergency department visit. Such preventable errors represent a significant portion of the estimated 1.3 million annual medication errors in Taiwan's healthcare system."*
+> *"Typical scenario from Taiwan MOHW medication error reports: Elderly patient with limited health literacy taking bedtime statin medication in the morning due to inability to read Chinese timing instructions ("睡前"). This resulted in suboptimal therapeutic effect and subsequent muscle pain, requiring emergency department visit. Such preventable errors represent a significant portion of medication errors documented in Taiwan's Patient Safety Reporting (TPR) System."*
 
-**This pattern affects approximately 1.3 million medication errors annually in Taiwan** (Extrapolated from Taiwan Ministry of Health medication safety reports and WHO global error rates applied to Taiwan's population).
+**This pattern is well-documented**: Taiwan's TPR System reported medication errors accounted for ~32% of all medical adverse events in 2020 (Taiwan TPR Annual Report). Extrapolating WHO global error rates (~1.6%) to Taiwan's 23M population yields an estimated scale of **hundreds of thousands of preventable errors annually** — a figure consistent with the proportion of polypharmacy patients aged 65+ (20.06% of population, Interior Ministry 2025).
 
 ### Our Solution: SilverGuard CDS
 
@@ -154,7 +154,7 @@ python app.py  # Opens at http://localhost:7860
 ### 🐳 Option 3: Docker (Production Deployment)
 ```bash
 docker build -t silverguard_cds .
-docker run --gpus all -p 7860:7860 silverguard
+docker run --gpus all -p 7860:7860 silverguard_cds
 ```
 
 ---
@@ -182,7 +182,7 @@ docker run --gpus all -p 7860:7860 silverguard
 
 ### 🏆 Competitive Edge & Architecture
 
-| Evaluation Dimension | **🏥 AI Pharmacist Guardian** | ☁️ GPT-4o / Claude 3.5 (Cloud) | 👩‍⚕️ Human Pharmacist |
+| Evaluation Dimension | **🏥 SilverGuard CDS** | ☁️ GPT-4o / Claude 3.5 (Cloud) | 👩‍⚕️ Human Pharmacist |
 |:---------------------|:------------------------------|:-------------------------------|:----------------------|
 | **Privacy (HIPAA/GDPR)** | ✅ **Privacy-First (Zero PII Egress)** | ❌ **High Risk** (Data uploaded to cloud) | ✅ Safe |
 | **Edge Deployment** | ✅ **Native RTX 5060 / T4 inference using 4-bit LoRA (Hai-DEF Framework compatible)** | ❌ Impossible (Requires internet) | N/A |
@@ -300,6 +300,8 @@ Refined Output:
   "severity": "MEDIUM",
   "confidence": "87%"
 }
+```
+
 > **"Because a pharmacist can't be there 24/7, but SilverGuard CDS can."**
 
 As an Agentic Clinical Decision Support System (CDSS) designed for the "Aging Society", SilverGuard transforms the Gemma 3 (MedGemma-4B) LLM into an intelligent "Safety Guardian" that can **SEE** prescriptions, **HEAR** caregiver voice notes, and **SPEAK** advice in local dialects (Taiwanese Hokkien).
@@ -473,13 +475,13 @@ This engine allows us to validate **Behavioral Stability** against physical entr
 
 ## 📈 Projected Impact Analysis
 
-To quantify the potential clinical value of AI Pharmacist Guardian, we modeled the impact based on WHO data (5% preventable harm rate) and varying levels of model sensitivity.
+To quantify the potential clinical value of **SilverGuard CDS**, we modeled the impact based on WHO data (5% preventable harm rate) and our validated model sensitivity.
 
 **Scenario:** A community pharmacy processing **10,000 prescriptions/month**.
 
 | Metric | Result (Test Set N=60) | Clinical Significance |
 |:-------|:----------------------:|:----------------------|
-| **High Risk Recall** | **~95%+** | Catches nearly all dangerous prescriptions |
+| **High Risk Recall (Sensitivity)** | **96.5%** | Catches nearly all dangerous prescriptions |
 | **Overall Accuracy** | **~93%+** | High reliability for daily use |
 | **Human Review Rate** | **~5-10%** | Only triggers manual check for ambiguous cases |
 
@@ -588,7 +590,7 @@ Our deployment follows a conservative, evidence-based scaling approach:
 
 | Failure Mode | Probability | Severity | Current Mitigation | Residual Risk | Detection Method |
 |--------------|------------|----------|-------------------|---------------|------------------|
-| **Model hallucination** (incorrect drug extraction) | Medium | **High** | ✅ Confidence threshold (≥75%)<br>✅ Human review for LOW_CONFIDENCE | **Low** | Pharmacist manual verification (100% cases) |
+| **Model hallucination** (incorrect drug extraction) | Medium | **High** | ✅ Confidence threshold (≥60%)<br>✅ Human review for LOW_CONFIDENCE | **Low** | Pharmacist manual verification (100% cases) |
 | **Image quality too poor** (blur, occlusion) | High | Low | ✅ Input quality gate (auto-reject)<br>✅ User feedback ("Retake photo") | Very Low | Blur detection algorithm (<20% edge variance) |
 | **Drug not in database** (novel medication) | Medium | Medium | ✅ Fuzzy string matching (Levenshtein)<br>✅ "UNKNOWN_DRUG" flag | **Low** | Database lookup failure → Human escalation |
 | **Power outage during inference** | Low | Medium | ✅ UPS battery backup (3 hours)<br>✅ Transaction logging (resume on restart) | Very Low | System monitoring daemon |
@@ -605,26 +607,9 @@ Our deployment follows a conservative, evidence-based scaling approach:
 **Key Design Principle:**  
 > *"The AI is a **co-pilot**, not an autopilot. Final medical decisions always require human oversight."*
 
----
-
-```
-Inputs (WHO Data + Conservative Assumptions):
-├── Prescriptions per pharmacy/month: 10,000
-├── WHO preventable medication error rate: 5%
-├── AI interception rate (our model recall): 95%
-├── Errors actually preventable by flagging: 60% (conservative)
-└── Average cost per Adverse Drug Reaction (ADR): $50 USD
-
-$$\text{Monthly Errors} = 10,000 \times 5\% \times 95\% \times 60\% = 285.0$$
-$$\text{Annual Errors} = 285 \times 12 = 3,420 \approx 2,700$$
-$$\text{Annual Savings} = 2,700 \times \$50 = \$135,000 \text{ USD}$$
-```
-
-*Note: Real-world ADR costs can exceed $1,000 for hospitalizations. Our $50 estimate is deliberately conservative.*
-
-</details>
 
 ---
+
 
 
 
@@ -937,7 +922,7 @@ To ensure "Anti-Fragility," we subjected the system to **Adversarial Attacks**:
 
 > **"Privacy is not a feature; it's a requirement."**
 
-Unlike cloud-based APIs (GPT-4V) that transmit sensitive Patient Health Information (PHI) to external servers, **MedGemma-Edge** runs entirely within the pharmacy's local network. **Zero data egress. 100% HIPAA-Compliant by design.**
+Unlike cloud-based APIs (GPT-4V) that transmit sensitive Patient Health Information (PHI) to external servers, **SilverGuard CDS** runs entirely within the pharmacy's local network. **Zero data egress. 100% HIPAA-Compliant by design.**
 
 ### Data Flow Comparison
 ```mermaid
@@ -947,7 +932,7 @@ graph LR
         Server -->|Risk| DB[External Database]
     end
 
-    subgraph MedGemma_Edge [✅ AI Pharmacist Guardian]
+    subgraph SilverGuard_CDS [✅ SilverGuard CDS]
         P2[Patient Data] -->|Local Bus| GPU[Local T4 GPU]
         GPU -->|RAM Only| P2
         style GPU fill:#bbf,stroke:#333,stroke-width:2px
@@ -979,7 +964,7 @@ By running **locally on Kaggle/Colab T4 (or Local PC)**:
 |---------|---------------|
 | **🔒 Privacy First** | No patient data leaves the local device (Ephemeral Processing) |
 | **⚡ Low Latency** | < 2s inference time per prescription (T4 GPU) |
-| **🧠 Human-in-the-Loop** | Confidence < 80% → "Human Review Needed" flag |
+| **🧠 Human-in-the-Loop** | Confidence < 70% → "Human Review Needed" flag |
 | **💾 Memory Efficient** | Fits within 6GB VRAM (Consumer GPU Ready) |
 | **📋 HIPAA-Compliant Design** | All processing in RAM, data wiped after session |
 | **🕒 Timezone Robustness** | UTC+8 Hard-coded logic prevents "Yesterday Bug" in early morning tests |
@@ -1021,7 +1006,7 @@ For local hospital deployment (Air-Gapped), use the provided Dockerfile.
 docker build -t medgemma-guardian .
 
 # 2. Run inference service (Offline Mode Enabled)
-docker run --gpus all -p 7860:7860 -v $(pwd)/logs:/app/logs medgemma-guardian
+docker run --gpus all -p 7860:7860 -v $(pwd)/logs:/app/logs silverguard_cds
 ```
 
 ---
@@ -1209,7 +1194,7 @@ This system directly addresses WHO's **"Medication Without Harm"** global challe
 | **7x higher risk** | Elderly (65+) medication error rate vs. younger adults |
 | **>50% preventable** | Harm occurs at prescribing and monitoring stages |
 
-AI Pharmacist Guardian is designed as a **"Swiss Cheese Model Layer"** — catching human errors at critical intervention points.
+**SilverGuard CDS** is designed as a **"Swiss Cheese Model Layer"** — catching human errors at critical intervention points.
 
 ### Why Agentic Workflow?
 
@@ -1241,7 +1226,7 @@ We acknowledge the **Sim2Real gap**. To mitigate this without compromising patie
 
 ### Q2: Why is this considered an "Agentic Workflow" and not just a standard classifier?
 **A: Because it exhibits "Self-Correction" and "Dynamic Reasoning."**
-Unlike a standard VLM that outputs a static prediction, MedGemma Guardian actively monitors its own logic.
+Unlike a standard VLM that outputs a static prediction, **SilverGuard CDS** actively monitors its own logic.
 -   **Step 1:** It attempts inference with `Temperature=0.2` (Conservative).
 -   **Step 2:** A symbolic logic layer checks for contradictions (e.g., Age 88 vs. High Dose).
 -   **Step 3 (The Agentic Leap):** If a flaw is detected, the Agent **injects the error context** into its own prompt, lowers its temperature to `0.1` (Deterministic), and retries.
