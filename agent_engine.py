@@ -2470,8 +2470,8 @@ def demo_elder_friendly_output():
         print("="*80)
         demo.launch(share=True)
 
-    # ===== Uncomment to run Gradio Demo =====
-    # create_gradio_demo()
+    # ===== Uncommented to run Gradio Demo in Impact Edition =====
+    create_gradio_demo()
 
 
     
@@ -4004,6 +4004,14 @@ if __name__ == "__main__":
         demo_elder_friendly_output()
     except Exception as e:
         print(f"⚠️ Demo 2 Failed: {e}")
+    
+    # Step 3: Global Interactive UI (Gradio)
+    print("\n[STEP 3] Launching Global Interactive UI...")
+    try:
+        from agent_engine import create_gradio_demo
+        create_gradio_demo()
+    except Exception as e:
+        print(f"⚠️ UI Launch Failed: {e}")
     
     print("\n" + "="*80)
     print("✅ DEMO WORKFLOW COMPLETE")

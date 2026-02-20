@@ -1120,10 +1120,11 @@ print("📦 Cloning SilverGuard CDS...")
 !git clone {repo_url}
 
 # 3. ROOT MIGRATION (Crucial for Absolute Paths)
-# Moves files from ./SilverGuard CDS subclass to /kaggle/working/ root
+# Moves files from ./SilverGuard subclass directory to /kaggle/working/ root
 print("📂 Moving files to Root (Preventing Path Trap)...")
-!cp -r SilverGuard/* .
-!cp SilverGuard/requirements.txt . 2>/dev/null || :
+!cp -rn SilverGuard/. .
+!rm -rf SilverGuard
+!cp requirements.txt . 2>/dev/null || :
 
 # 4. Install Dependencies
 print("🔧 Installing Dependencies...")
@@ -1132,7 +1133,13 @@ print("🔧 Installing Dependencies...")
 
 # 5. Launch MedGemma Impact Pipeline
 print("🚀 Launching MedGemma Impact Pipeline...")
-# This runs Data Gen -> Training -> Agent Demo sequentially
+
+# Step 5a: Generate V17 Hyper-Realistic Dataset (Optional but recommended)
+if os.path.exists("generate_v17_fusion.py"):
+    print("🎨 Generating V17 Hyper-Realistic Dataset...")
+    !python generate_v17_fusion.py
+
+# Step 5b: Run main engine (Data Gen -> Training -> Agent Demo)
 !python agent_engine.py
 ```
 
