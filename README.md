@@ -37,6 +37,22 @@
 
 ---
 
+## Table of Contents
+
+- [💔 The Real-World Problem](#-the-real-world-problem)
+- [⚡ Quick Start (Judges' Recommended Path)](#-quick-start)
+- [🌟 Key Features](#-key-features-impact)
+- [⚡ Judges' Executive Summary](#-judges-executive-summary-30-second-insight)
+- [🔬 Technical Implementation](#-technical-implementation)
+- [📈 Projected Impact Analysis](#-projected-impact-analysis)
+- [🚀 Deployment Roadmap](#-deployment-roadmap--scaling-impact)
+- [🏗️ Architecture](#%EF%B8%8F-complete-workflow-architecture-neuro-symbolic-agent-loop)
+- [🎬 Demo Results](#-demo-results)
+- [🩺 Regulatory & Ethics](#-regulatory--ethics)
+- [📚 References](#-references)
+
+---
+
 ## 💔 The Real-World Problem
 
 > [!NOTE]
@@ -629,8 +645,7 @@ Our deployment follows a conservative, evidence-based scaling approach:
 >
 > *"Left: The Agent detecting a potentially life-threatening dose for an 88-year-old. Right: SilverGuard CDS converting this into an elder-friendly visual warning."*
 
-<!-- Add your screenshot here after running the notebook -->
-<!-- ![Demo Screenshot](demo_screenshot.png) -->
+
 
 **Example HIGH_RISK Detection Output:**
 
@@ -716,7 +731,7 @@ flowchart LR
   end
     Img --> Gate
     Audio --> Sandwich
-    Gate -- Laplacian Var &lt; 100 --> Refuse1
+    Gate -- Laplacian Var < 100 --> Refuse1
     Gate -- Pass --> Fusion
     Sandwich -- Cleaned Context --> Fusion
     Fusion --> Strategy
