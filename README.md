@@ -74,7 +74,7 @@ After hospital discharge for chronic conditions, she holds 5 prescription bags w
 |-----------|--------|-------------|--------------------|
 | 👁️ **Visual Impairment** | Cannot read 6-8pt drug bag fonts | Mistook "QD" (once daily) for "QID" (4× daily) | 50%+ of 80+ patients have vision problems (Taiwan Ophthalmology Society) |
 | 🌏 **Language Barrier** | Indonesian caregiver cannot read Traditional Chinese | Gave morning meds at night, causing dizziness | 240K+ migrant caregivers in Taiwan (Ministry of Labor, 2024) |
-| 🕒 **Complexity Overload** | 5 drugs × different timings (饭前/饭后/睡前) | Took Warfarin with Aspirin → bleeding risk | 30-40% of 65+ take 5+ medications (WHO Polypharmacy Guidelines) |
+| 🕒 **Complexity Overload** | 5 drugs × different timings (飯前/飯後/睡前) | Took Warfarin with Aspirin → bleeding risk | 30-40% of 65+ take 5+ medications (WHO Polypharmacy Guidelines) |
 | 🏥 **Access Limitation** | Rural clinic, pharmacist only 9am-5pm weekdays | Weekend medication error, no one to ask | 70% of Taiwan townships lack 24/7 pharmacy access (MOHW) |
 
 ### The "Solutions" That Don't Work:
@@ -163,7 +163,7 @@ docker run --gpus all -p 7860:7860 silverguard_cds
 *   **👵 SilverGuard CDS Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Traditional Chinese, 繁體中文) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Visual Translation Override** (UI text degrades to simple native warnings for ID/VI) and **Clinically Verified Translations**.
 *   **🗣️ Local Dialect Support**: Voice output in **Traditional Chinese (繁體中文)** optimized for the 65+ demographic in Taiwan. (Roadmap: Taiwanese Hokkien via Piper TTS)
-*   **🔐 Privacy First**: **Hybrid Architecture** — Local RTX 5060 deployment is fully air-gapped (zero data egress). Kaggle T4 demo requires internet for model download; all inference is local thereafter.
+*   **🔐 Privacy First**: **Deployment-Aware Hybrid Architecture** — Local RTX 5060 (Windows): fully air-gapped, SAPI5 offline TTS, zero data egress. Kaggle T4 (Linux): VLM inference is local; TTS routes to **Microsoft Edge-TTS** (cloud, internet required).
 *   **🧠 Agentic Reflection Pattern**: "Think before speaking" loop with self-critique and refinement (Andrew Ng, 2024).
 
 ## ⚡ Judges' Executive Summary (30-Second Insight)
@@ -307,15 +307,20 @@ Refined Output:
 As an Agentic Clinical Decision Support System (CDSS) designed for the "Aging Society", SilverGuard transforms the Gemma 3 (MedGemma-4B) LLM into an intelligent "Safety Guardian" that can **SEE** prescriptions, **HEAR** caregiver voice notes, and **SPEAK** advice in Traditional Chinese (繁體中文).
 
 ### 🏆 Key Innovation: "Hybrid Privacy Architecture"
-Unlike pure cloud solutions, SilverGuard CDS is designed for **Privacy-First Healthcare**:
--   **Local Deployment (RTX 5060)**: Runs **100% Offline** — fully air-gapped, zero data egress, PHI never leaves the machine.
--   **Kaggle T4 Demo**: Internet required for initial HuggingFace model download. After download, all VLM inference runs locally on the T4 GPU. No patient PHI is transmitted.
--   **MedASR Integration**: Local transcript processing (Simulated Dialect Routing for Demo).
--   **Configurable Privacy**:
-    -   🔒 **Maximum Privacy**: Uses offline TTS (`edge-tts` / `pyttsx3`) for fully air-gapped deployment.
-    -   🔊 **Maximum Quality**: Uses cloud TTS (`gTTS`) for demo purposes (generic, de-identified phrases only).
+Unlike pure cloud solutions, SilverGuard CDS implements a **deployment-aware privacy model**:
 
-> **Note on Configuration:** SilverGuard CDS defaults to **Offline Mode (Privacy)** for production, and enables **Online Mode (Quality)** for Kaggle Research Demos to showcase full audio capabilities.
+| Component | Local (RTX 5060 / Windows) | Kaggle T4 (Linux) |
+|-----------|---------------------------|-------------------|
+| **VLM Inference** | ✅ 100% Offline | ✅ Local (after download) |
+| **Initial Model Download** | ✅ One-time, can be pre-cached | ⚠️ Requires internet (HuggingFace) |
+| **TTS Engine** | ✅ **SAPI5 / pyttsx3 (Fully Offline)** | ⚠️ **Microsoft Edge-TTS (Cloud, Internet Required)** |
+| **Patient PHI** | ✅ Never transmitted | ✅ Never transmitted (TTS uses de-identified generic phrases only) |
+
+-   **MedASR Integration**: Local transcript processing (Simulated Dialect Routing for Demo).
+
+> **Why Edge-TTS on Kaggle?** Linux environments (T4) don't support SAPI5. `edge-tts` provides the best voice quality for Traditional Chinese on Linux. Only **generic, de-identified alert phrases** (e.g., `「請誘詢藥劌」`) are sent — never patient names or PHI.
+
+> **Production Deployment**: For fully air-gapped hospital networks, deploy on Windows with SAPI5, or use offline TTS (Piper / MMS-TTS) on Linux.
 
 
 
