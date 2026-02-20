@@ -175,9 +175,9 @@ else:
     # [FIX] 防止 Git Auth 卡死 (The Silent Hang Fix)
     # 只有在真的有 token 時才加入 @，否則 Git 會跳出隱形密碼輸入框導致卡死
     if gh_token:
-        repo_url = f"https://{gh_token}@github.com/mark941108/SilverGuard.git"
+        repo_url = f"https://{gh_token}@github.com/mark941108/SilverGuard_CDS.git"
     else:
-        repo_url = "https://github.com/mark941108/SilverGuard.git"
+        repo_url = "https://github.com/mark941108/SilverGuard_CDS.git"
     subprocess.run(f"git clone --depth 1 {repo_url}", shell=True, check=True)
     print("   ✅ Repository 下載完成")
 
