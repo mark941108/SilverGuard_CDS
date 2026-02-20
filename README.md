@@ -105,10 +105,10 @@ A **privacy-first, offline, multilingual, medically-intelligent** medication ver
 ### Our Solution: SilverGuard CDS
 
 A **privacy-first, edge-deployed AI assistant** that:
-1. ✅ **Core inference** runs **100% Offline** on device (RTX 5060 / T4 GPU) - no PHI leaves container
+1. ✅ **Core inference** runs **100% Offline** on local device (RTX 5060) — no PHI leaves machine; Kaggle T4 requires internet for initial model download only
 2. ✅ **Hybrid Privacy**: Optional TTS uses secure cloud API (Default: Disabled/Offline)
 3. ✅ Performs **medical reasoning** (catches dosage errors, drug interactions)
-4. ✅ Generates **elderly-friendly output** (large-font calendar + local accent TTS)
+4. ✅ Generates **elderly-friendly output** (large-font calendar + Traditional Chinese voice readout)
 5. ✅ Supports **migrant caregivers** (Indonesian/Vietnamese translations)
 
 **Impact:** If deployed in just 100 community pharmacies → Prevent **34,600 medication errors/year**, saving **$41.5M USD annually**.
@@ -160,10 +160,10 @@ docker run --gpus all -p 7860:7860 silverguard_cds
 ---
 
 ## 🌟 Key Features (Impact)
-*   **👵 SilverGuard CDS Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Simulated Taiwanese Mandarin) and **Large-Font Calendars**.
+*   **👵 SilverGuard CDS Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Traditional Chinese, 繁體中文) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Visual Translation Override** (UI text degrades to simple native warnings for ID/VI) and **Clinically Verified Translations**.
-*   **🗣️ Local Dialect Support**: Capable of **Localized Taiwanese Mandarin (Taiwan-Accent)** TTS, crucial for communicating with the 65+ demographic in rural Taiwan.
-*   **🔐 Privacy First**: **Hybrid Privacy Architecture** - Core VLM inference runs **100% Locally** (PHI stays on device). Optional TTS module offers configurable privacy modes.
+*   **🗣️ Local Dialect Support**: Voice output in **Traditional Chinese (繁體中文)** optimized for the 65+ demographic in Taiwan. (Roadmap: Taiwanese Hokkien via Piper TTS)
+*   **🔐 Privacy First**: **Hybrid Architecture** — Local RTX 5060 deployment is fully air-gapped (zero data egress). Kaggle T4 demo requires internet for model download; all inference is local thereafter.
 *   **🧠 Agentic Reflection Pattern**: "Think before speaking" loop with self-critique and refinement (Andrew Ng, 2024).
 
 ## ⚡ Judges' Executive Summary (30-Second Insight)
@@ -304,17 +304,18 @@ Refined Output:
 
 > **"Because a pharmacist can't be there 24/7, but SilverGuard CDS can."**
 
-As an Agentic Clinical Decision Support System (CDSS) designed for the "Aging Society", SilverGuard transforms the Gemma 3 (MedGemma-4B) LLM into an intelligent "Safety Guardian" that can **SEE** prescriptions, **HEAR** caregiver voice notes, and **SPEAK** advice in local dialects (Taiwanese Hokkien).
+As an Agentic Clinical Decision Support System (CDSS) designed for the "Aging Society", SilverGuard transforms the Gemma 3 (MedGemma-4B) LLM into an intelligent "Safety Guardian" that can **SEE** prescriptions, **HEAR** caregiver voice notes, and **SPEAK** advice in Traditional Chinese (繁體中文).
 
 ### 🏆 Key Innovation: "Hybrid Privacy Architecture"
 Unlike pure cloud solutions, SilverGuard CDS is designed for **Privacy-First Healthcare**:
--   **Core VLM Inference**: Runs **100% Locally** on T4 GPU (PHI stays on device).
+-   **Local Deployment (RTX 5060)**: Runs **100% Offline** — fully air-gapped, zero data egress, PHI never leaves the machine.
+-   **Kaggle T4 Demo**: Internet required for initial HuggingFace model download. After download, all VLM inference runs locally on the T4 GPU. No patient PHI is transmitted.
 -   **MedASR Integration**: Local transcript processing (Simulated Dialect Routing for Demo).
 -   **Configurable Privacy**:
-    -   🔒 **Maximum Privacy**: Uses offline TTS (`pyttsx3`) for fully air-gapped deployment.
-    -   🔊 **Maximum Quality**: Uses hybrid cloud TTS (`gTTS`) for demo purposes (anonymized data only).
+    -   🔒 **Maximum Privacy**: Uses offline TTS (`edge-tts` / `pyttsx3`) for fully air-gapped deployment.
+    -   🔊 **Maximum Quality**: Uses cloud TTS (`gTTS`) for demo purposes (generic, de-identified phrases only).
 
-> **Note on Configuration:** SilverGuard CDS defaults to **Offline Mode (Privacy)** for Web Deployments (HuggingFace Spaces), but enables **Online Mode (Quality)** for Kaggle Research Demos to showcase full audio capabilities.
+> **Note on Configuration:** SilverGuard CDS defaults to **Offline Mode (Privacy)** for production, and enables **Online Mode (Quality)** for Kaggle Research Demos to showcase full audio capabilities.
 
 
 
@@ -995,7 +996,7 @@ Roadmap to Next-Generation Architecture (Post-Competition):
 - **Phase 3 - Dynamic RAG**: Integration with vector database (ChromaDB) to scale drug knowledge beyond the 19-drug POC.
 - **Phase 4 - Constitutional AI**: "Dual-Stream Verification" to prevent visual prompt injection attacks.
 - **Phase 5 - On-Device Deployment**: Deploy via **MediaPipe LLM Inference API** on high-end Android (Pixel 9 Pro, Galaxy S24 Ultra) with aggressive 4-bit quantization, OR **Edge Gateways** (NVIDIA Jetson Orin) for clinic deployment. *Note: MedGemma 4B exceeds standard AICore 3.25B limit; future research includes distilling to Gemini Nano 3B for native AICore compatibility.*
-- **Accessibility**: Support for 10+ dialects via MedASR-Large.
+- **Accessibility**: Support for 10+ dialects via MedASR-Large. (Current: Traditional Chinese / 繁體中文; Roadmap: Taiwanese Hokkien via Piper TTS)
 
 ### 🐳 Docker Edge Deployment
 
