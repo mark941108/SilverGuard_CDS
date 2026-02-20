@@ -829,7 +829,7 @@ Attempt 2 (Temp 0.1): "Drug: Glucophage, Dosage: 500mg"
 
 > **📊 Performance Note:** Metrics derived from an internal pooled dataset ($N=600$ total samples).
 
-> **⚠️ Technical Note:** The near-zero loss indicates perfect convergence on the **synthetic layout distribution (Sim2Sim)**. This demonstrates the model's capacity to master the safety logic rules. For **Sim2Real transfer** (real-world noisy photographs), production deployment would incorporate: (1) NEFTune/DoRA for generalization, (2) Real-world data augmentation, (3) Confidence-based human fallback.
+> **⚠️ Technical Note:** The near-zero loss indicates strong convergence on the **synthetic layout distribution (Sim2Sim)**. This demonstrates the model's capacity to master the safety logic rules. For **Sim2Real transfer** (real-world noisy photographs), production deployment would incorporate: (1) NEFTune/DoRA for generalization, (2) Real-world data augmentation, (3) Confidence-based human fallback.
 
 ---
 
