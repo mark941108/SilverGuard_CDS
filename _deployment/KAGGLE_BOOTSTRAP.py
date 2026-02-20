@@ -246,10 +246,12 @@ print("\n[5/6] 安裝白金版本組合 (PyTorch 2.6.0 + cu118)...")
 # 1. 系統依賴 (TTS & Audio 必備 + 中文字型)
 subprocess.run("apt-get update -y && apt-get install -y libespeak1 libsndfile1 ffmpeg fonts-noto-cjk", shell=True, check=True)
 
-# 2. 暴力移除舊版 (防止 Version Conflict)
-print("   ☢️ 清理衝突套件...")
+# 2. 暴力移除舊版 (防止 Version Conflict & Pillow 12 地雷)
+print("   ☢️ 清理衝突套件與殘留檔案...")
 try:
-    subprocess.run("pip uninstall -y torch torchvision torchaudio transformers huggingface_hub opencv-python", shell=True, check=True)
+    subprocess.run("pip uninstall -y torch torchvision torchaudio transformers huggingface_hub opencv-python pillow", shell=True, check=True)
+    # [物理清除] 徹底刪除可能導致 12.x 衝突的舊版 PIL 資料夾
+    subprocess.run("rm -rf /usr/local/lib/python3.12/dist-packages/PIL", shell=True)
 except:
     pass
 
@@ -260,8 +262,8 @@ subprocess.run("pip install --no-cache-dir torch==2.6.0+cu118 torchvision==0.21.
 subprocess.run('pip install -U "transformers>=4.51.0" "accelerate>=1.3.0" "bitsandbytes>=0.45.0" "peft>=0.14.0"', shell=True, check=True)
 subprocess.run('pip install -U "gradio>=5.15.0" "fastapi>=0.115.0,<0.124.0" "pydantic>=2.10.0"', shell=True, check=True)
 subprocess.run('pip uninstall -y pillow matplotlib', shell=True) 
-# [極度重要] 確保安裝了 edge-tts
-subprocess.run('pip install -U "pillow>=10.4.0" "matplotlib>=3.9.0,<3.10.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]" "sentence-transformers" "faiss-cpu" "edge-tts" "rich<14.0.0"', shell=True, check=True)
+# [極度重要] 鎖定 Pillow < 12.0.0 避免 _Ink ImportError 崩潰
+subprocess.run('pip install -U "pillow>=10.4.0,<12.0.0" "matplotlib>=3.9.0,<3.10.0" "albumentations" "opencv-python-headless" "gTTS" "pyttsx3" "qrcode[pil]" "sentence-transformers" "faiss-cpu" "edge-tts" "rich<14.0.0"', shell=True, check=True)
 subprocess.run("apt-get install -y ffmpeg", shell=True, check=False)
 print("   ✅ 所有依賴安裝完成！")
 
