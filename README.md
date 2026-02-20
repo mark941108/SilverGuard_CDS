@@ -1,5 +1,5 @@
 ﻿<!-- 🖼️ HERO IMAGE -->
-![SilverGuard CDS](assets/DEMO/demo_clean_1.png)
+![SilverGuard CDS](assets/stress_test/demo_clean_1.png)
 
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
 > 1. **NOT A MEDICAL DEVICE**: SilverGuard CDS is a RESEARCH PROTOTYPE. It has NOT been approved or certified by FDA/TFDA for clinical use. Output is for research purposes ONLY. Consult a licensed professional.
@@ -496,7 +496,7 @@ To quantify the potential clinical value of **SilverGuard CDS**, we modeled the 
 
 **Scenario:** A community pharmacy processing **4,000 prescriptions/month** (48,000/year).
 
-| Metric | Result (Test Set N=55) | Clinical Significance |
+| Metric | Result (Internal Pool N=600) | Clinical Significance |
 |:-------|:----------------------:|:----------------------|
 | **Sensitivity (Recall)** | **96.5%** | Catches nearly all dangerous prescriptions |
 | **Overall Accuracy** | **~93%+** | High reliability for daily use |
