@@ -1,5 +1,0 @@
-espeak
-libespeak1
-ffmpeg
-libsndfile1
-fonts-noto-cjk

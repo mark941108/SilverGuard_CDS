@@ -1,4 +1,0 @@
-espeak
-libespeak1
-ffmpeg
-libsndfile1
