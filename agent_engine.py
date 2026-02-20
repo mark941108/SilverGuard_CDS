@@ -1868,267 +1868,149 @@ def run_training_stage():
     # ============================================================================
     # 🧹 MEMORY OPTIMIZATION & PERSONA INJECTION
     # ============================================================================
-    import gc
-    import torch
+import gc
+import torch
 
-    def free_gpu_memory():
-        """
-        Auto-Cleaning to prevent OOM between Training and Inference
-        """
-        print("🧹 Cleaning GPU Memory...")
-        if 'trainer' in globals():
-            del globals()['trainer']
+def free_gpu_memory():
+    """
+    Auto-Cleaning to prevent OOM between Training and Inference
+    """
+    print("🧹 Cleaning GPU Memory...")
+    if 'trainer' in globals():
+        del globals()['trainer']
+
+    # Optional: Delete model if you want to reload clean adapter
+    # if 'model' in globals():
+    #     del globals()['model']
     
-        # Optional: Delete model if you want to reload clean adapter
-        # if 'model' in globals():
-        #     del globals()['model']
-        
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        print("✅ GPU Memory Optimized for Inference")
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    print("✅ GPU Memory Optimized for Inference")
 
-    free_gpu_memory()
+free_gpu_memory()
+
+print("\n" + "="*80)
+print("🔧 Engineering Student Persona Loaded")
+print("   'As an engineering student optimizing systems, I applied the same rigorous")
+print("    safety-factor principles from HVAC engineering to this medical AI pipeline.'")
+print("="*80)
+
+
+# [REDUNDANT CELL 4 LOGIC REMOVED]
+def main_cell4():
+    """Main function for Cell 4 - Agentic Inference Testing"""
+    if 'model' not in globals() or 'processor' not in globals():
+        raise NameError("❌ 請先執行 Cell 3！")
 
     print("\n" + "="*80)
-    print("🔧 Engineering Student Persona Loaded")
-    print("   'As an engineering student optimizing systems, I applied the same rigorous")
-    print("    safety-factor principles from HVAC engineering to this medical AI pipeline.'")
+    print("🤖 V5 Agentic Safety Check Pipeline")
+    print("    Implementing: Input Gate → Reasoning → Confidence → Grounding")
     print("="*80)
 
+    # [V16 FIX] 動態路徑：優先使用 Stress Test（最難測試集）
+    # 使用配置區定義的絕對路徑
+    stress_dir = STRESS_TEST_DIR_ABSOLUTE if 'STRESS_TEST_DIR_ABSOLUTE' in globals() else "./assets/stress_test"
 
-    # [REDUNDANT CELL 4 LOGIC REMOVED]
-    def main_cell4():
-        """Main function for Cell 4 - Agentic Inference Testing"""
-        if 'model' not in globals() or 'processor' not in globals():
-            raise NameError("❌ 請先執行 Cell 3！")
+    if os.path.exists(stress_dir):
+        BASE_DIR = stress_dir
+        print(f"✅ [Cell 4] Using Stress Test Data from: {BASE_DIR}")
+        import glob
+        test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))
+        print(f"✅ [Cell 4] Loaded {len(test_images)} images for Stress Test.")
+    elif USE_V17_DATA and os.path.exists(V17_DATA_DIR):
+        BASE_DIR = V17_DATA_DIR
+        print(f"✅ [Cell 4] Using V17 Data from: {BASE_DIR}")
+        import glob
+        # ✅ 修復：只取前 5 張做快速測試，而不是跑全部 600 張
+        all_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))
+        test_images = all_images[:5]  
+        print(f"✅ [Cell 4] Quick Test Mode: Running 5 samples (out of {len(all_images)})")
+    else:
+        BASE_DIR = "./medgemma_training_data_v5"
+        print(f"⚠️ [Cell 4] Fallback to V5 data: {BASE_DIR}")
+        test_images = [
+            f"{BASE_DIR}/medgemma_v5_0000.png",
+            f"{BASE_DIR}/medgemma_v5_0100.png",
+            f"{BASE_DIR}/medgemma_v5_0300.png",
+            f"{BASE_DIR}/medgemma_v5_0400.png",
+            f"{BASE_DIR}/medgemma_v5_0550.png",
+        ]
+
+    results = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0, "MISSING_DATA": 0, "HUMAN_REVIEW": 0, "REJECTED": 0}
+
+    for img_path in test_images:
+        if not os.path.exists(img_path):
+            continue
     
-        print("\n" + "="*80)
-        print("🤖 V5 Agentic Safety Check Pipeline")
-        print("    Implementing: Input Gate → Reasoning → Confidence → Grounding")
-        print("="*80)
+        result = agentic_inference(model, processor, img_path, verbose=True)
     
-        # [V16 FIX] 動態路徑：優先使用 Stress Test（最難測試集）
-        # 使用配置區定義的絕對路徑
-        stress_dir = STRESS_TEST_DIR_ABSOLUTE if 'STRESS_TEST_DIR_ABSOLUTE' in globals() else "./assets/stress_test"
-    
-        if os.path.exists(stress_dir):
-            BASE_DIR = stress_dir
-            print(f"✅ [Cell 4] Using Stress Test Data from: {BASE_DIR}")
-            import glob
-            test_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))
-            print(f"✅ [Cell 4] Loaded {len(test_images)} images for Stress Test.")
-        elif USE_V17_DATA and os.path.exists(V17_DATA_DIR):
-            BASE_DIR = V17_DATA_DIR
-            print(f"✅ [Cell 4] Using V17 Data from: {BASE_DIR}")
-            import glob
-            # ✅ 修復：只取前 5 張做快速測試，而不是跑全部 600 張
-            all_images = sorted(glob.glob(f"{BASE_DIR}/*.png"))
-            test_images = all_images[:5]  
-            print(f"✅ [Cell 4] Quick Test Mode: Running 5 samples (out of {len(all_images)})")
+        final = result["final_status"]
+        if final == "PASS":
+            results["PASS"] += 1
+        elif final == "WARNING":
+            results["WARNING"] += 1
+        elif final == "HIGH_RISK":
+            results["HIGH_RISK"] += 1
+        elif final == "HUMAN_REVIEW_NEEDED":
+            results["HUMAN_REVIEW"] += 1
+        elif final == "MISSING_DATA":
+            results["MISSING_DATA"] += 1
         else:
-            BASE_DIR = "./medgemma_training_data_v5"
-            print(f"⚠️ [Cell 4] Fallback to V5 data: {BASE_DIR}")
-            test_images = [
-                f"{BASE_DIR}/medgemma_v5_0000.png",
-                f"{BASE_DIR}/medgemma_v5_0100.png",
-                f"{BASE_DIR}/medgemma_v5_0300.png",
-                f"{BASE_DIR}/medgemma_v5_0400.png",
-                f"{BASE_DIR}/medgemma_v5_0550.png",
-            ]
-    
-        results = {"PASS": 0, "WARNING": 0, "HIGH_RISK": 0, "MISSING_DATA": 0, "HUMAN_REVIEW": 0, "REJECTED": 0}
-    
-        for img_path in test_images:
-            if not os.path.exists(img_path):
-                continue
-        
-            result = agentic_inference(model, processor, img_path, verbose=True)
-        
-            final = result["final_status"]
-            if final == "PASS":
-                results["PASS"] += 1
-            elif final == "WARNING":
-                results["WARNING"] += 1
-            elif final == "HIGH_RISK":
-                results["HIGH_RISK"] += 1
-            elif final == "HUMAN_REVIEW_NEEDED":
-                results["HUMAN_REVIEW"] += 1
-            elif final == "MISSING_DATA":
-                results["MISSING_DATA"] += 1
-            else:
-                results["REJECTED"] += 1
-    
-        print(f"\n{'='*80}")
-        print("📊 Agentic Pipeline Results Summary")
-        print(f"{'='*80}")
-        print(f"🟢 PASS: {results['PASS']}")
-        print(f"🟡 WARNING: {results['WARNING']}")
-        print(f"🔴 HIGH_RISK: {results['HIGH_RISK']}")
-        print(f"   ❓ MISSING_DATA: {results['MISSING_DATA']}")
-        print(f"   ❓ HUMAN REVIEW: {results['HUMAN_REVIEW']}")
-        print(f"   ❌ REJECTED: {results['REJECTED']}")
-    
-        total = sum(results.values())
-        # Autonomy Rate: Percentage of cases handled WITHOUT human review (Pass + Warning + High Risk) / Total
-        # This proves efficiency (fighting Alert Fatigue)
-        handled_autonomous = results['PASS'] + results['WARNING'] + results['HIGH_RISK']
-        autonomy = handled_autonomous / total if total > 0 else 0
-    
-        print(f"\n🚀 EFFICIENCY METRICS (Fighting Alert Fatigue):")
-        print(f"🤖 Autonomy Rate: {autonomy:.1%} (Cases handled without human help)")
-        print(f"   (Goal > 90% to prevent pharmacist burnout)")
-        print(f"🛡️ Safety Compliance: 100% (All unsafe cases flagged or escalated)")
+            results["REJECTED"] += 1
+
+    print(f"\n{'='*80}")
+    print("📊 Agentic Pipeline Results Summary")
+    print(f"{'='*80}")
+    print(f"🟢 PASS: {results['PASS']}")
+    print(f"🟡 WARNING: {results['WARNING']}")
+    print(f"🔴 HIGH_RISK: {results['HIGH_RISK']}")
+    print(f"   ❓ MISSING_DATA: {results['MISSING_DATA']}")
+    print(f"   ❓ HUMAN REVIEW: {results['HUMAN_REVIEW']}")
+    print(f"   ❌ REJECTED: {results['REJECTED']}")
+
+    total = sum(results.values())
+    # Autonomy Rate: Percentage of cases handled WITHOUT human review (Pass + Warning + High Risk) / Total
+    # This proves efficiency (fighting Alert Fatigue)
+    handled_autonomous = results['PASS'] + results['WARNING'] + results['HIGH_RISK']
+    autonomy = handled_autonomous / total if total > 0 else 0
+
+    print(f"\n🚀 EFFICIENCY METRICS (Fighting Alert Fatigue):")
+    print(f"🤖 Autonomy Rate: {autonomy:.1%} (Cases handled without human help)")
+    print(f"   (Goal > 90% to prevent pharmacist burnout)")
+    print(f"🛡️ Safety Compliance: 100% (All unsafe cases flagged or escalated)")
 
 
-    
-    # ============================================================================
-    # CELL 5: Agentic HIGH_RISK Demo (Screenshot This!)
-    # ============================================================================
-    """
-    Cell 5: Agentic HIGH_RISK Demo
-    ==============================
-    🎯 Purpose: Find a HIGH_RISK case and run full Agentic Pipeline for demo screenshot
-    🏆 Shows: Input Gate → VLM Reasoning → Confidence Check → Grounding → Final Decision
-    """
-
-    import os
-    import sys
-    import json
-    import random
-    import time
-    import re
-    import csv
-    import glob
-    import shutil
-    import warnings
-    import asyncio  # Adding asyncio for async/await
-    from datetime import datetime  # For calendar timestamp
-    from PIL import Image, ImageDraw, ImageFont  # For medication calendar generation
-    from pathlib import Path
-    import torch
-    import numpy as np # Fixed: Added missing import
-
-    # [V12.32 Cleanup] NpEncoder moved to global scope (line 343)
-
-
-# 👵 ELDERLY-FRIENDLY TERM MAPPINGS
-# ============================================================================
-DRUG_TERM_MAPPING = {
-    "Glucophage": "降血糖藥 (庫魯化)",
-    "Metformin": "降血糖藥 (美福明)",
-    "Norvasc": "降血壓藥 (脈優)",
-    "Amlodipine": "降血壓藥",
-    "Concor": "降血壓藥 (康肯)",
-    "Diovan": "降血壓藥 (得安穩)",
-    "Stilnox": "安眠藥 (使蒂諾斯)",
-    "Zolpidem": "安眠藥",
-    "Aspirin": "阿斯匹靈 (預防血栓)",
-    "Plavix": "保栓通 (預防血栓)",
-    "Lipitor": "降血脂藥 (立普妥)",
-    "Atorvastatin": "降血脂藥"
-}
-
-def humanize_drug_name(drug_name):
-    """將英文藥名轉為簡單的中文分類名稱"""
-    for eng, chinese in DRUG_TERM_MAPPING.items():
-        if eng.lower() in drug_name.lower():
-            return chinese
-    return drug_name
-
-def json_to_elderly_speech(result_json, target_lang="zh-TW"):
-    """將推論結果轉為溫暖的老人友善語音草稿"""
-    try:
-        data = result_json if isinstance(result_json, dict) else json.loads(result_json)
-        # 優先使用 LLM 生成的內容
-        if "vlm_output" in data and "parsed" in data["vlm_output"]:
-            msg = data["vlm_output"]["parsed"].get("silverguard_message")
-            if msg:
-                # 👇 🟢 [Director's Final Fix] 總監的終極截斷防呆包 👇
-                if "Step" in msg:
-                    msg = msg.split("Step")[0].strip()
-                # 👆 🟢 加入完畢 👆
-                return msg
-        extracted = data.get("vlm_output", {}).get("parsed", {}).get("extracted_data", {})
-        drug_name = extracted.get("drug", {}).get("name", "藥物")
-        usage = extracted.get("usage", "按指示服用")
-        return f"您好，這是您的「{humanize_drug_name(drug_name)}」，記得要「{usage}」喔！"
-    except:
-        return "提醒您，請依照藥袋指示服用藥物，祝您健康。"
-
-def text_to_speech(text, lang='zh-tw'):
-    import os, uuid, tempfile
-    try:
-        from gtts import gTTS
-        out_path = os.path.join(tempfile.gettempdir(), f"demo_tts_{uuid.uuid4().hex[:4]}.mp3")
-        gTTS(text=text, lang=lang).save(out_path)
-        return out_path
-    except:
-        return None
-
-# 🏆 GLOBAL HELPER FUNCTIONS (Emoji Replacements & UI)
-# ============================================================================
-import math
-
-def draw_sun_icon_ae(draw, x, y, size=35, color="#FFB300"):
-    """繪製太陽圖示 (早上)"""
-    r = size // 2
-    draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FF8F00", width=2)
-    for angle in range(0, 360, 45):
-        rad = math.radians(angle)
-        x1 = x + int(r * 1.3 * math.cos(rad))
-        y1 = y + int(r * 1.3 * math.sin(rad))
-        x2 = x + int(r * 1.8 * math.cos(rad))
-        y2 = y + int(r * 1.8 * math.sin(rad))
-        draw.line([(x1, y1), (x2, y2)], fill=color, width=3)
-
-def draw_moon_icon_ae(draw, x, y, size=35, color="#FFE082"):
-    """繪製月亮圖示 (睡前)"""
-    r = size // 2
-    draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FBC02D", width=2)
-    offset = r // 3
-    draw.ellipse([x-r+offset, y-r, x+r+offset, y+r], fill="white")
-
-def draw_mountain_icon_ae(draw, x, y, size=35, color="#4CAF50"):
-    """繪製山景圖示 (中午)"""
-    r = size // 2
-    draw.polygon([(x-r, y+r), (x, y-r), (x+r//2, y)], fill=color)
-    draw.polygon([(x, y-r), (x+r, y+r), (x+r//2, y)], fill="#81C784")
-
-def draw_sunset_icon_ae(draw, x, y, size=35, color="#FF6F00"):
-    """繪製夕陽圖示 (晚上)"""
-    r = size // 2
-    draw.arc([x-r, y-r*2, x+r, y], start=0, end=180, fill=color, width=3)
-    for i in range(3):
-        y_line = y - i * 8
-        draw.line([(x-r, y_line), (x+r, y_line)], fill="#FF8F00", width=2)
-
-def draw_bowl_icon_ae(draw, x, y, size=30, is_full=True):
-    """繪製碗圖示 (空碗/滿碗)"""
-    r = size // 2
-    draw.arc([x-r, y-r//2, x+r, y+r], start=0, end=180, fill="#795548", width=3)
-    draw.line([(x-r, y), (x+r, y)], fill="#795548", width=3)
-    if is_full:
-        for i in range(-r+5, r-5, 10):
-            for j in range(-r//4, r//4, 8):
-                draw.ellipse([x+i-2, y+j-2, x+i+2, y+j+2], fill="white")
-
-def draw_pill_icon_ae(draw, x, y, size=30, color="lightblue"):
-    """繪製藥丸圖示"""
-    r = size // 2
-    draw.ellipse([x-int(r*1.5), y-r, x+int(r*1.5), y+r], 
-                 fill=color, outline="blue", width=2)
-    draw.line([(x, y-r), (x, y+r)], fill="blue", width=2)
-
-def draw_bed_icon_ae(draw, x, y, size=30):
-    """繪製床鋪圖示"""
-    r = size // 2
-    draw.rectangle([x-r, y, x+r, y+r//4], outline="black", width=2, fill="#BDBDBD")
-    draw.rectangle([x-r, y-r//4, x-r//2, y], fill="#757575")
-
-# [V12.32 Audit] Basic Calendar Generator removed. Shadowed by Flagship Edition.
 
 # ============================================================================
+# CELL 5: Agentic HIGH_RISK Demo (Screenshot This!)
+# ============================================================================
+"""
+Cell 5: Agentic HIGH_RISK Demo
+==============================
+🎯 Purpose: Find a HIGH_RISK case and run full Agentic Pipeline for demo screenshot
+🏆 Shows: Input Gate → VLM Reasoning → Confidence Check → Grounding → Final Decision
+"""
+
+import os
+import sys
+import json
+import random
+import time
+import re
+import csv
+import glob
+import shutil
+import warnings
+import asyncio  # Adding asyncio for async/await
+from datetime import datetime  # For calendar timestamp
+from PIL import Image, ImageDraw, ImageFont  # For medication calendar generation
+from pathlib import Path
+import torch
+import numpy as np # Fixed: Added missing import
+
+# [V12.32 Cleanup] NpEncoder moved to global scope (line 343)
+
 
 def demo_agentic_high_risk():
     """
@@ -2223,152 +2105,152 @@ def demo_agentic_high_risk():
 # Promoting Real Demo (formerly line 3423) and Fix Indentation.
 
 
-    
-    # ============================================================================
-    # CELL 6: Interactive Gradio Demo (Optional - For Presentation)
-    # ============================================================================
-    """
-    Cell 6: Gradio Web Interface
-    ============================
-    🎯 Purpose: Create an interactive demo for evaluation and presentation
-    🏆 Shows: Real-time Agentic Pipeline with visual feedback
 
-    ⚠️ Note: This cell is OPTIONAL. Run only if you want an interactive demo.
-             Requires internet access to install gradio.
-    """
+# ============================================================================
+# CELL 6: Interactive Gradio Demo (Optional - For Presentation)
+# ============================================================================
+"""
+Cell 6: Gradio Web Interface
+============================
+🎯 Purpose: Create an interactive demo for evaluation and presentation
+🏆 Shows: Real-time Agentic Pipeline with visual feedback
 
-    # Uncomment the following line to install Gradio
-    # !pip install -q gradio
+⚠️ Note: This cell is OPTIONAL. Run only if you want an interactive demo.
+         Requires internet access to install gradio.
+"""
 
-    def create_gradio_demo():
-        """Create and launch Gradio demo interface"""
-        try:
-            import gradio as gr
-        except ImportError:
-            print("❌ Gradio not installed. Run: !pip install gradio")
-            return
-    
-        import json
-        from PIL import Image
-    
-        def gradio_inference(image):
-            """Wrapper for Gradio interface"""
-            if image is None:
-                return "❌ No image uploaded", "{}"
-        
-            # Save temp image (Race Condition Fix)
-            # Use uuid to ensure thread safety in multi-user environments
-            import uuid
-            temp_path = f"./temp_upload_{uuid.uuid4().hex[:8]}.png"
-            image.save(temp_path)
-        
-            # Run agentic pipeline
-            result = agentic_inference(model, processor, temp_path, verbose=False)
-        
-            # Format output
-            status = result["final_status"]
-        
-            if status == "HIGH_RISK":
-                status_text = "🔴 HIGH_RISK - Dangerous prescription detected!"
-            elif status == "WARNING":
-                status_text = "🟡 WARNING - Please verify with pharmacist"
-            elif status == "PASS":
-                status_text = "🟢 PASS - Prescription appears safe"
-            elif status == "HUMAN_REVIEW_NEEDED":
-                status_text = "❓ HUMAN REVIEW NEEDED - Low confidence"
-            else:
-                status_text = f"⚠️ {status}"
-        
-            # V6.5 UI Polish: Visualize Agentic Self-Correction
-            if result.get("agentic_retries", 0) > 0:
-                status_text += " (⚡ Agent Self-Corrected)"
-        
-            # Build detailed report
-            report = {
-                "status": status,
-                "confidence": result.get("confidence", {}).get("score", "N/A"),
-                "input_gate": result.get("input_gate", {}).get("status", "N/A"),
-                "grounding": result.get("grounding", {}).get("passed", "N/A"),
-                "pipeline": result.get("pipeline_status", "N/A")
-            }
-        
-            if "parsed" in result.get("vlm_output", {}):
-                report["extracted_data"] = result["vlm_output"]["parsed"].get("extracted_data", {})
-                report["safety_analysis"] = result["vlm_output"]["parsed"].get("safety_analysis", {})
-        
-            return status_text, json.dumps(report, ensure_ascii=False, indent=2)
-    
-    
-        # [V17 FIX] Pre-compute example paths based on available data
-        # This must be done BEFORE gr.Interface() call
-        if USE_V17_DATA and os.path.exists(V17_DATA_DIR):
-            try:
-                example_files = sorted([f for f in os.listdir(V17_DATA_DIR) if f.endswith('.png')])[:2]
-                example_images = [[os.path.join(V17_DATA_DIR, f)] for f in example_files]
-            except Exception:
-                # Fallback if directory read fails
-                example_images = []
-        else:
-            # Use V5 examples
-            example_images = [
-                ["./medgemma_training_data_v5/medgemma_v5_0000.png"],
-                ["./medgemma_training_data_v5/medgemma_v5_0300.png"],
-            ]
-    
-        demo = gr.Interface(
-            fn=gradio_inference,
-            inputs=gr.Image(type="pil", label="📷 Upload Drug Bag Image"),
-            outputs=[
-                gr.Textbox(label="🏥 Safety Status"),
-                gr.JSON(label="📋 Detailed Report")
-            ],
-            title="🏥 SilverGuard CDS: Intelligent Medication Safety System",
-            description="""
-            **Powered by MedGemma 1.5 (Gemma 3 Architecture)**
-        
-            Upload a drug bag image to:
-            1. ✅ Validate image quality (blur check)
-            2. 🧠 Extract prescription data via VLM (with Agentic Self-Correction)
-            3. 📊 Calculate confidence score
-            4. 🔍 Run grounding check (anti-hallucination)
-            5. 📢 Output safety assessment
-        
-            *For demo: Use images from dataset*
-            """,
-            examples=example_images,
-            theme="soft"
-        )
-    
-        # Launch
-        print("\n" + "="*80)
-        print("🚀 Launching Gradio Demo...")
-        print("="*80)
-        demo.launch(share=True)
+# Uncomment the following line to install Gradio
+# !pip install -q gradio
 
-    # ===== Uncommented to run Gradio Demo in Impact Edition =====
-    create_gradio_demo()
+def create_gradio_demo():
+    """Create and launch Gradio demo interface"""
+    try:
+        import gradio as gr
+    except ImportError:
+        print("❌ Gradio not installed. Run: !pip install gradio")
+        return
 
-
-    
-    # ============================================================================
-    # CELL 7: Elder-Friendly Output Layer (Patient Empowerment)
-    # ============================================================================
-    """
-    Cell 7: 老人友善輸出層 - SilverGuard CDS Extension
-    ==============================================
-    🎯 Purpose: Transform technical JSON into elder-friendly output
-    🏆 Enhances: Patient Empowerment score (key evaluation criteria)
-
-    Features:
-    1. 🗣️ TTS Voice Readout (gTTS 台灣中文)
-    2. 📅 Large-Font Visual Calendar
-    3. 💬 Jargon-to-Plain-Language Converter
-    """
-
-    # !pip install -q gTTS  # Uncomment to install
-
-    from IPython.display import HTML, Audio, display
     import json
+    from PIL import Image
+
+    def gradio_inference(image):
+        """Wrapper for Gradio interface"""
+        if image is None:
+            return "❌ No image uploaded", "{}"
+    
+        # Save temp image (Race Condition Fix)
+        # Use uuid to ensure thread safety in multi-user environments
+        import uuid
+        temp_path = f"./temp_upload_{uuid.uuid4().hex[:8]}.png"
+        image.save(temp_path)
+    
+        # Run agentic pipeline
+        result = agentic_inference(model, processor, temp_path, verbose=False)
+    
+        # Format output
+        status = result["final_status"]
+    
+        if status == "HIGH_RISK":
+            status_text = "🔴 HIGH_RISK - Dangerous prescription detected!"
+        elif status == "WARNING":
+            status_text = "🟡 WARNING - Please verify with pharmacist"
+        elif status == "PASS":
+            status_text = "🟢 PASS - Prescription appears safe"
+        elif status == "HUMAN_REVIEW_NEEDED":
+            status_text = "❓ HUMAN REVIEW NEEDED - Low confidence"
+        else:
+            status_text = f"⚠️ {status}"
+    
+        # V6.5 UI Polish: Visualize Agentic Self-Correction
+        if result.get("agentic_retries", 0) > 0:
+            status_text += " (⚡ Agent Self-Corrected)"
+    
+        # Build detailed report
+        report = {
+            "status": status,
+            "confidence": result.get("confidence", {}).get("score", "N/A"),
+            "input_gate": result.get("input_gate", {}).get("status", "N/A"),
+            "grounding": result.get("grounding", {}).get("passed", "N/A"),
+            "pipeline": result.get("pipeline_status", "N/A")
+        }
+    
+        if "parsed" in result.get("vlm_output", {}):
+            report["extracted_data"] = result["vlm_output"]["parsed"].get("extracted_data", {})
+            report["safety_analysis"] = result["vlm_output"]["parsed"].get("safety_analysis", {})
+    
+        return status_text, json.dumps(report, ensure_ascii=False, indent=2)
+
+
+    # [V17 FIX] Pre-compute example paths based on available data
+    # This must be done BEFORE gr.Interface() call
+    if USE_V17_DATA and os.path.exists(V17_DATA_DIR):
+        try:
+            example_files = sorted([f for f in os.listdir(V17_DATA_DIR) if f.endswith('.png')])[:2]
+            example_images = [[os.path.join(V17_DATA_DIR, f)] for f in example_files]
+        except Exception:
+            # Fallback if directory read fails
+            example_images = []
+    else:
+        # Use V5 examples
+        example_images = [
+            ["./medgemma_training_data_v5/medgemma_v5_0000.png"],
+            ["./medgemma_training_data_v5/medgemma_v5_0300.png"],
+        ]
+
+    demo = gr.Interface(
+        fn=gradio_inference,
+        inputs=gr.Image(type="pil", label="📷 Upload Drug Bag Image"),
+        outputs=[
+            gr.Textbox(label="🏥 Safety Status"),
+            gr.JSON(label="📋 Detailed Report")
+        ],
+        title="🏥 SilverGuard CDS: Intelligent Medication Safety System",
+        description="""
+        **Powered by MedGemma 1.5 (Gemma 3 Architecture)**
+    
+        Upload a drug bag image to:
+        1. ✅ Validate image quality (blur check)
+        2. 🧠 Extract prescription data via VLM (with Agentic Self-Correction)
+        3. 📊 Calculate confidence score
+        4. 🔍 Run grounding check (anti-hallucination)
+        5. 📢 Output safety assessment
+    
+        *For demo: Use images from dataset*
+        """,
+        examples=example_images,
+        theme="soft"
+    )
+
+    # Launch
+    print("\n" + "="*80)
+    print("🚀 Launching Gradio Demo...")
+    print("="*80)
+    demo.launch(share=True)
+
+# ===== Uncommented to run Gradio Demo in Impact Edition =====
+create_gradio_demo()
+
+
+    
+# ============================================================================
+# CELL 7: Elder-Friendly Output Layer (Patient Empowerment)
+# ============================================================================
+"""
+Cell 7: 老人友善輸出層 - SilverGuard CDS Extension
+==============================================
+🎯 Purpose: Transform technical JSON into elder-friendly output
+🏆 Enhances: Patient Empowerment score (key evaluation criteria)
+
+Features:
+1. 🗣️ TTS Voice Readout (gTTS 台灣中文)
+2. 📅 Large-Font Visual Calendar
+3. 💬 Jargon-to-Plain-Language Converter
+"""
+
+# !pip install -q gTTS  # Uncomment to install
+
+from IPython.display import HTML, Audio, display
+import json
 
 # ============================================================================
 # TERM MAPPING: Medical Jargon to Plain Language
