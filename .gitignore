@@ -27,38 +27,80 @@ wheels/
 # VS Code
 .vscode/
 
+# Environments
+.venv/
+.env
+
 # Kaggle/Colab
 input/
 output/
 wandb/
 
-# MedGemma Project Specific
-# Exclude heavy model weights if downloaded locally (though user likely doesn't have them here)
+# ============================================================
+# 🔴 絕對不能上傳 (NEVER UPLOAD)
+# ============================================================
+
+# Model weights (Too large / violates HF Terms of Service)
 *.pt
 *.bin
 *.safetensors
 *.h5
+*.gguf
+silverguard_lora_adapter/
 
-# Exclude generated datasets if any (keep assets/stress_test though)
-medgemma_training_data_v4/
-medgemma_training_data_v5/
-medgemma_lora_output_v5/
-temp_query.jpg
+# Generated training datasets (Upload to Kaggle Dataset instead, not GitHub)
+assets/lasa_dataset_v17_compliance/
+assets/DEMO.7z
+assets/lasa_dataset_v17_compliance.7z
+medgemma_training_data_v*/
+medgemma_lora_output_v*/
 
-# OS
+# Piper TTS binaries (Windows-specific executable, 200MB+)
+piper_tts/
+
+# Package cache (Reinstallable, no value)
+packages_cache/
+
+# Deployment snapshots (Local debug copy — NOT canonical source)
+_deployment/SilverGuard_Deploy/
+_deployment/download_gpu_libs.ps1
+
+# OS / IDE artifacts
 .DS_Store
 Thumbs.db
-
-# Internal Dev Docs (Local Only)
-
 .agent/
 
-# Sim2Physical Original Photos (Keep only selected photos in assets/sim2physical/)
-# Sim2Physical Original Photos (Keep only selected photos in assets/sim2physical/)
-TAKE A PHOTO/
-
-# Temporary & Backup
+# Temp / Legacy / Archive
 tmp/
 silverguard-code-v1/
 _legacy_verification/
 _training_ref/
+
+# Personal photo uploads
+TAKE A PHOTO/
+
+# Runtime feedback logs (local only)
+feedback.jsonl
+feedback_log.jsonl
+
+# ============================================================
+# 🟢 一定要上傳 (MUST UPLOAD — these are already tracked)
+# ============================================================
+# app.py                          # Core Gradio UI
+# agent_engine.py                 # Core VLM Agentic Logic
+# agent_utils.py                  # Shared Utilities
+# medgemma_data.py                # Drug Database & Safety Rules
+# tts_engine.py                   # TTS Engine
+# piper_engine.py                 # Piper TTS Interface
+# generate_v17_fusion.py          # Data Generator
+# generate_stress_test.py         # Stress Test Generator
+# requirements.txt                # Python Dependencies
+# viewer.min.css / viewer.min.js  # UI Magnifier Assets
+# assets/DEMO/                    # Demo images for Gradio Examples
+# assets/fonts/                   # NotoSansTC fonts
+# _documentation/                 # All docs (Writeup, Model Card, etc.)
+# _deployment/Dockerfile          # Docker deployment config
+# _deployment/KAGGLE_BOOTSTRAP.py # Kaggle execution script
+# _deployment/packages.txt        # Kaggle apt packages
+# README.md                       # Main project README
+# LICENSE                         # License file
