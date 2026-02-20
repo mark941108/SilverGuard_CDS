@@ -210,7 +210,7 @@ docker run --gpus all -p 7860:7860 silverguard_cds
 
 > \* **Zero Marginal Cost**: After initial hardware investment (~$300 for edge device), each additional inference incurs virtually zero cost (no cloud API fees, negligible electricity). This is the economic advantage of Edge AI over Cloud-based solutions.
 
-> **Key Insight:** GPT-4's critical limitations in clinical deployment are **Privacy** and **Cost**. MedGemma Guardian ensures robust privacy compliance with local PHI processing.
+> **Key Insight:** GPT-4's critical limitations in clinical deployment are **Privacy** and **Cost**. **SilverGuard CDS** ensures robust privacy compliance with local PHI processing.
 
 
 
@@ -614,7 +614,7 @@ Our deployment follows a conservative, evidence-based scaling approach:
 
 | Failure Mode | Probability | Severity | Current Mitigation | Residual Risk | Detection Method |
 |--------------|------------|----------|-------------------|---------------|------------------|
-| **Model hallucination** (incorrect drug extraction) | Medium | **High** | ✅ Confidence threshold (≥60%)<br>✅ Human review for LOW_CONFIDENCE | **Low** | Pharmacist manual verification (100% cases) |
+| **Model hallucination** (incorrect drug extraction) | Medium | **High** | ✅ **Dual Confidence Threshold**: `HIGH_RISK` requires ≥50% (Recall Priority); `PASS` requires ≥75% (Precision Priority)<br>✅ Human review for LOW_CONFIDENCE | **Low** | Pharmacist manual verification (100% cases) |
 | **Image quality too poor** (blur, occlusion) | High | Low | ✅ Input quality gate (auto-reject)<br>✅ User feedback ("Retake photo") | Very Low | Blur detection algorithm (<20% edge variance) |
 | **Drug not in database** (novel medication) | Medium | Medium | ✅ Fuzzy string matching (Levenshtein)<br>✅ "UNKNOWN_DRUG" flag | **Low** | Database lookup failure → Human escalation |
 | **Power outage during inference** | Low | Medium | ✅ UPS battery backup (3 hours)<br>✅ Transaction logging (resume on restart) | Very Low | System monitoring daemon |
@@ -720,7 +720,7 @@ flowchart LR
         Correction
   end
  subgraph Wayfinding["🗺️ Wayfinding Protocol (Mahvar et al., 2025)"]
-        ConfCheck{"Confidence &lt; 70%?"}
+        ConfCheck{"Below threshold?\nHIGH_RISK: <50% | PASS: <75%"}
         AskUser@{ label: "❓ Ask: 'Is this 500 or 850?'" }
   end
  subgraph Action["🛡️ Action & Impact Layer"]
@@ -920,7 +920,7 @@ We rigorously tested MedGemma against "Gallery of Horrors" edge cases.
 | :--- | :--- | :--- | :--- |
 | **Motion Blur** | Laplacian Var < 100 | **Input Gate Rejection** | ✅ Active Refusal (Pre-computation) |
 | **Non-Drug Image** | Cat / Selfie | **OOD Detection** | ✅ Active Refusal |
-| **Extreme Low Light** | ISO Noise > 0.5 | **Confidence < 70%** | ❓ Human Review Needed |
+| **Extreme Low Light** | ISO Noise > 0.5 | **Dual-Threshold Check**: `PASS` < 75% or `HIGH_RISK` < 50% | ❓ Human Review Needed |
 | **Ambiguous Dose** | "Take 1-2 tablets" | **Logic Uncertainty** | ❓ Human Review Needed |
 
 **Insight:** Our Engineering-First approach prioritizes **Active Refusal**. We successfully prevented the model from "guessing" on low-quality real-world inputs.
@@ -987,7 +987,7 @@ By running **locally on Kaggle/Colab T4 (or Local PC)**:
 |---------|---------------|
 | **🔒 Privacy First** | No patient data leaves the local device (Ephemeral Processing) |
 | **⚡ Low Latency** | < 2s inference time per prescription (T4 GPU) |
-| **🧠 Human-in-the-Loop** | Confidence < 70% → "Human Review Needed" flag |
+| **🧠 Human-in-the-Loop** | Dual threshold: `HIGH_RISK` ≥50% (Recall Priority) · `PASS` ≥75% (Precision Priority) → flag `HUMAN_REVIEW_NEEDED` |
 | **💾 Memory Efficient** | Fits within 6GB VRAM (Consumer GPU Ready) |
 | **📋 HIPAA-Compliant Design** | All processing in RAM, data wiped after session |
 | **🕒 Timezone Robustness** | UTC+8 Hard-coded logic prevents "Yesterday Bug" in early morning tests |
