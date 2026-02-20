@@ -1757,19 +1757,27 @@ def run_training_stage():
 
     print("[2/5] Loading model in 4-bit...")
     
-    # ✅ 總監指令：T4 強制使用 float32 作為運算精度
-    target_dtype = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8 else torch.float32
+    # ✅ 總監指令：統一並修復混合精度設定
+    is_ampere = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8
+    target_dtype = torch.bfloat16 if is_ampere else torch.float16
 
     model = AutoModelForImageTextToText.from_pretrained(
         MODEL_ID, quantization_config=BNB_CONFIG,
         device_map="auto", torch_dtype=target_dtype, trust_remote_code=True
     )
 
-    # model.gradient_checkpointing_enable()
+    # 🟢 正確且保證不報錯的寫法順序：
     model = prepare_model_for_kbit_training(model)
-    model.enable_input_require_grads()
-    model.config.use_cache = False
     model = get_peft_model(model, LORA_CONFIG)
+    
+    # 必須在 get_peft_model 之後啟動，否則會抓不到 embedding layer 的梯度
+    if hasattr(model, "enable_input_require_grads"):
+        model.enable_input_require_grads()
+    
+    # 🟢 啟動梯度檢查點以防止 OOM (T4 必須)
+    model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={'use_reentrant': False})
+    
+    model.config.use_cache = False
     model.print_trainable_parameters()
 
     print("[3/5] Loading V5 dataset...")
@@ -1809,8 +1817,11 @@ def run_training_stage():
         lr_scheduler_type="cosine",
         warmup_steps=50,         # Explicit warmup
         optim="paged_adamw_8bit",
-        bf16=False, fp16=True,
-        gradient_checkpointing=False,
+        bf16=is_ampere,                 # 🟢 動態切換：Ampere 用 bf16
+        fp16=not is_ampere,             # 🟢 動態切換：T4 用 fp16
+        max_grad_norm=0.3,              # 🟢 新增：防止 T4 在 fp16 下梯度爆炸 (NaN) 的護身符
+        gradient_checkpointing=True,    # 🟢 必須設為 True
+        gradient_checkpointing_kwargs={'use_reentrant': False}, # 🟢 解決舊版 PyTorch 報錯
         save_strategy="epoch",
         eval_strategy="epoch",
         save_total_limit=2,
