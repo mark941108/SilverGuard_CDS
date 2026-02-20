@@ -1074,7 +1074,7 @@ To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disc
 *   **TTS**: For this demo, Google Translate API (`gTTS`) is used for high-quality audio. Production systems must use offline engines (e.g., MMS-TTS) for full air-gapped compliance.
 *   **Bias**: Specificity is prioritized (92.0%) to prevent alert fatigue, but out-of-distribution drugs may result in "HUMAN_REVIEW_NEEDED".
 *   **Logic Defense**: The "Stress Tests" presented are **Unit Tests for Safety Architecture**, designed to verify guardrail mechanics, not to simulate full global clinical variance.
-*   **Hardware**: T4 usage serves as an **"Edge-Ready Memory Simulation"**. Validating feasibility for deployment on Jetson Orin Nano / RTX 5060 Laptop consumer hardware.
+*   **Hardware**: Local development runs on RTX 5060. The Kaggle Demo notebook uses T4 x2 (provided by Kaggle) as an **\"Edge-Ready Simulation\"**, validating feasibility for deployment on Jetson Orin Nano / consumer GPU hardware.
 *   **Automation Strategy**: We aim for **"High Volume Automation"** (80% routine checks) to free pharmacists for **"High Complexity Human Review"** (20% edge cases).
 
 ---
