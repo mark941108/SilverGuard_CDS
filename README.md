@@ -1098,13 +1098,15 @@ To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disc
 **[▶ SilverGuard CDS Demo — Open in Kaggle](https://www.kaggle.com/code/markwang941108/silverguard-cds-demo)**
 
 > ✅ **Zero setup.** All dependencies, fine-tuned weights, and V17 dataset are pre-loaded.  
-> ✅ **GPU-ready.** Just Fork & Run — results appear within minutes.  
-> ✅ **Skips training.** Loads the saved QLoRA checkpoint directly into the 4-Stage Agentic Pipeline.
+> ✅ **GPU-ready.** Just Fork & Run — Gradio UI launches within minutes.  
+> ✅ **Interactive demo.** Upload a drug bag photo → the 4-Stage Agentic Pipeline returns a LASA risk assessment in real-time.  
+> ✅ **Skips training.** Loads the saved QLoRA checkpoint directly — no fine-tuning required.
 
 **Steps:**
 1. Click the link above → **Fork** the notebook
 2. Add your `HUGGINGFACE_TOKEN` in **Add-ons → Secrets**
-3. **Run All** — done.
+3. **Run All** → Gradio public URL appears at the bottom
+4. Upload a drug bag image → get instant LASA verification results
 
 ---
 
