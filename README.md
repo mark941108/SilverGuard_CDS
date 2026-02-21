@@ -928,7 +928,8 @@ To ensure "Anti-Fragility," we subjected the system to **Adversarial Attacks**:
 ---
  
 ### 🔬 Case Study: The Neuro-Symbolic Shield in Action
- 
+
+![Lethal Dose Intercept](assets/DEMO/IMG_0018.png)
 > **"In a pure LLM pipeline, a 92-year-old patient would have received a lethal 5X dose. Our architecture prevented it."**
  
 This real-world log from our stress-test suite demonstrates the **Neuro-Symbolic Shield** & **Agentic Reflection** mechanisms successfully intercepting a critical AI failure.
