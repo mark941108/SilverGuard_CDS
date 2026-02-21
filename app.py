@@ -946,6 +946,8 @@ def draw_warning_icon(draw, x, y, size=35):
 
 
 def create_medication_calendar(case_data, target_lang="zh-TW"):
+    # [KAGGLE FIX] Standardized Date Header: Unified naming across documentation
+    date_html = f"<div class='calendar-date'>日期: {today_date} (Local Time: UTC+8)</div>"
     """
         🗓️ SilverGuard CDS 旗艦級行事曆生成器 (Flagship Edition)
     

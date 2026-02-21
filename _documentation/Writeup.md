@@ -40,8 +40,8 @@ SilverGuard CDS: A Neuro-Symbolic Agent for Geriatric Medication Safety at the E
 
 **Taiwan Context (Global Proxy):**
 Taiwan became a **Super-Aged Society in 2025** (20%+ aged 65+). Two compounding crises:
-1.  **Polypharmacy:** Elderly patients average 5+ medications with complex regimens and declining vision.
-2.  **The Caregiver Language Barrier:** **250,000+ migrant caregivers** (Indonesian/Vietnamese) cannot read Traditional Chinese medical labels. A caregiver who cannot verify "睡前 (Bedtime)" vs. "飯後 (After Meal)" for a **sedative (Zolpidem)** can cause a fatal fall.
+1.  **Polypharmacy:** Elderly patients average 5+ medications with complex regimens and declining vision (AGS Beers Criteria® 2023 updates highlight increased risks for this demographic).
+2.  **The Caregiver Language Barrier:** **240,000+ migrant caregivers** (Ministry of Labor, 2024) cannot read Traditional Chinese medical labels. A caregiver who cannot verify "睡前 (Bedtime)" vs. "飯後 (After Meal)" for a **sedative (Zolpidem)**—a drug explicitly flagged in the Beers Criteria for falls risk—can cause a fatal accident.
 
 *Example:* Siti, an Indonesian caregiver, cannot read "睡前." She gives Zolpidem after dinner. Mrs. Chen (82) falls at midnight. **SilverGuard CDS is designed to intercept such risks before the pill is taken.**
 
@@ -96,9 +96,9 @@ flowchart LR
  end
 ```
 
-**Why Centralized, Not Swarm?** Per Kim et al. (2026), independent agent swarms amplify errors by **17.2×** in sequential medical tasks. Our single Orchestrator with a Validation Bottleneck constrains error amplification to **4.4×**.
+**Why Centralized, Not Swarm?** Per Yubin Kim et al. (2025), independent agent swarms amplify errors by **17.2×** in sequential medical tasks. Our single Orchestrator with a Validation Bottleneck constrains error amplification to **4.4×**.
 
-**Self-Correction via Internal Heterogeneity:** On failure, the system shifts Temperature (0.2 → 0.1), creating a diversity shift that allows a single 4B model to self-correct with ensemble-level robustness [Yang et al., 2026].
+**Self-Correction via Internal Heterogeneity:** On failure, the system shifts Temperature (0.2 → 0.1), creating a diversity shift that allows a single 4B model to self-correct with ensemble-level robustness [Yang et al., 2025].
 
 #### Validation Results (N=600, Gallery of Horrors Stress Test)
 
@@ -114,7 +114,7 @@ flowchart LR
 
 *   **−90% CO₂:** Edge inference (RTX 5060) costs ~0.42g CO₂e/query vs. ~4.32g for cloud GPT-4V.
 *   **$0 Marginal Cost:** Once deployed, each additional check is free — enabling 24/7 monitoring for resource-constrained community pharmacies.
-*   **Projected Impact:** Taiwan ADR rate 5.7% × 250,000 patients × 30% interception = **~4,275 cases prevented/year ≈ $2.1M USD saved annually**.
+*   **Projected Impact:** Taiwan ADE rate ~5.7% (extrapolated clinical data) × 250,000 polypharmacy patients × 30% interception = **~4,275 cases prevented/year ≈ $5.1M USD saved annually** (based on updated ADE cost estimates ~$1,200/event).
 
 #### Reproducibility
 *   Full pipeline on Kaggle: [Notebook](https://www.kaggle.com/code/markwang941108/silverguard-cds-demo) *(Note: Requires user to accept MedGemma terms on HuggingFace — this is an HAI-DEF compliance requirement, not a limitation)*
@@ -128,8 +128,8 @@ flowchart LR
 *   **Infrastructure Hardening:** Current Gradio `allowed_paths` are configured for Kaggle/POC flexibility (allowing `.` and `/tmp`). For clinical deployment, these will be strictly whitelisted to specific asset directories only, following the principle of least privilege to prevent unauthorized file access.
 
 ### References
-*   **Kim, Golden et al. (2026).** *Towards a Science of Scaling Agent Systems.* Google Research & Google DeepMind.
-*   **Mahvar et al. (2025).** *Towards Better Health Conversations: Wayfinding in Medical AI.* Google Research.
+*   **Yubin Kim et al. (2025).** *Towards a Science of Scaling Agent Systems.* Google Research & Google DeepMind.
+*   **Schaekermann, M. & Sayres, R. (2025).** *Towards Better Health Conversations: Research insights on a “wayfinding” AI agent based on Gemini.* Google Research.
 *   **American Geriatrics Society (2023).** *AGS Beers Criteria® Update.* JAGS.
 *   **Google Health AI (2026).** *MedGemma & MedASR Model Cards.* HAI-DEF.
 *   **WHO (2024).** *Medication Without Harm: Global Patient Safety Challenge.*

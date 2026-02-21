@@ -1132,9 +1132,9 @@ def check_is_prescription(response_text):
     # 計算醫療關鍵字命中數
     keyword_count = sum(1 for kw in CORE_MEDICAL_KEYWORDS if kw.lower() in response_lower)
     
-    # 門檻：至少要命中 4 個醫療關鍵字才算是處方箋
-    # (ETF 可能會有 'day' 或 'patient'，但很難同時有 'pill', 'dose', '服用', 'mg')
-    if keyword_count >= 4:
+    # 門檻：至少要命中 2 個醫療關鍵字才算是處方箋 (原為 4，針對短回覆進行優化)
+    # (例如只有 "Aspirin 100mg" 也應該過)
+    if keyword_count >= 2:
         return True
     
     return False

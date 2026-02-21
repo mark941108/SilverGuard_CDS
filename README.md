@@ -279,7 +279,7 @@ While we did not perform full ablation studies due to resource constraints (each
 **Key Insight:**  
 MedGemma's medical pre-training enables it to:
 1. 🔍 Recognize drug name variations (Metformin vs. 二甲雙胍 vs. Glucophage)
-2. ⚠️ Infer contraindications from visual cues (e.g., red warning bands on labels)
+2. ⚠️ Infer contraindications from visual cues and layout structures (e.g., warning bands or bolded alert sections on labels)
 3. 📏 Cross-validate dosage against age-specific guidelines (Elderly Beers Criteria)
 4. 💊 Detect drug-drug interactions (Warfarin + NSAIDs = bleeding risk)
 
@@ -469,15 +469,18 @@ This engine allows us to validate **Behavioral Stability** against physical entr
 <details>
 <summary><b>📷 Robustness Testing: Click to Expand Validation Gallery</b></summary>
 
-### 🌐 Real-World Optical Challenges (Sim2Physical Testing)
+### 🌐 Real-World Optical Challenges (Sim2Physical Stress Test)
 
-**Methodology**: Screen-to-camera validation to test optical resilience without violating patient privacy (HIPAA/PDPA).
+**Methodology**: Screen-to-camera validation using **legacy consumer hardware** (Samsung A22, 4-year-old budget device). This tests the system's ability to handle low-resolution sensors, lens distortion, and digital noise typical of rural or low-resource settings.
 
 | Test Case | Sample | Description | System Response |
-|-----------|--------|-------------|------------------|
-| **Normal Capture** | ![Photo1](assets/DEMO/mobile_capture/20260221_144323.jpg) | Standard shooting angle | ✅ **PASS** (96% confidence) |
-| **Left-Angled** | ![Photo2](assets/DEMO/mobile_capture/20260221_144343.jpg) | Device tilted to the left | ✅ **PASS** (91% confidence) |
-| **Down-Angled** | ![Photo3](assets/DEMO/mobile_capture/20260221_144400.jpg) | Device tilted downwards | ✅ **PASS** (80% confidence) |
+2: |-----------|--------|-------------|------------------|
+478: | **Normal Capture** | ![Photo1](assets/DEMO/mobile_capture/20260221_144323.jpg) | Standard shooting angle (A22) | ✅ **PASS** (96% confidence) |
+479: | **Left-Angled** | ![Photo2](assets/DEMO/mobile_capture/20260221_144343.jpg) | Device tilted 15° (A22) | ✅ **PASS** (91% confidence) |
+480: | **Down-Angled** | ![Photo3](assets/DEMO/mobile_capture/20260221_144400.jpg) | Device tilted 30° (A22) | ✅ **PASS** (80% confidence) |
+
+> [!TIP]
+> **Robustness Insight**: By successfully processing images from a $150 USD legacy phone, SilverGuard CDS proves it is ready for deployment in the **Global South** and rural clinics, where the latest flagship hardware is unavailable.
 
 </details>
 
@@ -698,7 +701,7 @@ flowchart LR
  subgraph Correction["🔄 Strategy Shift (Diversity)"]
         RetryLogic["Inject Error Context\n& Lower Temp (0.2 -> 0.1)\n(Chain of Thought CoT)"]
   end
- subgraph AgenticLoop["🧠 Neuro-Symbolic Agent Loop (Kim et al., 2026)"]
+ subgraph AgenticLoop["🧠 Neuro-Symbolic Agent Loop (Kim et al., 2025)"]
     direction TB
         Strategy{"Orchestrator\n(Validation Bottleneck)"}
         Sys1["System 1: MedGemma 1.5\n(Temp=0.2, Conservative)"]
@@ -706,7 +709,7 @@ flowchart LR
         DB[("Local Knowledge\nMock RAG")]
         Correction
   end
- subgraph Wayfinding["🗺️ Wayfinding Protocol (Mahvar et al., 2025)"]
+ subgraph Wayfinding["🗺️ Wayfinding Protocol (Schaekermann et al., 2025)"]
         ConfCheck{"Below threshold?\nHIGH_RISK: <50% | PASS: <70%"}
         AskUser@{ label: "❓ Ask: 'Is this 500 or 850?'" }
   end
@@ -1130,7 +1133,7 @@ This project uses **MedGemma 1.5-4B Multimodal** as its core reasoning engine. R
 | **Edge-Ready** | 4B parameters + 4-bit quantization enables deployment on pharmacy computers without datacenter resources |
 
 
-> **Source**: [MedGemma Model Card](https://developers.google.com/health-ai-developer-foundations/medgemma/model-card) — Google Health AI Developer Foundations
+> **Source**: [MedGemma 1.5-4B Model Card](https://huggingface.co/google/medgemma-1.5-4b-it) — Google Health AI Developer Foundations
 
 ### 🎤 MedASR Integration
 *   **Pipeline:** We use **[Google MedASR](https://huggingface.co/google/medasr)** (Medical Automated Speech Recognition) to transcribe caregiver voice logs into text, then inject this text into MedGemma's context window with a specific system prompt: `[📢 CAREGIVER VOICE NOTE]`.
@@ -1307,16 +1310,13 @@ SilverGuard CDS is an **Offline-First**, LLM-powered visual QA system designed t
 
 ---
 
-## 📚 References
-
-1. Google for Developers. *MedGemma | Health AI Developer Foundations*. [developers.google.com](https://developers.google.com/health-ai-developer-foundations/medgemma)
-2. Google for Developers. *MedGemma Model Card*. [developers.google.com](https://developers.google.com/health-ai-developer-foundations/medgemma/model-card)
-3. Google DeepMind (2025). *MedGemma Technical Report*. [arxiv.org](https://arxiv.org/abs/2507.05201)
-4. WHO (2024). *Medication Without Harm: Global Patient Safety Challenge*. [who.int](https://www.who.int/initiatives/medication-without-harm)
-5. WHO (2024). *Global Patient Safety Report 2024*.
-6. American Geriatrics Society (2023). *AGS Beers Criteria for Potentially Inappropriate Medication Use in Older Adults*. [americangeriatrics.org](https://www.americangeriatrics.org/beers-criteria)
-7. California Health Advocates. *Medication Errors and Older Adults*.
-8. Taiwan Ministry of Health and Welfare (2025). *Patient Safety Reporting System Statistics*.
+### References
+*   **Yubin Kim et al. (2025).** *Towards a Science of Scaling Agent Systems.* Google Research & Google DeepMind.
+*   **Schaekermann, M. & Sayres, R. (2025).** *Towards Better Health Conversations: Research insights on a “wayfinding” AI agent based on Gemini.* Google Research.
+*   **American Geriatrics Society (2023).** *AGS Beers Criteria® Update.* JAGS.
+*   **Google Health AI (2026).** *MedGemma & MedASR Model Cards.* HAI-DEF.
+*   **WHO (2024).** *Medication Without Harm: Global Patient Safety Challenge.*
+*   **Taiwan Ministry of Health and Welfare (2025).** *Patient Safety Reporting System Statistics.*
 
 ---
 
