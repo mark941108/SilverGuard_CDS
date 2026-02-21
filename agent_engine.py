@@ -1693,14 +1693,20 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
             def ghostbuster(obj):
                 if isinstance(obj, str):
                     # Strip specific model artifacts that leak from internal reasoning
-                    artifacts = ["step 1", "stepwise", "procedural reasoning", "[stepwise]"]
+                    # [P0 Fix] Expanded to catch "Usage" hallucinations like "Step 1"
+                    artifacts = [
+                        r"step\s*1\.*", r"step\s*2\.*", r"step\s*3\.*", 
+                        r"stepwise\s*:?", r"procedural reasoning", r"\[stepwise\]",
+                        r"procedural", r"appropriate"
+                    ]
                     clean_text = obj
                     for art in artifacts:
-                        # Case-insensitive replacement
-                        pattern = re.compile(re.escape(art), re.IGNORECASE)
-                        clean_text = pattern.sub("", clean_text)
-                    # Clean up trailing punctuation or spaces left after stripping
-                    return clean_text.replace(" .", ".").strip(". ") or "Appropriate"
+                        # Case-insensitive replacement with regex for flexibility
+                        clean_text = re.sub(art, "", clean_text, flags=re.IGNORECASE)
+                    
+                    # Clean up trailing punctuation, spaces, or leading colons left after stripping
+                    clean_text = clean_text.replace(" .", ".").strip(": \n\t. ")
+                    return clean_text or "Use as directed" # Default to a safe placeholder
                 elif isinstance(obj, dict):
                     return {k: ghostbuster(v) for k, v in obj.items()}
                 elif isinstance(obj, list):

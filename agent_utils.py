@@ -816,6 +816,17 @@ def normalize_dose_to_mg(dose_str):
                         continue # 若只有 1-2 顆且無 mg 資訊，放行交由其他機制檢查
             results.append(val)
         except: continue
+    
+    # [P0 Emergency Fix] Multiplier Detection (5X, 10X, 5倍)
+    if not results:
+        multiplier_match = re.search(r'(\d+)\s*(x|倍|times|normal)', dose_str.lower())
+        if multiplier_match:
+            try:
+                mult = float(multiplier_match.group(1))
+                if mult >= 2:
+                    return [9999.0], True # Return extreme value to force HIGH_RISK
+            except: pass
+            
     return results, bool(results)
 
 def check_hard_safety_rules(extracted_data, voice_context=""):
@@ -897,6 +908,17 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
                 if mg_val > 75:
                     return True, "WARNING", f"⚠️ Clopidogrel {mg_val}mg exceeds standard dose (75mg). Verify prescription."
 
+        # [P0 Emergency Fix] Abnormality Keywords in Dose
+        raw_dose_lower = str(raw_dose).lower()
+        abnormal_keywords = ["normal", "倍", "excessive", "extreme", "abnormal", "劑量異常", "調整"]
+        if any(kw in raw_dose_lower for kw in abnormal_keywords) and ("x" in raw_dose_lower or re.search(r'\d+', raw_dose_lower)):
+             return True, "HIGH_RISK", f"⛔ CRITICAL: Non-standard high-risk dosage detected: '{raw_dose}'"
+        
+        # [P0 Emergency Fix] Dangerous Frequency Detection (Q1H, 每小時)
+        usage_lower = str(actual_data.get("usage", "")).lower()
+        if any(q in usage_lower for q in ["q1h", "q2h", "1小時", "2小時", "every 1 hour", "every hour"]):
+            # Oral medications should never be Q1H
+            return True, "HIGH_RISK", f"⛔ CRITICAL FREQUENCY: Dosing every 1-2 hours ({usage_lower}) is highly abnormal and dangerous for oral medication."
                 
     except Exception as e:
         print(f"⚠️ Hard Rule Check Error: {e}")
@@ -947,6 +969,13 @@ def logical_consistency_check(extracted_data, safety_analysis=None, voice_contex
             issues.append(rule_reason)
         else:
             logs.append(f"Safety Note: {rule_reason}")
+
+    # 4. [P0 Emergency Fix] Contradictory Reasoning Check (VLM Guard)
+    reasoning_lower = str(safety_analysis.get("reasoning", "")).lower()
+    negative_medical_terms = ["adjustment needed", "excessive", "high dose", "overdose", "abnormal", "危險", "過高", "過量", "不建議"]
+    if any(k in reasoning_lower for k in negative_medical_terms):
+        if safety_analysis.get("status") == "PASS":
+            issues.append(f"⛔ SAFETY OVERRIDE: Reasoning indicated risk ('{reasoning_lower}') but status was PASS. Forcing review.")
 
     # 🟢 [FIX] Precedence: Critical Safety Rules > Unknown Drug
     # Check immediately after Hard Rules to prevent masking
