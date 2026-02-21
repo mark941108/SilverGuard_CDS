@@ -508,9 +508,9 @@ def load_model_assets():
             target_dtype = torch.bfloat16
             print("🚀 [Ampere Detected] Using bfloat16 for maximum stability.")
         else:
-            # ✅ 總監指令：T4 使用 float16 運算精度以提升速度，並配合適當的梯度裁剪
-            target_dtype = torch.float16 
-            print("🛡️ [Legacy/T4 Detected] Using float16 compute dtype for optimized speed.")
+            # ✅ 總監指令：T4 強制使用 float32 運算精度，避免 Gemma 激活值溢位產生 NaN (穩定性優先於速度)
+            target_dtype = torch.float32 
+            print("🛡️ [Legacy/T4 Detected] Using float32 compute dtype for absolute stability.")
 
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
