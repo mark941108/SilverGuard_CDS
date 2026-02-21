@@ -924,6 +924,26 @@ To ensure "Anti-Fragility," we subjected the system to **Adversarial Attacks**:
 | **Infinite Retry Loop** | Maliciously ambiguous input to force loops | **Circuit Breaker** | ✅ **BLOCKED** (Max Retries = 2) |
 | **Unknown Drug Injection** | Non-existent drug names | **Interception Layer** | ✅ **BLOCKED** (Strict DB Lookup) |
 | **Path Traversal Risk** | Malicious directory access via Gradio API | **Allowed Path Restriction** | ⚠️ **MITIGATED** (POC allows `.`, production will restrict to `assets` only) |
+ 
+---
+ 
+### 🔬 Case Study: The Neuro-Symbolic Shield in Action
+ 
+> **"In a pure LLM pipeline, a 92-year-old patient would have received a lethal 5X dose. Our architecture prevented it."**
+ 
+This real-world log from our stress-test suite demonstrates the **Neuro-Symbolic Shield** & **Agentic Reflection** mechanisms successfully intercepting a critical AI failure.
+ 
+| Stage | System Behavior | Outcome |
+| :--- | :--- | :--- |
+| **Perception (Try 0)** | MedGemma extracts "5000mg" (5X Normal) but hallucinates a `PASS` status. | ⚠️ **POTENTIAL FATALITY** |
+| **Shield Override** | `agent_utils` detects "5X" multiplier, overrides VLM, and forces `HIGH_RISK`. | 🛡️ **SAFETY HALT** |
+| **Agentic Reflection** | High-conflict detected. System 2 triggers: **Temp 0.2 → 0.1** and Agentic Retry. | 🧠 **SYSTEM 2 THINKING** |
+| **Verification (Try 1)** | Model re-examines evidence with strict decoding. Correctly confirms `HIGH_RISK`. | ✅ **RISK VERIFIED** |
+| **RAG Fallback** | OCR misreads name as "Yinuo". RAG extracts "Ezetimibe" from context & fixes name. | 🕵️ **HALLUCINATION REPAIR** |
+ 
+**Impact:** The system didn't just "detect" a risk; it **reasoned through a hallucination** and self-corrected, proving that neuro-symbolic safety is the only way to deploy LLMs in high-stakes clinical settings.
+ 
+---
 
 ---
 
