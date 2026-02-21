@@ -907,6 +907,15 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
                 # Clopidogrel: 標準劑量 75mg，> 75mg 需確認
                 if mg_val > 75:
                     return True, "WARNING", f"⚠️ Clopidogrel {mg_val}mg exceeds standard dose (75mg). Verify prescription."
+            
+            # [P0 Emergency Fix] General Extreme Dose Sentinel (Sent from normalize_dose_to_mg)
+            if mg_val >= 9000:
+                return True, "HIGH_RISK", f"⛔ CRITICAL: Extreme or multiplier dosage detected ({raw_dose}). Potential life-threatening overdose."
+
+            # [P0 Emergency Fix] Bisoprolol (Concor) Geriatric Guardrail
+            if age_val >= 65 and ("bisoprolol" in drug_name or "concor" in drug_name):
+                if mg_val > 10: # Standard max for elderly is often 5-10mg
+                    return True, "HIGH_RISK", f"⛔ HARD RULE: Geriatric Bisoprolol safety limit exceeded ({mg_val}mg > 10mg)."
 
         # [P0 Emergency Fix] Abnormality Keywords in Dose
         raw_dose_lower = str(raw_dose).lower()
