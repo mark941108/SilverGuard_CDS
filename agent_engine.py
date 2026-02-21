@@ -1695,9 +1695,12 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                     # Strip specific model artifacts that leak from internal reasoning
                     # [P0 Fix] Expanded to catch "Usage" hallucinations like "Step 1"
                     artifacts = [
-                        r"step\s*1\.*", r"step\s*2\.*", r"step\s*3\.*", 
-                        r"stepwise\s*:?", r"procedural reasoning", r"\[stepwise\]",
-                        r"procedural", r"appropriate"
+                        r"step\s*[1-9]\s*[:：。.]*", 
+                        r"stepwise\s*[:：。.]*", 
+                        r"procedural reasoning", 
+                        r"\[stepwise\]",
+                        r"procedural", 
+                        r"appropriate"
                     ]
                     clean_text = obj
                     for art in artifacts:
