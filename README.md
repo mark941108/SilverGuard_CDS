@@ -129,10 +129,10 @@ A **privacy-first, offline, multilingual, medically-intelligent** medication ver
 
 A **privacy-first, edge-deployed AI assistant** that:
 1. ✅ **Core inference** runs **100% Offline** on local device (RTX 5060) — no PHI leaves machine; Kaggle T4 requires internet for initial model download only
-2. ✅ **Hybrid Privacy**: Optional TTS uses secure cloud API (Default: Disabled/Offline)
+2. ✅ **Hybrid Privacy**: Optional TTS uses secure cloud API (Local Fallback: Piper Neural TTS / pyttsx3)
 3. ✅ Performs **medical reasoning** (catches dosage errors, drug interactions)
 4. ✅ Generates **elderly-friendly output** (large-font calendar + Traditional Chinese voice readout)
-5. ✅ Supports **migrant caregivers** (Indonesian/Vietnamese translations)
+5. ✅ Supports **migrant caregivers** (Piper Neural TTS for Indonesian/Vietnamese)
 
 **Impact:** If deployed in just 100 community pharmacies → Prevent **29,600 medication errors/year**, saving **$35.5M USD annually**.
 
@@ -185,8 +185,8 @@ docker run --gpus all -p 7860:7860 silverguard_cds
 ## 🌟 Key Features (Impact)
 *   **👵 SilverGuard CDS Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Traditional Chinese, 繁體中文) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Visual Translation Override** (UI text degrades to simple native warnings for ID/VI) and **High-Fidelity Translations**.
-*   **🗣️ Local Dialect Support**: Voice output in **Traditional Chinese (繁體中文)** optimized for the 65+ demographic in Taiwan. (Roadmap: Taiwanese Hokkien via Piper TTS)
-*   **🔐 Privacy First**: **Deployment-Aware Hybrid Architecture** — Local RTX 5060 (Windows): fully air-gapped, SAPI5 offline TTS, zero data egress. Kaggle T4 (Linux): VLM inference is local; TTS routes to **Microsoft Edge-TTS** (cloud, internet required).
+*   **🗣️ Local Dialect Support**: Voice output in **Traditional Chinese (繁體中文)** optimized for the 65+ demographic in Taiwan. (Local Support: Piper Neural TTS for Zero-Latency Support)
+*   **🔐 Privacy First**: **Deployment-Aware Hybrid Architecture** — Local RTX 5060 (Windows): fully air-gapped, Piper/SAPI5 offline TTS, zero data egress. Kaggle T4 (Linux): VLM inference is local; TTS routes to **Microsoft Edge-TTS** (cloud, internet required) with Piper fallback.
 *   **🧠 Agentic Reflection Pattern**: "Think before speaking" loop with self-critique and refinement (Andrew Ng, 2024).
 
 | Question | Answer |
@@ -340,8 +340,8 @@ Unlike pure cloud solutions, SilverGuard CDS implements a **deployment-aware pri
 -   **MedASR Integration**: Local transcript processing (Simulated Dialect Routing for Demo).
 
 > **Why Edge-TTS on Kaggle?** Linux environments (T4) don't support SAPI5. `edge-tts` provides the best voice quality for Traditional Chinese on Linux. Only **generic, de-identified alert phrases** (e.g., `「請諮詢藥師」`) are sent — never patient names or PHI.
-
-> **Production Deployment**: For fully air-gapped hospital networks, deploy on Windows with SAPI5, or use offline TTS (Piper / MMS-TTS) on Linux.
+>
+> **Production Deployment**: For fully air-gapped hospital networks, use **Offline Neural TTS (Piper)** on Linux/Windows for zero-latency migrant caregiver support (ID/VI/EN).
 
 
 
@@ -436,6 +436,7 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 | **1 in 30 patients** experience medication-related harm in healthcare | WHO 2024 |
 | Patients 65+ have **7x higher** medication error rate | Geriatric Pharmacy Research |
 | **53%** of preventable medication harm occurs at prescribing stage | WHO 2024 |
+| **TTS (Voice)** | Defaults to high-quality Neural Cloud TTS. Automatically falls back to local **Piper Neural TTS** (100% Offline) for zero-latency migrant caregiver support. |
 
 ### Core Features
 
@@ -608,7 +609,7 @@ Our deployment follows a conservative, evidence-based scaling approach:
 | **Image quality too poor** (blur, occlusion) | High | Low | ✅ Input quality gate (auto-reject)<br>✅ User feedback ("Retake photo") | Very Low | Blur detection algorithm (<20% edge variance) |
 | **Drug not in database** (novel medication) | Medium | Medium | ✅ Fuzzy string matching (Levenshtein)<br>✅ "UNKNOWN_DRUG" flag | **Low** | Database lookup failure → Human escalation |
 | **Power outage during inference** | Low | Medium | ✅ UPS battery backup (3 hours)<br>✅ Transaction logging (resume on restart) | Very Low | System monitoring daemon |
-| **Network loss** (for cloud TTS) | High | Low | ✅ **Offline pyttsx3 fallback**<br>✅ Cached audio templates | Very Low | Network status check before TTS call |
+| **Network loss** (for cloud TTS) | High | Low | ✅ **Offline Piper Neural TTS fallback**<br>✅ Cached audio templates | Very Low | Network status check before TTS call |
 | **Privacy leak** (PHI exposure) | Very Low | **Critical** | ✅ **Local-only inference**<br>✅ De-identified TTS text<br>✅ No cloud data upload | **Very Low** | Privacy audit logs, HIPAA compliance testing |
 
 **Safety Net Protocol:**
@@ -713,7 +714,7 @@ flowchart LR
         FinalRisk{"Risk Classifier"}
         Alert(["🚨 TTS Alert (Bahasa/Vi/Tw)"])
         Calendar(["📅 Visual Calendar"])
-        TTS_Engine["Hybrid TTS\n(Online gTTS / Offline pyttsx3)"]
+        TTS_Engine["Hybrid TTS\n(Online Cloud / Local Piper Neural TTS)"]
   end
     Img --> Gate
     Audio --> Sandwich
@@ -994,7 +995,7 @@ By running **locally on RTX 5060 (or Kaggle/Colab GPU)**:
 | Feature | Implementation |
 |---------|---------------|
 | **🔒 Privacy First** | No patient data leaves the local device (Ephemeral Processing) |
-| **⚡ Low Latency** | < 2s inference time per prescription (T4 GPU) |
+| **⚡ Low Latency** | **~2-3 sec** (Local RTX 5000 series) / **~5 sec** (Kaggle T4 Cloud) |
 | **🧠 Human-in-the-Loop** | Dual threshold: `HIGH_RISK` ≥50% (Recall Priority) · `PASS` ≥70% (Precision Priority) → flag `HUMAN_REVIEW_NEEDED` |
 | **💾 Memory Efficient** | Fits within 6GB VRAM (Consumer GPU Ready) |
 | **📋 HIPAA-Compliant Design** | All processing in RAM, data wiped after session |
@@ -1026,7 +1027,7 @@ Roadmap to Next-Generation Architecture (Post-Competition):
 - **Phase 3 - Dynamic RAG**: Integration with vector database (ChromaDB) to scale drug knowledge beyond the 19-drug POC.
 - **Phase 4 - Constitutional AI**: "Dual-Stream Verification" to prevent visual prompt injection attacks.
 - **Phase 5 - On-Device Deployment**: Deploy via **MediaPipe LLM Inference API** on high-end Android (Pixel 9 Pro, Galaxy S24 Ultra) with aggressive 4-bit quantization, OR **Edge Gateways** (NVIDIA Jetson Orin) for clinic deployment. *Note: MedGemma 4B exceeds standard AICore 3.25B limit; future research includes distilling to Gemini Nano 3B for native AICore compatibility.*
-- **Accessibility**: Support for 10+ dialects via MedASR-Large. (Current: Traditional Chinese / 繁體中文; Roadmap: Taiwanese Hokkien via Piper TTS)
+- **Accessibility**: Support for 10+ dialects via MedASR-Large. (Current: Traditional Chinese / 繁體中文; Supported: Indonesian/Vietnamese via Piper Neural TTS)
 
 <a name="docker-reproducibility-optional"></a>
 ### 🐳 Option 3: Docker (Production Deployment)
@@ -1287,7 +1288,7 @@ SilverGuard CDS is an **Offline-First**, LLM-powered visual QA system designed t
 
 1. Google for Developers. *MedGemma | Health AI Developer Foundations*. [developers.google.com](https://developers.google.com/health-ai-developer-foundations/medgemma)
 2. Google for Developers. *MedGemma Model Card*. [developers.google.com](https://developers.google.com/health-ai-developer-foundations/medgemma/model-card)
-3. Google DeepMind (2026). *MedGemma Technical Report*. [arxiv.org](https://arxiv.org/abs/2507.05201)
+3. Google DeepMind (2025). *MedGemma Technical Report*. [arxiv.org](https://arxiv.org/abs/2507.05201)
 4. WHO (2024). *Medication Without Harm: Global Patient Safety Challenge*. [who.int](https://www.who.int/initiatives/medication-without-harm)
 5. WHO (2024). *Global Patient Safety Report 2024*.
 6. American Geriatrics Society (2023). *AGS Beers Criteria for Potentially Inappropriate Medication Use in Older Adults*. [americangeriatrics.org](https://www.americangeriatrics.org/beers-criteria)
