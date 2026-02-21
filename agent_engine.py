@@ -1322,9 +1322,10 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
         f"Analyze the drug bag image and return valid JSON in {display_lang}.\n"
         "🔴 CRITICAL EMERGENCY PROTOCOL: If the user input mentions 'suicide', 'chest pain', 'stroke', or 'crushing pain', IGNORE image and return status='HIGH_RISK' with reasoning='EMERGENCY SYMPTOMS REPORTED: IMMEDIATE MEDICAL ATTENTION RECOMMENDED'.\n"
         "⚠️ SAFETY CONSTRAINT: Do NOT provide medical diagnoses. Use triage language like 'Consult a doctor'.\n"
-        "⚠️ CONSTRAINT: You must output ONLY JSON. No preamble. No markdown code blocks. No 'Step 1' reasoning. Language MUST be 繁體中文 (Traditional Chinese) for 'silverguard_message' and 'safety_analysis.reasoning'.\n"
+        "⚠️ CONSTRAINT: You must output ONLY a clean JSON object. Do not include any procedural text, thinking processes, step-by-step reasoning, or preamble.\n"
+        "⚠️ ILLEGIBILITY PROTOCOL: If any field (drug name, patient name, etc.) is scribbled out, illegible, or blurry, set that specific field to \"UNKNOWN\".\n"
         "\n"
-        "[CRITICAL DOSAGE ANALYSIS RULES - PERFORM INTERNALLY NO OUTPUT]\n"
+        "[CRITICAL DOSAGE ANALYSIS RULES]\n"
         "1. **Unit Normalization**: Treat 'g' as 'grams' and 'mg' as 'milligrams'. (e.g., 0.5g == 500mg, 1000mg == 1g). Do NOT flag mismatch if values are mathematically equivalent.\n"
         "2. **Daily Limit Check**: detailed calculation is required. Calculate [Single Dose] x [Frequency]. If the total exceeds known Max Daily Dose, issue a HIGH_RISK warning.\n"
         "3. **Contextual Dosage**: If extracted dose differs from standard but is a common variation (e.g., Aspirin 100mg vs 500mg for pain), verify if usage matches indication instead of blind flagging.\n"
@@ -1674,8 +1675,52 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                 continue
 
             # Success or exhausted retries
+            # [V14.2] Final Safety Override & Sanitization (Neuro-Symbolic Gate)
+            # 1. First, extract the model's reported status
+            model_reported_status = parsed_json.get("safety_analysis", {}).get("status") or parsed_json.get("status", "UNKNOWN")
+            
+            # 2. Unknown Drug Shield: Detect unidentified or out-of-database drugs
+            is_unknown = False
+            ext_data = parsed_json.get("extracted_data", {})
+            drug_name_val = str(ext_data.get("drug", {}).get("name", "") if isinstance(ext_data, dict) else "").lower()
+            
+            # Check for the RAG marker "(⚠️資料庫未收錄)" or the "Unknown" label
+            if "unknown" in drug_name_val or "資料庫未收錄" in drug_name_val or "⚠️" in drug_name_val:
+                is_unknown = True
+            
+            # 3. Model Artifact Sanitization (The "Ghostbuster" Filter)
+            # Strips persistent hallucinations like "Step 1" or "Stepwise" from user-facing text
+            def ghostbuster(obj):
+                if isinstance(obj, str):
+                    # Strip specific model artifacts that leak from internal reasoning
+                    artifacts = ["step 1", "stepwise", "procedural reasoning", "[stepwise]"]
+                    clean_text = obj
+                    for art in artifacts:
+                        # Case-insensitive replacement
+                        pattern = re.compile(re.escape(art), re.IGNORECASE)
+                        clean_text = pattern.sub("", clean_text)
+                    # Clean up trailing punctuation or spaces left after stripping
+                    return clean_text.replace(" .", ".").strip(". ") or "Appropriate"
+                elif isinstance(obj, dict):
+                    return {k: ghostbuster(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [ghostbuster(x) for x in obj]
+                return obj
+
+            parsed_json = ghostbuster(parsed_json)
+
+            # 4. Enforce Safety Override: Unknown drugs MUST be reviewed by a human
+            if is_unknown and model_reported_status == "PASS":
+                if verbose: print(f"   🛡️ [Safety Override] Unknown drug '{drug_name_val}' detected. Forcing PHARMACIST_REVIEW_REQUIRED.")
+                model_reported_status = "PHARMACIST_REVIEW_REQUIRED"
+                if "safety_analysis" not in parsed_json: parsed_json["safety_analysis"] = {}
+                parsed_json["safety_analysis"]["status"] = "PHARMACIST_REVIEW_REQUIRED"
+                parsed_json["safety_analysis"]["reasoning"] = "[SAFETY_OVERRIDE] 系統無法在健保資料庫中比對此藥物。基於安全考量，已攔截並轉交藥師人工核對。"
+                # Localize message if possible (Fallback provided)
+                parsed_json["silverguard_message"] = "提醒您，系統無法從資料庫比對此藥物資訊，基於安全考量，請不要服用並諮詢藥師。"
+
             result["vlm_output"] = {"parsed": parsed_json, "raw": gen_text}
-            result["final_status"] = parsed_json.get("safety_analysis", {}).get("status") or parsed_json.get("status", "UNKNOWN")
+            result["final_status"] = model_reported_status
             result["pipeline_status"] = "SUCCESS"
             result["agentic_retries"] = current_try
             return result
