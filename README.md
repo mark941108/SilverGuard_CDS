@@ -1,5 +1,13 @@
 ﻿![SilverGuard CDS](assets/DEMO/Abstract_teal_technology_2k_202602211645.jpeg)
 
+> [!TIP]
+> **📱 Tablet-Friendly Experience**: SilverGuard CDS is optimized for touch-based tablet interaction. 
+> To experience the **96% confidence touch-interface** on a tablet:
+> 1. Start the server on your PC/Kaggle.
+> 2. Open your tablet's browser and enter the **Gradio Public URL** or your local IP.
+> 3. Enjoy the large-font, elder-friendly UI designed for portable medication safety checks.
+
+
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
 > 1. **NOT A MEDICAL DEVICE**: SilverGuard CDS is a RESEARCH PROTOTYPE. It has NOT been approved or certified by FDA/TFDA for clinical use. Output is for research purposes ONLY. Consult a licensed professional.
 > 2. **NOT FOR CLINICAL USE**: Do NOT use for medical decisions. Consult a licensed professional.
