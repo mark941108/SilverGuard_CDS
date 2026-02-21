@@ -606,19 +606,29 @@ def transcribe_audio(audio_path, expected_lang="en"):
         # If the user has a heavy accent, we use "Phonetic Anchoring" to guide the model.
         # This is a standard technique in Medical ASR (e.g., Nuance Dragon).
         
-        # 1. Define Phonetic Anchors (What we expect to hear)
-        anchors = ["aspirin", "pain", "headache", "take", "daily", "stomach"]
+        # 1. Define Phonetic Anchors (Dynamic & Context-Aware)
+        # 保留通用的醫療/症狀關鍵字
+        anchors = ["pain", "headache", "take", "daily", "stomach", "dizzy", "bleeding"]
+        
+        # 🛡️ [Integrity Fix] 動態從 DRUG_DATABASE 抓取藥品名稱，拒絕寫死作弊
+        try:
+            if 'DRUG_DATABASE' in globals() and DRUG_DATABASE:
+                for cat, drugs in DRUG_DATABASE.items():
+                    for d in drugs:
+                        if isinstance(d, dict) and "name_en" in d:
+                            anchors.append(d["name_en"].lower())
+        except Exception as e:
+            logs.append(f"⚠️ Dynamic anchor extraction warning: {e}")
         
         # 2. Run ASR
         transcription = result.get("text", "")
         
         # 3. Apply Phonetic Correction (Simple Fuzzy Match for Demo)
-        # If we hear "asperin", "aspring", "asprin" -> Correct to "Aspirin"
         from difflib import get_close_matches
         words = transcription.split()
         corrected_words = []
         for w in words:
-            # Check if this word sounds like our target drug
+            # Check if this word sounds like our target drug or symptom
             matches = get_close_matches(w.lower(), anchors, n=1, cutoff=0.7)
             if matches:
                 corrected_words.append(matches[0]) # Snap to anchor
@@ -627,16 +637,19 @@ def transcribe_audio(audio_path, expected_lang="en"):
         
         transcription = " ".join(corrected_words)
         
-        # 🟢 [Audit Fix P0.2] Heuristic Confidence Scoring (Deterministic)
-        heuristic_conf = random.uniform(0.85, 0.95)
+        # 🟢 [Integrity Fix] Deterministic Confidence Scoring (No Randomness)
+        base_conf = 0.90
         
         # Lexical Penalty (Too short = lower confidence)
         if len(transcription) < 10: 
-            heuristic_conf -= 0.1
+            base_conf -= 0.1
             
         # Contextual Bonus (Boost if keywords from anchors are detected)
         if any(kw in transcription.lower() for kw in anchors):
-            heuristic_conf += 0.05
+            base_conf += 0.05
+            
+        # Cap strictly between 0.0 and 0.99
+        heuristic_conf = min(0.99, max(0.0, base_conf))
             
         # Cap at 0.99
         heuristic_conf = min(0.99, max(0.0, heuristic_conf))
@@ -1785,7 +1798,7 @@ def silverguard_ui(case_data, target_lang="zh-TW", force_offline=False):  # [Fix
         display_status = "⚠️ MISSING DATA"
         color = "#fff9c4"
         icon = "❓"
-    elif status in ["HUMAN_REVIEW_NEEDED", "UNKNOWN_DRUG", "UNKNOWN"]:
+    elif status in ["HUMAN_REVIEW_NEEDED", "UNKNOWN_DRUG", "UNKNOWN", "PHARMACIST_REVIEW_REQUIRED"]:
         display_status = "⚠️ 需人工確認 / REVIEW NEEDED"
         color = "#ffe0b2" 
         icon = "🩺"

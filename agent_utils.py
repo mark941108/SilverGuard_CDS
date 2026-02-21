@@ -186,6 +186,10 @@ def neutralize_hallucinations(data, context="", full_data=None):
         context: 當前處理的上下文（"patient_scope" 等）
         full_data: 完整的 VLM 輸出（用於提取 reasoning）
     """
+    # 🛡️ [POC / DEMO ONLY] 隱私護盾 (Privacy Shield) 概念驗證
+    # 競賽展示專用：此處使用靜態陣列攔截特定的測試資料個資以防止外洩。
+    # 於真實產品環境 (Production) 中，此模組將串接正規的 Medical NER (命名實體辨識) 模型，
+    # 自動識別並遮蔽所有未知的病患姓名 (Name) 與年齡 (Age)。
     BANNED_NAMES = ["劉淑芬", "王大明", "陳小明"]
     BANNED_AGES = ["79", "83", "88"]
     
@@ -784,7 +788,8 @@ def normalize_dose_to_mg(dose_str):
     for s in parts:
         if not s: continue
         try:
-            match = re.search(r'([\d\.]+)(mg|g|mcg|ug|ml|毫克|公克)', s)
+            # [P0 Fix] 加入 顆/錠/粒/tablet/capsule 的辨識
+            match = re.search(r'([\d\.]+)(mg|g|mcg|ug|ml|毫克|公克|顆|錠|粒|tablet|capsule)', s)
             val = 0.0
             if not match:
                  nums = re.findall(r'\d*\.?\d+', s)
@@ -803,6 +808,12 @@ def normalize_dose_to_mg(dose_str):
                 unit = match.group(2)
                 if unit in ['g', '公克']: val *= 1000.0
                 elif unit in ['mcg', 'ug']: val /= 1000.0
+                elif unit in ['顆', '錠', '粒', 'tablet', 'capsule']:
+                    # [P0 Fix] 若為單純顆數，假設若大於等於 4 顆即為潛在異常 (傳回極大值 9999.0 觸發攔截)
+                    if val >= 4: 
+                        val = 9999.0 
+                    else: 
+                        continue # 若只有 1-2 顆且無 mg 資訊，放行交由其他機制檢查
             results.append(val)
         except: continue
     return results, bool(results)
@@ -931,7 +942,8 @@ def logical_consistency_check(extracted_data, safety_analysis=None, voice_contex
     # Trigger Central Hard Rules
     is_triggered, rule_status, rule_reason = check_hard_safety_rules(actual_data, voice_context=voice_context)
     if is_triggered:
-        if rule_status == "HIGH_RISK":
+        # [P0 Fix] 包含審核要求與警告，防止被當成普通 Note 放行
+        if rule_status in ["HIGH_RISK", "PHARMACIST_REVIEW_REQUIRED", "WARNING"]:
             issues.append(rule_reason)
         else:
             logs.append(f"Safety Note: {rule_reason}")
