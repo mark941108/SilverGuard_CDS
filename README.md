@@ -1,4 +1,4 @@
-﻿![SilverGuard CDS](assets/stress_test/demo_clean_1.png)
+﻿![SilverGuard CDS](assets/DEMO/Abstract_teal_technology_2k_202602211645.jpeg)
 
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
 > 1. **NOT A MEDICAL DEVICE**: SilverGuard CDS is a RESEARCH PROTOTYPE. It has NOT been approved or certified by FDA/TFDA for clinical use. Output is for research purposes ONLY. Consult a licensed professional.
@@ -1119,12 +1119,12 @@ This project uses **MedGemma 1.5-4B Multimodal** as its core reasoning engine. R
 
 *   **MedASR Implementation**:
     - **Architecture**: Conformer Architecture: 105M parameters optimized for medical domain
-    - **Language Support**: **English-only (Factual Limitation)**: Optimized for US-English dictation
-    - **Workaround**: **Simulated Multilingualism**: Demo uses English input for cross-lingual intent simulation
+    - **Language Support**: **Primary English (Validated)**: While the MedSR model supports US-English and Indonesian medical dictation, this POC **primarily validates English-based caregiver notes** for its cross-modal reasoning demonstration.
+    - **Capability Roadmap**: Support for Indonesian and research-stage Vietnamese ASR is architecturally possible but hasn't been fully validated in this specific prototype.
     - **Official Documentation**: [Google HAI-DEF](https://developers.google.com/health-ai-developer-foundations/medasr)
 
-*   **Use Case**: Migrant caregivers (Indonesian/Vietnamese) can dictate observations in their native language, which MedASR transcribes with medical terminology intact, enabling MedGemma to cross-reference with the prescription.
-*   **Benefit**: This allows the agent to perform "Cross-Modal Reasoning" (e.g., comparing visual pills vs. auditory allergy warnings) without the massive compute cost of training a new audio encoder.
+*   **Use Case**: Caregivers can dictate observations (supported in English/Indonesian), which MedASR transcribes with medical terminology intact, enabling MedGemma to cross-reference with the prescription.
+*   **Benefit**: This allows the agent to perform "Cross-Modal Reasoning" (e.g., comparing visual pills vs. auditory allergy warnings) without the massive compute cost of training a new multimodal audio-visual encoder from scratch.
 
 ### Global Health Context (WHO Alignment)
 
