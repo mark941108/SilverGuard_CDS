@@ -1,5 +1,4 @@
-﻿<!-- 🖼️ HERO IMAGE -->
-![SilverGuard CDS](assets/stress_test/demo_clean_1.png)
+﻿![SilverGuard CDS](assets/stress_test/demo_clean_1.png)
 
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
 > 1. **NOT A MEDICAL DEVICE**: SilverGuard CDS is a RESEARCH PROTOTYPE. It has NOT been approved or certified by FDA/TFDA for clinical use. Output is for research purposes ONLY. Consult a licensed professional.
@@ -148,7 +147,7 @@ A **privacy-first, edge-deployed AI assistant** that:
 ```bash
 # Clone repository
 git clone https://github.com/mark941108/SilverGuard_CDS.git
-cd SilverGuard
+cd SilverGuard_CDS
 
 # Install system dependencies (Required for Offline TTS)
 sudo apt-get update && sudo apt-get install -y libespeak1 ffmpeg
@@ -156,7 +155,7 @@ sudo apt-get update && sudo apt-get install -y libespeak1 ffmpeg
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Run full pipeline (data gen → training → demo)
+# Run full pipeline (Data Gen → Training → Demo Analysis)
 python agent_engine.py
 
 # Launch interactive Web UI
@@ -166,7 +165,10 @@ python app.py  # Opens at http://localhost:7860
 <a name="docker-reproducibility-optional"></a>
 ### 🐳 Option 3: Docker (Production Deployment)
 ```bash
-docker build -t silverguard_cds .
+# Build from deployment context
+docker build -t silverguard_cds -f _deployment/Dockerfile .
+
+# Run container with GPU support
 docker run --gpus all -p 7860:7860 silverguard_cds
 ```
 
@@ -464,29 +466,13 @@ This engine allows us to validate **Behavioral Stability** against physical entr
 
 | Test Case | Sample | Description | System Response |
 |-----------|--------|-------------|------------------|
-| **Moiré Pattern** | ![Photo1](assets/sim2physical/screen_photo_1.jpg) | LCD re-capture with angle distortion | ✅ **PASS** (88% confidence) |
-| **Glare & Reflection** | ![Photo2](assets/sim2physical/screen_photo_2.jpg) | Ambient light interference | ✅ **PASS** (82% confidence) |
-| **Combined Stress** | ![Photo3](assets/sim2physical/screen_photo_3.jpg) | Multiple optical artifacts | ✅ **PASS** (79% confidence) |
-
-> **Key Finding**: Our system successfully processes **real-world optical noise** from smartphone cameras capturing LCD screens - a proxy for pharmacy counter photography conditions.
-
----
-
-### 🧪 Synthetic Validation Tests (Input Quality Gate)
-
-**Purpose**: Validate the system's **Active Refusal** mechanism when input quality is insufficient.
-
-| Test Case | Sample | Description | System Response |
-|-----------|--------|-------------|------------------|
-| **Blur Detection** | ![Blur](assets/stress_test/demo_dirty_1.png) | Laplacian Variance < 100 | ❌ **REJECTED** (Active Refusal) |
-| **High Risk Case** | ![Risk](assets/stress_test/demo_dirty_3.png) | Age 88 + High Dose Metformin | ⚠️ **FLAGGED** (Human Review Needed) |
-| **Clean Baseline 1** | ![Clean1](assets/stress_test/demo_clean_1.png) | Standard quality reference | ✅ **PASS** (95% confidence) |
-| **Clean Baseline 2** | ![Clean2](assets/stress_test/demo_clean_2.png) | Alternative lighting | ✅ **PASS** (93% confidence) |
-| **Clean Baseline 3** | ![Clean3](assets/stress_test/demo_clean_3.png) | Different angle | ✅ **PASS** (94% confidence) |
+| **Normal Capture** | ![Photo1](assets/DEMO/mobile_capture/20260221_144323.jpg) | Standard shooting angle | ✅ **PASS** (96% confidence) |
+| **Left-Angled** | ![Photo2](assets/DEMO/mobile_capture/20260221_144343.jpg) | Device tilted to the left | ✅ **PASS** (91% confidence) |
+| **Down-Angled** | ![Photo3](assets/DEMO/mobile_capture/20260221_144400.jpg) | Device tilted downwards | ✅ **PASS** (80% confidence) |
 
 </details>
 
-> **Result**: Our **Active Refusal Architecture** successfully prevents hallucination on low-quality inputs. The system processes clean images with 90%+ confidence while **actively refusing** to guess on blurry/occluded images - a critical safety feature for medical applications.
+
 
 ---
 
@@ -496,7 +482,7 @@ To quantify the potential clinical value of **SilverGuard CDS**, we modeled the 
 
 **Scenario:** A community pharmacy processing **4,000 prescriptions/month** (48,000/year).
 
-| Metric | Result (Internal Pool N=600) | Clinical Significance |
+| Metric | Result (Test Set N=55) | Clinical Significance |
 |:-------|:----------------------:|:----------------------|
 | **Sensitivity (Recall)** | **96.5%** | Catches nearly all dangerous prescriptions |
 | **Overall Accuracy** | **~93%+** | High reliability for daily use |

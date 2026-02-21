@@ -295,15 +295,32 @@ def resolve_drug_name_zh(raw_name):
     
     # 2. 遍歷資料庫進行匹配
     if DRUG_DATABASE:
+        best_match = None
+        best_score = 0
+        
         for category in DRUG_DATABASE.values():
             for item in category:
                 # 完整匹配英文名或通用名
                 if target in [item['name_en'].lower(), item['generic'].lower()]:
                     return item['name_zh']
+                
+                # 模糊匹配 (針對 OCR 誤傳，如 Aspirinh -> Aspirin)
+                # 使用簡單的字元重合度或 difflib
+                from difflib import SequenceMatcher
+                for candidate in [item['name_en'].lower(), item['generic'].lower()]:
+                    score = SequenceMatcher(None, target, candidate).ratio()
+                    if score > 0.85 and score > best_score:
+                        best_score = score
+                        best_match = item['name_zh']
+
                 # 關鍵字包含匹配 (例如 VLM 吐出 "Glucophage Tablets")
-                # [Fix] 必須確保 clean_name 不為空，否則會匹配到所有藥物 (造成 Norvasc 幻覺)
                 if clean_name and len(clean_name) > 2 and (clean_name in item['name_en'].lower() or item['name_en'].lower() in clean_name):
                     return item['name_zh']
+        
+        # 如果模糊匹配分數夠高，則採用
+        if best_match and best_score > 0.85:
+            print(f"🛡️ [Fuzzy Fix] {raw_name} -> {best_match} (Score: {best_score:.2f})")
+            return best_match
                 
     return raw_name # 找不到則回傳原始名稱 (至少有原始資訊)
 
@@ -532,22 +549,91 @@ def check_image_quality(image_path):
 
 def clean_text_for_tts(text, lang='zh-tw'):
     """
-    🔊 TTS Text Cleaner (Remove JSON artifacts and special chars)
+    🔊 [V15.0] Robust TTS Text Cleaner (Medical Jargon to Elder-Friendly Language)
+    1. Removes JSON artifacts and special characters.
+    2. Translates medical English abbreviations to target language.
+    3. Filters out internal reasoning artifacts (Step 1, Reasoning, etc.).
+    4. Normalizes units for clearer speech.
     """
     if not text:
         return ""
     
     import re
-    # Remove JSON syntax
-    cleaned = re.sub(r'[{}"\[\]]', '', str(text))
-    # Remove excessive whitespace
-    cleaned = re.sub(r'\s+', ' ', cleaned)
-    # Remove URLs
-    cleaned = re.sub(r'http[s]?://\S+', '', cleaned)
-    # Remove Markdown bold/italic
-    cleaned = re.sub(r'[*_#]', '', cleaned)
+    text = str(text)
+
+    # --- 1. Filter out internal Reasoning/CoT Artifacts ---
+    # These often leak into LLM messages (e.g., "Step 1: ...")
+    noise_patterns = [
+        r'Step\s*\d+[:\-.]?', r'Reasoning[:\-.]?', r'Assessment[:\-.]?',
+        r'Confidence[:\-.]?', r'Grounding[:\-.]?', r'Status[:\-.]?',
+        r'Patient[:\-.]?', r'Drug[:\-.]?', r'Extracted[:\-.]?',
+        r'Analysis[:\-.]?'
+    ]
+    for pattern in noise_patterns:
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+
+    # --- 2. Medical Jargon Translation Map (Elder-Friendly) ---
+    # Note: Focus on abbreviations commonly found in "Usage" fields
+    JARGON_MAP = {
+        # Latin Abbreviations
+        r'\bQD\b': '一天吃一次',
+        r'\bBID\b': '一天吃兩次',
+        r'\bTID\b': '一天吃三次',
+        r'\bQID\b': '一天吃四次',
+        r'\bHs\b': '睡前吃',
+        r'\bQHS\b': '睡前吃',
+        r'\bPRN\b': '很不舒服的時候才吃',
+        r'\bac\b': '飯前吃',
+        r'\bpc\b': '飯後吃',
+        r'\bPO\b': '口服',
+        r'\bSTAT\b': '立刻吃',
+        r'\bq6h\b': '每六個小時吃一次',
+        r'\bq8h\b': '每八個小時吃一次',
+        r'\bq12h\b': '每十二個小時吃一次',
+        
+        # Common English placeholders
+        r'\bas\s+directed\b': '照醫生的吩咐吃',
+        r'\bas\s*needed\b': '不舒服的時候才吃',
+        
+        # Units (to avoid speech engines saying "m-g")
+        r'\bmg\b': '毫克',
+        r'\bml\b': '毫升',
+        r'\bkg\b': '公斤',
+        
+        # --- Standard Taiwan Normalization (Elder-Friendly via Clarity) ---
+        r'(\d)\s*次': r'\1次',
+        r'1次': '一次',
+        r'2次': '兩次',
+        r'3次': '三次',
+        r'4次': '四次',
+        r'1顆': '一顆',
+        r'2顆': '兩顆',
+        r'3顆': '三顆',
+        r'4顆': '四顆',
+        r'1錠': '一錠', # Restore 錠
+        r'2錠': '兩錠',
+        r'3錠': '三錠',
+        r'4錠': '四錠',
+    }
     
-    return cleaned.strip()
+    # 針對多國語言可以擴充此 Map (目前預設支援中英混讀優化)
+    for eng, local in JARGON_MAP.items():
+        text = re.sub(eng, local, text, flags=re.IGNORECASE)
+
+    # --- 3. UI/Markdown Artifact Removal ---
+    # Remove JSON syntax
+    text = re.sub(r'[{}"\[\]]', '', text)
+    # Remove URLs
+    text = re.sub(r'http[s]?://\S+', '', text)
+    # Remove Markdown bold/italic
+    text = re.sub(r'[*_#]', '', text)
+    # Remove Emojis & excessive symbols (to prevent engine stutters)
+    text = re.sub(r'[⚠️✅🔴🟡🟢❓🚨⛔🚫]', '', text)
+    
+    # Final cleanup of spacing
+    text = re.sub(r'\s+', ' ', text)
+    
+    return text.strip()
 
 def check_drug_interaction(drug_a, drug_b):
     """
