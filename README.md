@@ -1,11 +1,11 @@
 ﻿![SilverGuard CDS](assets/DEMO/Abstract_teal_technology_2k_202602211645.jpeg)
 
 > [!TIP]
-> **📱 Tablet-Friendly Experience**: SilverGuard CDS is optimized for touch-based tablet interaction. 
+> **📱 Tablet-Friendly Experience (Kaggle-Native)**: SilverGuard CDS is optimized for touch-based tablet interaction. 
 > To experience the **96% confidence touch-interface** on a tablet:
-> 1. Start the server on your PC/Kaggle.
-> 2. Open your tablet's browser and enter the **Gradio Public URL** or your local IP.
-> 3. Enjoy the large-font, elder-friendly UI designed for portable medication safety checks.
+> 1. Launch the system on **Kaggle** (Cloud Mode).
+> 2. Open your tablet's browser and enter the **Gradio Public URL** provided in the logs.
+> 3. *PC Users*: To enable this locally, you must manually set `server_name="0.0.0.0"` in `app.py` (Note: This may affect stability on some Windows builds).
 
 
 ⚠️ **CRITICAL LEGAL DISCLAIMER**
@@ -923,6 +923,7 @@ To ensure "Anti-Fragility," we subjected the system to **Adversarial Attacks**:
 | **Boundary Attack** | Edge case ages (e.g., 65-year-old threshold) | **Standardized Rules** | ✅ **HANDLED** (Logic follows AGS Beers Standard) |
 | **Infinite Retry Loop** | Maliciously ambiguous input to force loops | **Circuit Breaker** | ✅ **BLOCKED** (Max Retries = 2) |
 | **Unknown Drug Injection** | Non-existent drug names | **Interception Layer** | ✅ **BLOCKED** (Strict DB Lookup) |
+| **Path Traversal Risk** | Malicious directory access via Gradio API | **Allowed Path Restriction** | ⚠️ **MITIGATED** (POC allows `.`, production will restrict to `assets` only) |
 
 ---
 

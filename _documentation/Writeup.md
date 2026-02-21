@@ -43,7 +43,7 @@ Taiwan became a **Super-Aged Society in 2025** (20%+ aged 65+). Two compounding 
 1.  **Polypharmacy:** Elderly patients average 5+ medications with complex regimens and declining vision.
 2.  **The Caregiver Language Barrier:** **250,000+ migrant caregivers** (Indonesian/Vietnamese) cannot read Traditional Chinese medical labels. A caregiver who cannot verify "睡前 (Bedtime)" vs. "飯後 (After Meal)" for a **sedative (Zolpidem)** can cause a fatal fall.
 
-*Example:* Siti, an Indonesian caregiver, cannot read "睡前." She gives Zolpidem after dinner. Mrs. Chen (82) falls at midnight. **SilverGuard CDS intercepts this before the pill is taken.**
+*Example:* Siti, an Indonesian caregiver, cannot read "睡前." She gives Zolpidem after dinner. Mrs. Chen (82) falls at midnight. **SilverGuard CDS is designed to intercept such risks before the pill is taken.**
 
 **Taiwan as a Global Time Machine:** Taiwan's demographic reality simulates what Europe and North America will face in 10 years. The architecture is language-agnostic; swapping from Mandarin to Japanese or Swahili is a single config change, making this a **blueprint for the Global South**.
 
@@ -57,7 +57,7 @@ SilverGuard CDS implements a **WHO "Task Shifting"** strategy using three HAI-DE
 | :--- | :--- |
 | **MedGemma 1.5-4B** (QLoRA Fine-tuned) | Core VLM: reads drug bag image, extracts drug name, dose, frequency, warnings. Fine-tuned on 600 synthetic Taiwan-standard drug bags with real-world noise (glare, creasing, thermal fading). |
 | **Google MedASR** | Captures caregiver's voice note (*"Grandma fell, bleeding"*) with medical-grade accuracy. MedASR correctly transcribes "Bleeding" where generic STT fails, enabling cross-modal safety checks. |
-| **Agentic Safety Loop** | Synthesizes Vision + Audio → Detects the contraindication (Aspirin + Bleeding Risk) → Outputs a TTS alert in **Bahasa Indonesia** in real-time. |
+| **Agentic Safety Loop** | Synthesizes Vision + Audio → **Demonstrates** contraindication detection → Outputs a TTS alert in **Bahasa Indonesia** (Standard Alert Template). |
 
 **Key Design Principles:**
 *   **Offline-First:** 100% local inference (MedGemma 4B + 4-bit QLoRA). No PHI leaves the device.
@@ -65,7 +65,7 @@ SilverGuard CDS implements a **WHO "Task Shifting"** strategy using three HAI-DE
 *   **Human-in-the-Loop:** System acts as a "Second Pair of Eyes"—advisory only. Final authority always with the licensed professional.
 
 #### MedASR Limitations & Mitigation (HAI-DEF Compliance Disclosure)
-Per Google Health AI Model Card, MedASR has known biases (English-centric, noise-sensitive, male-skewed training data). *Mitigation:* Our multi-modal "Sandwich Defense" uses visual drug bag data as the ground truth when ASR confidence is low, and a "Quiet Zone" UI protocol prompts users to reduce background noise.
+Per Google Health AI Model Card, MedASR has known biases (English-centric, noise-sensitive, male-skewed training data). *Mitigation:* This POC primarily validates English-based caregiver notes to demonstrate cross-modal reasoning. Native Indonesian/Vietnamese ASR is presented as an architectural roadmap capability. Our multi-modal "Sandwich Defense" uses visual drug bag data as the ground truth.
 
 ---
 
@@ -121,6 +121,11 @@ flowchart LR
 *   LoRA Adapter: [SilverGuard-Adapter-V1](https://huggingface.co/markwang941108/SilverGuard-Adapter-V1) *(Fine-tuned on MedGemma 1.5-4B)*
 
 ---
+
+#### Security & Data Integrity
+*   **Privacy-First Edge AI:** 100% of PII stays in local RAM; no cloud transmission.
+*   **Sandwich Defense:** Prompt injection is neutralized via a deterministic bracketing protocol.
+*   **Infrastructure Hardening:** Current Gradio `allowed_paths` are configured for Kaggle/POC flexibility (allowing `.` and `/tmp`). For clinical deployment, these will be strictly whitelisted to specific asset directories only, following the principle of least privilege to prevent unauthorized file access.
 
 ### References
 *   **Kim, Golden et al. (2026).** *Towards a Science of Scaling Agent Systems.* Google Research & Google DeepMind.
