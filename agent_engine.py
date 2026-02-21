@@ -128,15 +128,6 @@ This system runs on a single T4 GPU, enabling deployment in:
 ================================================================================
 """
 
-
-
-
-# 🏥 SilverGuard CDS: Intelligent Medication Safety System
-# 
-# > **MedGemma-Powered Drug Bag Safety Checker & Elder-Friendly Assistant**
-# 
-# ---
-# 
 # ## 🎯 30 秒看懂
 # 
 # | 問題 | 解決方案 |
@@ -162,6 +153,13 @@ import os
 import sys
 import subprocess
 import time
+
+# [KAGGLE FIX] Apply nest_asyncio to prevent loop_factory TypeError
+try:
+    import nest_asyncio
+    nest_asyncio.apply()
+except Exception:
+    pass
 from peft import PeftModel # [V12.27] Ensure global availability
 
 # 全局變數佔位符 (將由 app.py 注入)

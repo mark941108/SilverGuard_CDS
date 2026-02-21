@@ -23,6 +23,13 @@ import asyncio
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+# [KAGGLE FIX] Apply nest_asyncio to prevent loop_factory TypeError in Gradio/Uvicorn
+try:
+    import nest_asyncio
+    nest_asyncio.apply()
+except Exception:
+    pass
+
 # [Version Control] SilverGuard CDS V1.0 Impact Edition (Reference Implementation)
 # CRITICAL: Do NOT import pythoncom at top level. It crashes Linux.
 from agent_utils import get_environment
