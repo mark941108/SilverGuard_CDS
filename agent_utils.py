@@ -229,10 +229,9 @@ def neutralize_hallucinations(data, context="", full_data=None):
                             drug_name_with_parentheses=val_str
                         )
                     
-                    if contextual_match:
                         # Case A: 在 context 中找到已知藥物學名
                         print(f"🔍 [Smart Degradation] '{val_str}' → Likely '{contextual_match}' (via context)")
-                        new_data[k] = f"🔍可能為: {contextual_match}"
+                        new_data[k] = f"⚠️推測為: {contextual_match} (未驗證)"
                     else:
                         # Case B: 真正的未知藥物 - 軟性標記保留
                         print(f"⚠️ [RAG] 未知藥物保留: {val_str}")
@@ -318,7 +317,8 @@ def resolve_drug_name_zh(raw_name):
                         best_match = item['name_zh']
 
                 # 關鍵字包含匹配 (例如 VLM 吐出 "Glucophage Tablets")
-                if clean_name and len(clean_name) > 2 and (clean_name in item['name_en'].lower() or item['name_en'].lower() in clean_name):
+                # [Integrity Fix] 提高子字串比對嚴格度，防止 short-string 誤報 (例如 "the" -> "Metformin")
+                if clean_name and len(clean_name) >= 5 and (clean_name in item['name_en'].lower() or item['name_en'].lower() in clean_name):
                     return item['name_zh']
         
         # 如果模糊匹配分數夠高，則採用

@@ -1198,6 +1198,8 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
             draw_bowl_icon(draw, bowl_x, bowl_y, size=35, is_full=False)
         elif "飯後" in bowl_text:
             draw_bowl_icon(draw, bowl_x, bowl_y, size=35, is_full=True)
+        elif "隨餐" in bowl_text:
+            draw_bowl_icon(draw, bowl_x, bowl_y, size=35, is_full=True)
         elif "睡前" in bowl_text:
             draw_bed_icon(draw, bowl_x, bowl_y, size=35)
         
