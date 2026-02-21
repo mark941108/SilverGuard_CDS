@@ -995,7 +995,7 @@ By running **locally on RTX 5060 (or Kaggle/Colab GPU)**:
 | Feature | Implementation |
 |---------|---------------|
 | **🔒 Privacy First** | No patient data leaves the local device (Ephemeral Processing) |
-| **⚡ Low Latency** | **~2-3 sec** (Local RTX 5000 series) / **~5 sec** (Kaggle T4 Cloud) |
+| **⚡ Inference Speed** | VLM Generation: ~15-20 tok/sec. End-to-End Pipeline: ~30s (Local RTX) / ~45s (Kaggle T4) |
 | **🧠 Human-in-the-Loop** | Dual threshold: `HIGH_RISK` ≥50% (Recall Priority) · `PASS` ≥70% (Precision Priority) → flag `HUMAN_REVIEW_NEEDED` |
 | **💾 Memory Efficient** | Fits within 6GB VRAM (Consumer GPU Ready) |
 | **📋 HIPAA-Compliant Design** | All processing in RAM, data wiped after session |
@@ -1008,7 +1008,7 @@ By running **locally on RTX 5060 (or Kaggle/Colab GPU)**:
 - **Phase 3**: Edge deployment on **NVIDIA Jetson Orin Nano** (67 TOPS, 15W) or consumer GPUs (RTX 5060)
 - **Phase 4**: Mobile App (iOS/Android) for home caregivers
 
-> **Accuracy Over Speed**: In medical safety, waiting 3-5 seconds for Agent self-correction is preferable to a 0.1% false negative rate. *Missed dangerous prescriptions cost lives; extra inference time costs only electricity.*
+> **Accuracy Over Speed**: In medical safety, waiting 30-45 seconds for a verified End-to-End Agentic cycle is preferable to a 0.1% false negative rate. *Missed dangerous prescriptions cost lives; extra inference time costs only electricity.*
 
 ### 👴 SilverGuard CDS: Human-Centered Accessibility
 
@@ -1237,9 +1237,9 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 
 ### Q8: Does the agent's "Retry Loop" introduce unacceptable latency?
 **A: We trade Latency for Safety (The "Fail-Safe" Trade-off).**
-*   **The Measured Reality:** A single inference pass on our RTX 5060 takes ~30-35 seconds (4B parameter model, 4-bit quantized). A full 2-retry worst-case cycle runs ~70 seconds end-to-end.
-*   **The Philosophy:** In a clinical setting, a 70-second pause for a pharmacist-grade verified answer is acceptable; an instant but wrong answer (hallucination) can cause a patient death. Speed is secondary to correctness.
-*   **Latency Guard:** `MAX_RETRIES = 2` is hard-capped. If the agent still cannot reach confidence after two attempts, it degrades gracefully to `HUMAN_REVIEW_NEEDED` rather than guessing.
+-   **The Measured Reality:** While raw token generation is fast (~15-20 tok/s), a full End-to-End pass (Image Encoding + RAG + MedGemma + TTS generation) takes ~30-35 seconds on an RTX 5060. A full 2-retry worst-case cycle runs ~70 seconds.
+-   **The Philosophy:** In a clinical setting, a 70-second pause for a pharmacist-grade verified answer is acceptable; an instant but wrong answer (hallucination) can cause a patient death. Speed is secondary to correctness.
+-   **Latency Guard:** `MAX_RETRIES = 2` is hard-capped. If the agent still cannot reach confidence after two attempts, it degrades gracefully to `HUMAN_REVIEW_NEEDED` rather than guessing.
 
 ### Q9: What is the core philosophy of your safety architecture?
 **A: "An architecture of safety isn't just about accuracy; it's about knowing when to ask for help."**
