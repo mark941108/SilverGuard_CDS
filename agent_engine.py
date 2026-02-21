@@ -249,45 +249,46 @@ if torch.cuda.is_available():
 
 
 # ===== 驗證安裝並登入 =====
-print("="*80)
-print("🚀 Launching SilverGuard CDS (V5.0 Impact Edition)...0 - 環境設置")
-print("="*80)
+if __name__ == "__main__":
+    print("="*80)
+    print("🚀 Launching SilverGuard CDS (V5.0 Impact Edition)...0 - 環境設置")
+    print("="*80)
 
-# Optional: Apply nest_asyncio for Jupyter asyncio support if needed
-import nest_asyncio
-nest_asyncio.apply()
+    # Optional: Apply nest_asyncio for Jupyter asyncio support if needed
+    import nest_asyncio
+    nest_asyncio.apply()
 
-# [UX Polish] Timezone Handling
-from datetime import datetime, timezone, timedelta
-TZ_TW = timezone(timedelta(hours=8))
+    # [UX Polish] Timezone Handling
+    from datetime import datetime, timezone, timedelta
+    TZ_TW = timezone(timedelta(hours=8))
 
-print("\n[1/2] HuggingFace 登入...")
-try:
-    from kaggle_secrets import UserSecretsClient
-    user_secrets = UserSecretsClient()
-    hf_token = user_secrets.get_secret("HUGGINGFACE_TOKEN")
-    from huggingface_hub import login
-    login(token=hf_token)
-    print("✅ HuggingFace 登入成功！")
-except ImportError:
-    print("⚠️ [Local Mode] Skipping Kaggle Secrets login.")
-    if "HUGGINGFACE_TOKEN" in os.environ:
+    print("\n[1/2] HuggingFace 登入...")
+    try:
+        from kaggle_secrets import UserSecretsClient
+        user_secrets = UserSecretsClient()
+        hf_token = user_secrets.get_secret("HUGGINGFACE_TOKEN")
         from huggingface_hub import login
-        login(token=os.environ["HUGGINGFACE_TOKEN"])
-        print("✅ Logged in via Env Var")
-    else:
-        print("⚠️ No HUGGINGFACE_TOKEN found in env.")
+        login(token=hf_token)
+        print("✅ HuggingFace 登入成功！")
+    except ImportError:
+        print("⚠️ [Local Mode] Skipping Kaggle Secrets login.")
+        if "HUGGINGFACE_TOKEN" in os.environ:
+            from huggingface_hub import login
+            login(token=os.environ["HUGGINGFACE_TOKEN"])
+            print("✅ Logged in via Env Var")
+        else:
+            print("⚠️ No HUGGINGFACE_TOKEN found in env.")
 
-print("\n[2/2] 驗證環境...")
-import torch
-print(f"✅ PyTorch: {torch.__version__}")
-print(f"✅ CUDA: {torch.cuda.is_available()}")
-if torch.cuda.is_available():
-    print(f"✅ GPU: {torch.cuda.get_device_name(0)}")
+    print("\n[2/2] 驗證環境...")
+    import torch
+    print(f"✅ PyTorch: {torch.__version__}")
+    print(f"✅ CUDA: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"✅ GPU: {torch.cuda.get_device_name(0)}")
 
-print("\n" + "="*80)
-print("🎉 環境設置完成！")
-print("="*80)
+    print("\n" + "="*80)
+    print("🎉 環境設置完成！")
+    print("="*80)
 
 
 
@@ -1899,13 +1900,14 @@ def free_gpu_memory():
         torch.cuda.empty_cache()
     print("✅ GPU Memory Optimized for Inference")
 
-free_gpu_memory()
+if __name__ == "__main__":
+    free_gpu_memory()
 
-print("\n" + "="*80)
-print("🔧 Engineering Student Persona Loaded")
-print("   'As an engineering student optimizing systems, I applied the same rigorous")
-print("    safety-factor principles from HVAC engineering to this medical AI pipeline.'")
-print("="*80)
+    print("\n" + "="*80)
+    print("🔧 Engineering Student Persona Loaded")
+    print("   'As an engineering student optimizing systems, I applied the same rigorous")
+    print("    safety-factor principles from HVAC engineering to this medical AI pipeline.'")
+    print("="*80)
 
 
 # [REDUNDANT CELL 4 LOGIC REMOVED]
@@ -2239,7 +2241,8 @@ def create_gradio_demo():
     demo.launch(share=True)
 
 # ===== Uncommented to run Gradio Demo in Impact Edition =====
-create_gradio_demo()
+if __name__ == "__main__":
+    create_gradio_demo()
 
 
     
