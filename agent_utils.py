@@ -831,26 +831,32 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         # 即使 VLM 劑量提取失敗 (mg_vals 為空)，只要年齡與藥名吻合，一律攔截！
         # ---------------------------------------------------------
         if age_val >= 60 and ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
-            return True, "PHARMACIST_REVIEW_REQUIRED", f"⚠️ AGS Beers Criteria 2023: Avoid Aspirin for primary prevention in adults 60+ due to major bleeding risk. Verify if intended for secondary prevention."
+            # ✅ 新增 ⛔ HARD RULE 標籤，確保被 logical_consistency_check 立即攔截
+            return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: AGS Beers Criteria 2023: Avoid Aspirin for primary prevention in adults 60+ due to major bleeding risk. Verify if intended for secondary prevention."
             
         if age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
-             # 即使沒有劑量數值，安眠藥對高齡者本身就有高風險
-             return True, "WARNING", f"⚠️ AGS Beers Criteria 2023: Zolpidem (Age {age_val}) 增加高齡者跌倒與混亂風險。若必須使用，最大劑量限制為 5mg。"
+             # ✅ 新增 ⚠️ HARD RULE 標籤
+             return True, "WARNING", f"⚠️ HARD RULE: AGS Beers Criteria 2023: Zolpidem (Age {age_val}) 增加高齡者跌倒與混亂風險。若必須使用，最大劑量限制為 5mg。"
 
         # ---------------------------------------------------------
         # 🛡️ [防線 2] 依賴數值的劑量檢查 (Dosage Limits)
         # ---------------------------------------------------------
         raw_dose = str(drug.get("dose") or drug.get("dosage") or actual_data.get("dosage") or "0")
         
-        # [Fallback Extraction V1.5]：如果 raw_dose 沒有數字 (例如 "E.C." / "1錠")，嘗試從 drug_name 中提取
-        if not re.search(r'\d', raw_dose):
-            fallback_match = re.search(r'(\d+)\s*mg', drug_name, flags=re.IGNORECASE)
-            if fallback_match:
-                print(f"🔄 [Dose Fallback] Corrected dosage from name: '{fallback_match.group(0)}'")
-                raw_dose = fallback_match.group(0)
-
+        # 1. 先執行常規的毫克轉換
         mg_vals, _ = normalize_dose_to_mg(raw_dose)
 
+        # 2. [Fallback Extraction V1.6] 
+        # 如果常規解析結果為空 (例如遇到 "E.C." 或只有 "2錠" 卻缺乏 mg 資訊)
+        # 強制掃描藥名，並將找到的數字重新賦值給 mg_vals，強迫啟動後續檢查迴圈
+        if not mg_vals:
+            fallback_match = re.search(r'(\d+)\s*mg', drug_name, flags=re.IGNORECASE)
+            if fallback_match:
+                print(f"🔄 [Dose Fallback V1.6] Recovered dosage from name: '{fallback_match.group(1)}mg'")
+                # 強制生成有效的毫克陣列
+                mg_vals = [float(fallback_match.group(1))]
+
+        # 3. 進入安全的檢測迴圈
         for mg_val in mg_vals:
             if age_val >= 80 and ("glu" in drug_name or "metformin" in drug_name or "glucophage" in drug_name):
                 if mg_val > 1000: return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
