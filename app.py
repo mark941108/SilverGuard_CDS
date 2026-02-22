@@ -705,23 +705,27 @@ def text_to_speech(text, lang='zh-tw', force_offline=False):
     clean_text = clean_text_for_tts(text, lang=lang)
     if len(clean_text) > MAX_LEN: clean_text = clean_text[:MAX_LEN] + "..."
     
-    # 2. Cache Check
-    txt_hash = hashlib.md5(clean_text.encode()).hexdigest()[:12]
-    filename = os.path.join(tempfile.gettempdir(), f"tts_{txt_hash}.mp3")
-    if os.path.exists(filename) and os.path.getsize(filename) > 0:
-        return filename
+    # 2. Caching & Persistence Implementation
+    # [V12.5 Hardening] Use NamedTemporaryFile to avoid Race Conditions in multi-user/multi-click scenarios.
+    # Note: On Windows, we MUST close the handle before the child process (TTS Engine) can write to it.
+    try:
+        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
+        filename = tmp_file.name
+        tmp_file.close() # Release lock so TTS process can write
+    except Exception as e:
+        print(f"⚠️ TempFile Error: {e}")
+        return None
 
-    # --- Strategy 1: Online API ---
+    # --- Strategy 1: Online API (gTTS) ---
     if not OFFLINE_MODE and not force_offline:
         try:
             from gtts import gTTS
-            # [Fix] Use dynamic language from UI instead of hardcoded 'zh-TW'
             tts = gTTS(text=clean_text, lang=lang)
             tts.save(filename)
             return filename
         except: pass
 
-    # --- Strategy 2: Isolated Process ---
+    # --- Strategy 2: Isolated Process (Offline/Edge) ---
     try:
         locked = TTS_LOCK.acquire(timeout=5.0)
         if not locked: return None
@@ -731,16 +735,23 @@ def text_to_speech(text, lang='zh-tw', force_offline=False):
                 args=(clean_text, filename, lang)
             )
             p.start()
-            # [V13 Fix] Windows 啟動進程較慢，增加超時至 45 秒以避免 Chinese TTS 失敗
             p.join(timeout=45.0) 
             if p.is_alive():
                 p.terminate()
+                if os.path.exists(filename): os.remove(filename) # Cleanup on failure
                 return None
-            return filename if os.path.exists(filename) else None
+            
+            # Check if file was actually created and is valid
+            if os.path.exists(filename) and os.path.getsize(filename) > 0:
+                return filename
+            else:
+                if os.path.exists(filename): os.remove(filename)
+                return None
         finally:
             TTS_LOCK.release()
     except Exception as e:
         print(f"❌ [TTS] Interface Failed: {e}")
+        if os.path.exists(filename): os.remove(filename)
     return None
 
 # Feature Flags
