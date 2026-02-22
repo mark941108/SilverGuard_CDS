@@ -1328,6 +1328,7 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
         "2. **Daily Limit Check**: detailed calculation is required. Calculate [Single Dose] x [Frequency]. If the total exceeds known Max Daily Dose, issue a HIGH_RISK warning.\n"
         "3. **Contextual Dosage**: If extracted dose differs from standard but is a common variation (e.g., Aspirin 100mg vs 500mg for pain), verify if usage matches indication instead of blind flagging.\n"
         "4. **Reasoning Policy**: Do NOT output your thought process or steps. Only output the final JSON result.\n"
+        "5. **Extraction Integrity**: You MUST extract patient name and age from the image. If the information is not clearly visible or is blurred, output 'Unknown' instead of guessing a common name like '劉淑芬'.\n"
         "\n"
         "Required JSON structure:\n"
         "{\n"
@@ -1367,10 +1368,10 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
             messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt_text}]}]
             prompt = processor.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             
-            # 🚀 [DOUBLE-BARREL JUMPSTART V8.4] 最終型態：直擊病患年齡
-            # 為了徹底解決模型跳過 patient 直接進到 reasoning 的懶惰行為，
-            # 我們改為強制模型從 patient 區塊開始生成（確保捕捉到年齡）。
-            prompt += "```json\n{\"extracted_data\": {\"patient\": {\"name\": \""
+            # 🚀 [DOUBLE-BARREL JUMPSTART V8.5] 最終型態：放寬引導，防止偏見
+            # 從 {"extracted_data": { 開始引導，確保結構正確的同時，
+            # 給予模型更多空間去從影像特徵（謝○君）中提取，而非觸發「劉淑芬」路徑。
+            prompt += "```json\n{\"extracted_data\": {"
             
             # [Fix] Image loading with CUDA Shield (RGBA to RGB)
             from PIL import Image
@@ -1440,12 +1441,12 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
             if generated_tokens < 5:
                 print("🚨 [WARNING] Model generated almost nothing! Potential EOS truncation detected.")
             
-            # 🟢 [POST-PROCESS V8.4] 結構重構 V2
+            # 🟢 [POST-PROCESS V8.5] 結構重構 V2 (相應放寬引導)
             gen_text = processor.decode(outputs.sequences[0][input_len:], skip_special_tokens=True)
             gen_text = gen_text.lstrip(", \n\t")
             
-            # 配合 V8.4 的雙桶啟動：我們把病患資訊放在第一個
-            gen_text = "{\"extracted_data\": {\"patient\": {\"name\": \"" + gen_text
+            # 配合 V8.5 的放寬啟動：我們只需補回最前面的結構
+            gen_text = "{\"extracted_data\": {" + gen_text
             if not gen_text.endswith("}"): gen_text += "}"
 
             # 👇 加入這行，強迫在終端機印出 AI 到底說了什麼

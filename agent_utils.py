@@ -206,12 +206,13 @@ def neutralize_hallucinations(data, context="", full_data=None):
                 new_data[k] = neutralize_hallucinations(v, context=new_context, full_data=full_data or data)
                 continue
 
-            # 1. 隱私中和 (姓名/年齡)
+            # 1. 隱私中和 (姓名/年齡) - [Round 128 Polish]
             if k in ["name", "detected_name"] and val_str in BANNED_NAMES:
-                 print(f"🛡️ [Shield] Neutralized Banned Name: {v}")
+                 # Only neutralize if it's a known test-data dummy that indicates extraction failure
+                 print(f"🛡️ [Shield] Hallucination Detected (Banned Name): {v} -> Neutralized to Unknown")
                  new_data[k] = "Unknown"
             elif k == "age" and val_str in BANNED_AGES:
-                 print(f"🛡️ [Shield] Neutralized Banned Age: {v}")
+                 print(f"🛡️ [Shield] Hallucination Detected (Banned Age): {v} -> Neutralized to Unknown")
                  new_data[k] = "Unknown"
             
             # 2. 雙向 RAG 驗證 (幽靈藥品過濾) + 智能降級
