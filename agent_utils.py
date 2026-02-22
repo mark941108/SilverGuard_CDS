@@ -817,20 +817,38 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         
         voice_lower = str(voice_context).lower()
         
-        # 1. Emergency Protocol (Hard Stop) - Zone 1
+        # 1. Emergency Protocol (Hard Stop)
         if any(k in voice_lower for k in emergency_keywords):
              return True, "HIGH_RISK", "⛔ CRITICAL EMERGENCY: User reported life-threatening symptoms (Chest Pain/Suicide/Stroke). CALL 119."
 
-        # 2. Bleeding Check - Zone 1
+        # 2. Bleeding Check
         if any(k in voice_lower for k in bleeding_keywords):
             if any(d in drug_name for d in anticoagulants):
                 return True, "HIGH_RISK", "⛔ CRITICAL: Patient reported BLEEDING while on Anticoagulant/Antiplatelet. Immediate Medical Attention Required."
 
-        # 3. Allergy Check (Generic) - Zone 3
-        if any(k in voice_lower for k in allergy_keywords):
-             return True, "WARNING", "⚠️ ALLERGY ALERT: Patient voice note mentions 'Allergy/Adverse Reaction'. Pharmacist verification required."
+        # ---------------------------------------------------------
+        # 🛡️ [防線 1] 獨立於劑量的硬性規則 (Architecture Decoupling - Round 129)
+        # 即使 VLM 劑量提取失敗 (mg_vals 為空)，只要年齡與藥名吻合，一律攔截！
+        # ---------------------------------------------------------
+        if age_val >= 60 and ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
+            return True, "PHARMACIST_REVIEW_REQUIRED", f"⚠️ AGS Beers Criteria 2023: Avoid Aspirin for primary prevention in adults 60+ due to major bleeding risk. Verify if intended for secondary prevention."
+            
+        if age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
+             # 即使沒有劑量數值，安眠藥對高齡者本身就有高風險
+             return True, "WARNING", f"⚠️ AGS Beers Criteria 2023: Zolpidem (Age {age_val}) 增加高齡者跌倒與混亂風險。若必須使用，最大劑量限制為 5mg。"
 
+        # ---------------------------------------------------------
+        # 🛡️ [防線 2] 依賴數值的劑量檢查 (Dosage Limits)
+        # ---------------------------------------------------------
         raw_dose = str(drug.get("dose") or drug.get("dosage") or actual_data.get("dosage") or "0")
+        
+        # [Fallback Extraction V1.5]：如果 raw_dose 沒有數字 (例如 "E.C." / "1錠")，嘗試從 drug_name 中提取
+        if not re.search(r'\d', raw_dose):
+            fallback_match = re.search(r'(\d+)\s*mg', drug_name, flags=re.IGNORECASE)
+            if fallback_match:
+                print(f"🔄 [Dose Fallback] Corrected dosage from name: '{fallback_match.group(0)}'")
+                raw_dose = fallback_match.group(0)
+
         mg_vals, _ = normalize_dose_to_mg(raw_dose)
 
         for mg_val in mg_vals:
@@ -838,12 +856,6 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
                 if mg_val > 1000: return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
             elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
                 if mg_val > 5: return True, "HIGH_RISK", f"⛔ HARD RULE: BEERS CRITERIA (Zolpidem {mg_val}mg > 5mg). High fall risk."
-            elif age_val >= 60 and ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
-                # [AGS Beers 2023 Update] Avoid for primary prevention in adults 60+
-                if mg_val > 325: 
-                    return True, "HIGH_RISK", f"⛔ HARD RULE: High Dose Aspirin ({mg_val}mg) for elderly (Age {age_val}). Extreme GI Bleeding risk."
-                else:
-                    return True, "PHARMACIST_REVIEW_REQUIRED", f"⚠️ AGS Beers Criteria 2023: Avoid Aspirin for primary prevention in adults 60+ due to major bleeding risk. Verify if intended for secondary prevention."
             elif "lipitor" in drug_name or "atorvastatin" in drug_name:
                 if mg_val > 80: return True, "HIGH_RISK", f"⛔ HARD RULE: Atorvastatin Safety Limit ({mg_val}mg > 80mg)."
             elif "diovan" in drug_name or "valsartan" in drug_name:
@@ -851,7 +863,6 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
             elif "panadol" in drug_name or "acetaminophen" in drug_name:
                 if mg_val > 1000: return True, "HIGH_RISK", f"⛔ Acetaminophen Overdose: Single dose {mg_val}mg exceeds safe limit (1000mg)."
                 elif mg_val >= 300: return True, "PASS", f"ℹ️ Acetaminophen Reminder: General safe limit for adults is 4000mg/day. Consult your doctor for your specific limit."
-            # V10.0: Added check for potassium if on ACE inhibitor
             elif "lisinopril" in drug_name and "potassium" in drug_name:
                 return True, "WARNING", "⚠️ POTENTIAL INTERACTION: Lisinopril + Potassium supplement may cause hyperkalemia."
             
