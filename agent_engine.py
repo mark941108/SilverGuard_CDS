@@ -1367,10 +1367,10 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
             messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": prompt_text}]}]
             prompt = processor.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             
-            # 🚀 [DOUBLE-BARREL JUMPSTART V8.4] 最終型態：直擊藥名
+            # 🚀 [DOUBLE-BARREL JUMPSTART V8.4] 最終型態：直擊病患年齡
             # 為了徹底解決模型跳過 patient 直接進到 reasoning 的懶惰行為，
-            # 我們改為強制先輸出最重要的 drug 資訊。
-            prompt += "```json\n{\"extracted_data\": {\"drug\": {\"name\": \""
+            # 我們改為強制模型從 patient 區塊開始生成（確保捕捉到年齡）。
+            prompt += "```json\n{\"extracted_data\": {\"patient\": {\"name\": \""
             
             # [Fix] Image loading with CUDA Shield (RGBA to RGB)
             from PIL import Image
@@ -1444,8 +1444,8 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
             gen_text = processor.decode(outputs.sequences[0][input_len:], skip_special_tokens=True)
             gen_text = gen_text.lstrip(", \n\t")
             
-            # 配合 V8.4 的雙桶啟動：我們把藥名放在第一個
-            gen_text = "{\"extracted_data\": {\"drug\": {\"name\": \"" + gen_text
+            # 配合 V8.4 的雙桶啟動：我們把病患資訊放在第一個
+            gen_text = "{\"extracted_data\": {\"patient\": {\"name\": \"" + gen_text
             if not gen_text.endswith("}"): gen_text += "}"
 
             # 👇 加入這行，強迫在終端機印出 AI 到底說了什麼

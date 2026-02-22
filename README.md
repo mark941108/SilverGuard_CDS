@@ -88,7 +88,7 @@ After hospital discharge for chronic conditions, she holds 5 prescription bags w
 - **Warfarin 5mg** (抗凝血劑 Anticoagulant) - ⚠️ Strict timing required, interacts with 200+ foods/drugs
 - **Metformin 500mg** (降血糖 Anti-diabetic) - Must take with meals, max 2000mg/day  
 - **Amlodipine 5mg** (降血壓 Antihypertensive) - Morning only, never at bedtime
-- **Aspirin 100mg** (阿斯匹靈) - After meals, stomach protection needed
+- **Aspirin 100mg** (阿斯匹靈) - After meals; ⚠️ **Beers 2023 Risk**: Primary prevention avoided in adults 60+
 - **Simvastatin 20mg** (降膽固醇) - Bedtime only, muscle pain monitoring
 
 ### Her Challenges:

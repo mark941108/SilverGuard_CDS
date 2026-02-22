@@ -73,14 +73,14 @@ DRUG_DATABASE = {
     {
         "code": "BC23951468",
         "name_en": "Bokey", 
-        "name_zh": "伯基/阿斯匹靈",
+        "name_zh": "阿斯匹靈",
         "generic": "Aspirin",
         "dose": "100mg",
         "appearance": "白色圓形 (微凸)",
-        "indication": "預防心肌梗塞",
-        "warning": "胃潰瘍患者慎用。長期服用需監測出血風險",
+        "indication": "預防血栓 (Secondary Prevention Only)",
+        "warning": "AGS Beers 2023: 60歲以上初級預防應避免使用。長期服用需監測胃出血風險。",
         "default_usage": "QD_breakfast_after",
-        "max_daily_dose": 100, "drug_class": "Antiplatelet", "beers_risk": True # ⚠️ Generally avoid for primary prevention age > 70
+        "max_daily_dose": 100, "drug_class": "Antiplatelet", "beers_risk": True # ⚠️ Avoid for primary prevention age >= 60 (Beers 2023)
     },
     {
         "code": "BC_ASPIRIN_EC",
@@ -89,8 +89,8 @@ DRUG_DATABASE = {
         "generic": "Aspirin",
         "dose": "100mg",
         "appearance": "白色圓形 (腸溶)",
-        "indication": "預防血栓/心肌梗塞",
-        "warning": "胃潰瘍患者慎用。若有黑便建議立即就醫評估停藥",
+        "indication": "預防血栓 (Secondary Prevention Only)",
+        "warning": "AGS Beers 2023: 60歲以上初級預防應避免使用。若有黑便需立即醫評。",
         "default_usage": "QD_breakfast_after",
         "max_daily_dose": 100, "drug_class": "Antiplatelet", "beers_risk": True
     },

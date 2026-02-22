@@ -531,10 +531,14 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
              drug['usage'] = "HS"
              drug['warning'] += " ⚠️ 長者跌倒風險 (Beers Criteria)"
 
-         # Rule 3: High Dose Aspirin (>325mg)
+         # Rule 3: AGS Beers 2023 (Avoid for primary prevention in 60+)
          elif "Aspirin" in drug['eng'] or "Bokey" in drug['eng']:
-             dose_val = "500mg" # Exceeds 325mg Check
-             drug['warning'] += " ⚠️ 腸胃出血風險"
+             if patient['age'] >= 60:
+                 # Even 100mg is dangerous for primary prevention
+                 drug['warning'] += " ⚠️ AGS Beers 2023: Avoid Aspirin for primary prevention in adults 60+."
+             if "dose_val" not in locals() or dose_val is None: dose_val = drug['dose']
+             if float(re.findall(r'\d+', str(dose_val))[0]) > 325:
+                 drug['warning'] += " ⚠️ High Dose Aspirin Risk"
 
          # Rule 4: Acetaminophen Overdose (>4000mg)
          elif "Acetaminophen" in drug['eng'] or "Panadol" in drug['eng']:
@@ -768,14 +772,25 @@ if __name__ == "__main__":
         generate_v9_bag(filename, p, d, is_danger=False, optical_severity=0)
         
         # [Audit Fix P0] Record Ground Truth
+        # [Beers 2023 Fix] Determine Ground Truth status dynamically
+        ground_truth_status = "WITHIN_STANDARD"
+        ground_truth_danger = is_danger
+        
+        if ("Aspirin" in d['eng'] or "Bokey" in d['eng']) and p['age'] >= 60:
+             ground_truth_status = "PHARMACIST_REVIEW_REQUIRED"
+             ground_truth_danger = True
+        elif is_danger:
+             ground_truth_status = "HIGH_RISK"
+             ground_truth_danger = True
+
         stress_test_labels.append({
             "id": f"STRESS_CLEAN_{i:04d}",
             "image": f"demo_clean_{i}.png",
             "difficulty": "easy",
-            "risk_status": "WITHIN_STANDARD",
+            "risk_status": ground_truth_status,
             "patient": p,
             "drug": d,
-            "is_danger": False
+            "is_danger": ground_truth_danger
         })
         
     # 2. Generate 20 Dirty Images (Expect: WARNING/PASS depending on legibility)
@@ -786,14 +801,25 @@ if __name__ == "__main__":
         generate_v9_bag(filename, p, d, is_danger=False, optical_severity=2)
         
         # [Audit Fix P0] Record Ground Truth
+        # [Beers 2023 Fix]
+        ground_truth_status = "WITHIN_STANDARD"
+        ground_truth_danger = is_danger
+        
+        if ("Aspirin" in d['eng'] or "Bokey" in d['eng']) and p['age'] >= 60:
+             ground_truth_status = "PHARMACIST_REVIEW_REQUIRED"
+             ground_truth_danger = True
+        elif is_danger:
+             ground_truth_status = "HIGH_RISK"
+             ground_truth_danger = True
+
         stress_test_labels.append({
             "id": f"STRESS_DIRTY_{i:04d}",
             "image": f"demo_dirty_{i}.png",
             "difficulty": "medium",
-            "risk_status": "WITHIN_STANDARD",
+            "risk_status": ground_truth_status,
             "patient": p,
             "drug": d,
-            "is_danger": False,
+            "is_danger": ground_truth_danger,
             "optical_severity": 2
         })
 

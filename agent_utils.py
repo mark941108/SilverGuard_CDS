@@ -486,6 +486,12 @@ class UnifiedRAGEngine:
         if q_lower in lookup:
             return {**lookup[q_lower], "found": True, "match_type": "EXACT"}
 
+        # Substring check (V15 Feature: 提升比對寬容度)
+        # Fixes: "阿斯匹靈" vs "伯基/阿斯匹靈"
+        for candidate, info in lookup.items():
+            if len(q_lower) >= 2 and (q_lower in candidate or candidate in q_lower):
+                return {**info, "found": True, "match_type": "SUBSTRING"}
+
         # Fuzzy check
         matches = difflib.get_close_matches(q_lower, candidates, n=1, cutoff=0.8)
         if matches:
@@ -670,110 +676,49 @@ def check_drug_interaction(drug_a, drug_b):
     
     return f"✅ **離線檢查結果**\n\n{drug_a} 與 {drug_b} 在本地資料庫中未發現已知的嚴重交互作用。\n\n⚠️ 注意：此為離線檢查，建議仍諮詢專業藥師。"
 
-def parse_json_from_response(response):
+def parse_json_from_response(response_text):
     """
-    V6.2 Robust Parser: Includes structure repair and regex fixing
+    V7.0 Robust Parser: Native json.loads with Regex Extraction
+    Supports: null, true, false, and multi-line structures
     """
-    # 1. Cleaning Markdown
-    response = re.sub(r'```json\s*', '', response)
-    response = re.sub(r'```', '', response)
-    
-    # 🟢 [FIX] 縫合手術：修復模型提早關閉 JSON 的問題
-    # [Fix] Repair "}, "sbar_handoff"" pattern
-    response = re.sub(r'\}\s*,\s*"sbar_handoff"', r', "sbar_handoff"', response)
-    
-    # 🟢 [Director's Polish V2] Safety-Critical Regex
-    # Only fix comma-inside-quotes if NOT preceded by valid JSON terminators (quote, digit, brace, bracket, e/l for bool/null)
-    # Fixes: "usage": "1/2錠 (半)," "patient" -> "usage": "1/2錠 (半)", "patient"
-    # Ignores: "100mg"}, "safety" (Valid)
-    response = re.sub(r'([^"\d\}\]el])\s*,\s*"', r'\1", "', response)
-
-    # 🟢 [Director's Micro-Patch] Fix extra brace hallucination
-    # Fixes: "silverguard_message": "..."}, "sbar_handoff" -> "... ", "sbar_handoff"
-    response = response.replace('"}, "sbar_handoff"', '", "sbar_handoff"')
-    response = response.replace('}"}', '"}') # Prevent double braces at end
-
-    response = response.strip()
-
-    # 🛡️ 額外修復：移除任何在最後一個 '}' 之後的文字
-    last_brace_idx = response.rfind('}')
-    if last_brace_idx != -1:
-        response = response[:last_brace_idx+1]
-
-    # 尋找所有的大括號配對 (Stack-based approach)
-    matches = []
-    stack = []
-    start_index = -1
-
-    for i, char in enumerate(response):
-        if char == '{':
-            if not stack:
-                start_index = i
-            stack.append(char)
-        elif char == '}':
-            if stack:
-                stack.pop()
-                if not stack and start_index >= 0:
-                    matches.append(response[start_index:i+1])
-
-    # 如果沒找到任何 JSON 結構
-    if not matches:
-        return None, "No JSON structure found in response"
-
-    # 嘗試從最後一個 match 開始解析 (Last-In-First-Check)
-    for json_str in reversed(matches):
-        # Strategy 1: Standard JSON
-        try:
-            data = json.loads(json_str) 
-            # [V27 Fix] Unwrap "parsed" if model nested it
-            if "parsed" in data and isinstance(data["parsed"], dict):
-                data = data["parsed"]
-            return data, None
-        except json.JSONDecodeError:
-            pass
-    
-        # Strategy 2: Python Literal Eval (Safe for single quotes)
-        try:
-            data = ast.literal_eval(json_str)
-            if "parsed" in data and isinstance(data["parsed"], dict):
-                data = data["parsed"]
-            return data, None
-        except (ValueError, SyntaxError):
-            pass
+    if not response_text:
+        return None, "Empty response"
         
-        # Strategy 3: Python AST (Single Quotes)
+    try:
+        # 1. 嘗試提取 markdown 區塊內的 JSON (使用 re.DOTALL 確保跨行匹配)
+        match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+        json_str = match.group(1) if match else response_text
+
+        # 2. 終極防線：如果 VLM 忘記寫後面的 ```，直接抓取第一對大括號 (Greedy Match)
+        if not match:
+            match_bracket = re.search(r'\{.*\}', json_str, re.DOTALL)
+            if match_bracket:
+                json_str = match_bracket.group(0)
+
+        # 3. 清理與解析 (原生支援 true/false/null)
+        json_str = json_str.strip()
+        data = json.loads(json_str)
+        
+        # [V27 Fix] Unwrap "parsed" if model nested it
+        if "parsed" in data and isinstance(data["parsed"], dict):
+            data = data["parsed"]
+        return data, None
+        
+    except Exception as e:
+        # Strategy 2: Fallback to literal_eval for single quote messes (legacy support)
         try:
+            # 替換為 Python 語法
             eval_str = json_str.replace("true", "True").replace("false", "False").replace("null", "None")
-            python_obj = ast.literal_eval(eval_str)
-            if isinstance(python_obj, dict):
-                if "parsed" in python_obj and isinstance(python_obj["parsed"], dict):
-                    python_obj = python_obj["parsed"]
-                return python_obj, None
-        except (ValueError, SyntaxError):
-            pass
-    
-        # Strategy 4: Brutal Fix (Quotes) - Simplified/Safe
-        try:
-            brutal_fix = json_str.replace("'", '"')
-            data = json.loads(brutal_fix)
-            if "parsed" in data and isinstance(data["parsed"], dict):
-                data = data["parsed"]
-            return data, None
-        except json.JSONDecodeError:
-            pass
-        
-        # Strategy 5: Regex Key Fix (Last Resort)
-        try:
-            # Fix unquoted keys: {key: value} -> {"key": value}
-            fixed_regex = re.sub(r'(\w+):', r'"\1":', json_str)
-            data = json.loads(fixed_regex)
-            if "parsed" in data and isinstance(data["parsed"], dict):
-                data = data["parsed"]
-            return data, None
+            data = ast.literal_eval(eval_str)
+            if isinstance(data, dict):
+                if "parsed" in data and isinstance(data["parsed"], dict):
+                    data = data["parsed"]
+                return data, None
         except:
             pass
-
-    return None, f"All parsing strategies failed."
+            
+        print(f"⚠️ JSON 解析失敗: {e}\n原始文字片段: {response_text[:100]}...")
+        return None, f"Parsing failed: {str(e)}"
 
 def normalize_dose_to_mg(dose_str):
     """
@@ -844,9 +789,22 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         raw_drug_name = drug.get("name") or actual_data.get("drug_name") or ""
         raw_drug_zh = drug.get("name_zh") or ""
         drug_name = (str(raw_drug_name).lower() + " " + str(raw_drug_zh).lower()).strip()
-        raw_age = patient.get("age") or actual_data.get("patient_age") or 0
-        try: age_val = int(raw_age)
-        except: age_val = 0
+        raw_age = patient.get("age") or actual_data.get("patient_age") or "0"
+        
+        # 🛡️ [Hardening] 安全提取年齡數字，防禦 "82歲" 或 "" 等異常字串
+        age_str = str(raw_age)
+        age_digits = re.sub(r'\D', '', age_str)
+        try:
+            age_val = int(age_digits) if age_digits else 0
+        except:
+            age_val = 0 # 確保崩潰時退回到 0，觸發 MISSING_DATA 攔截
+            
+        # 🛡️ [FAIL-SAFE] Check for missing age on high-risk geriatric drugs
+        # 如果年齡為 0 (解析失敗或漏失)，針對 Beers Criteria 高風險藥物強制攔截
+        if age_val == 0:
+            high_risk_elderly_drugs = ["aspirin", "bokey", "zolpidem", "stilnox", "metformin", "glucophage"]
+            if any(d in drug_name for d in high_risk_elderly_drugs):
+                return True, "MISSING_DATA", "⛔ HARD RULE: 此藥物對高齡者有高度風險，但系統無法讀取或缺乏病患年齡資料，基於安全考量強制退回人工核對。"
             
         # 🛡️ [RED TEAM FIX] 語音出血護欄 (Voice Guardrail)
         # 🛡️ [RED TEAM FIX] 語音出血護欄 (Voice Guardrail) & [DEEP FIX] Allergy/Emergency
@@ -879,8 +837,12 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
                 if mg_val > 1000: return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
             elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
                 if mg_val > 5: return True, "HIGH_RISK", f"⛔ HARD RULE: BEERS CRITERIA (Zolpidem {mg_val}mg > 5mg). High fall risk."
-            elif age_val >= 75 and ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
-                if mg_val > 325: return True, "HIGH_RISK", f"⛔ HARD RULE: High Dose Aspirin ({mg_val}mg). Risk of GI Bleeding."
+            elif age_val >= 60 and ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
+                # [AGS Beers 2023 Update] Avoid for primary prevention in adults 60+
+                if mg_val > 325: 
+                    return True, "HIGH_RISK", f"⛔ HARD RULE: High Dose Aspirin ({mg_val}mg) for elderly (Age {age_val}). Extreme GI Bleeding risk."
+                else:
+                    return True, "PHARMACIST_REVIEW_REQUIRED", f"⚠️ AGS Beers Criteria 2023: Avoid Aspirin for primary prevention in adults 60+ due to major bleeding risk. Verify if intended for secondary prevention."
             elif "lipitor" in drug_name or "atorvastatin" in drug_name:
                 if mg_val > 80: return True, "HIGH_RISK", f"⛔ HARD RULE: Atorvastatin Safety Limit ({mg_val}mg > 80mg)."
             elif "diovan" in drug_name or "valsartan" in drug_name:
@@ -902,7 +864,7 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
                 # NOACs: 劑量異常檢測（這些藥物有固定劑量）
                 if mg_val > 30:  # Rivaroxaban 最高 20mg, Apixaban 最高 10mg
                     return True, "HIGH_RISK", f"⛔ CRITICAL: NOAC dose {mg_val}mg exceeds maximum approved dose."
-            # ✅ Aspirin 已在 Line 690-691 處理（>325mg for 75+）
+            # ✅ Aspirin 60+ logic consolidated above (Line 882)
             elif age_val >= 65 and ("plavix" in drug_name or "clopidogrel" in drug_name):
                 # Clopidogrel: 標準劑量 75mg，> 75mg 需確認
                 if mg_val > 75:
