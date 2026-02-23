@@ -7,10 +7,10 @@
 
 ⚠️⚠️⚠️ CRITICAL LEGAL DISCLAIMER ⚠️⚠️⚠️
 --------------------------------------------------------------------------------
-1. NOT A MEDICAL DEVICE: SilverGuard CDS is a RESEARCH PROTOTYPE for 藥物安全研究。
-   computational research purposes only. It has NOT been approved, 
-   cleared, or certified by the FDA, TFDA, CE Mark, or any regulatory 
-   authority as a medical device.
+1. NOT A MEDICAL DEVICE: SilverGuard CDS is a RESEARCH PROTOTYPE for 
+   computational and medication safety research purposes only. It has 
+   NOT been approved, cleared, or certified by the FDA, TFDA, CE Mark, 
+   or any regulatory authority as a medical device.
 
 2. NOT FOR CLINICAL USE: Do NOT use this software to make medical 
    decisions including but not limited to: medication selection, dosage 

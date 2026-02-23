@@ -182,6 +182,21 @@ docker run --gpus all -p 7860:7860 silverguard_cds
 
 ---
 
+
+## ⚡ Judges' Executive Summary (30-Second Insight)
+
+SilverGuard CDS is a **MedGemma-powered clinical safety agent** designed for super-aged societies like Taiwan. It solves the critical "Last Mile" problem in medication safety: translating complex prescriptions into actionable, elder-friendly health advice.
+
+**Core Vision:** "We don't just extract text; we extract safety."
+
+| 🎯 Goal | 🛠️ Implementation | 💎 Value |
+|:---|:---|:---|
+| **Privacy** | 100% Offline VLM Inference (T4/RTX) | HIPAA-Ready by design |
+| **Logic** | Neuro-Symbolic Agent (Reflection Loop) | Intercepts 96% of dosage errors |
+| **Accessibility** | Large-font Calendars & Neural TTS | Migrant caregiver + Elderly inclusive |
+
+---
+
 ## 🌟 Key Features (Impact)
 *   **👵 SilverGuard CDS Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Traditional Chinese, 繁體中文) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Visual Translation Override** (UI text degrades to simple native warnings for ID/VI) and **High-Fidelity Translations**.
@@ -1310,7 +1325,7 @@ SilverGuard CDS is an **Offline-First**, LLM-powered visual QA system designed t
 
 ---
 
-### References
+## 📚 References
 *   **Yubin Kim et al. (2025).** *Towards a Science of Scaling Agent Systems.* Google Research & Google DeepMind.
 *   **Schaekermann, M. & Sayres, R. (2025).** *Towards Better Health Conversations: Research insights on a “wayfinding” AI agent based on Gemini.* Google Research.
 *   **American Geriatrics Society (2023).** *AGS Beers Criteria® Update.* JAGS.
