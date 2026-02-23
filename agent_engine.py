@@ -153,6 +153,7 @@ import os
 import sys
 import subprocess
 import time
+import re
 
 # [KAGGLE FIX] Apply nest_asyncio to prevent loop_factory TypeError
 try:
@@ -1496,7 +1497,6 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                     combined_text = (reasoning_text + " " + silver_msg).lower()
                     
                     found_fallback = None
-                    import re # [Audit Fix P1] Ensure re is available for word boundary check
                     # 從資料庫中匹配已知的藥名關鍵字
                     for drug_key in SAFE_SUBSTRINGS:
                         # 🌟 [Audit Fix P1] 加入正則單字邊界防護，防止 asa 誤認 basal
@@ -1599,7 +1599,6 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                 
                 found_safe = None
                 raw_lower = gen_text.lower()
-                import re # [Audit Fix P1] Ensure re is available for word boundary check
                 for safe_drug in SAFE_SUBSTRINGS:
                     # ✅ [Audit Fix P1] Word Boundary Fix: prevent 'asa' matching 'basal'
                     if re.search(rf'\b{re.escape(safe_drug.lower())}\b', raw_lower):
