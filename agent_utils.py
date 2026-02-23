@@ -755,23 +755,14 @@ def normalize_dose_to_mg(dose_str):
                 if unit in ['g', '公克']: val *= 1000.0
                 elif unit in ['mcg', 'ug']: val /= 1000.0
                 elif unit in ['顆', '錠', '粒', 'tablet', 'capsule']:
-                    # [P0 Fix] 若為單純顆數，假設若大於等於 4 顆即為潛在異常 (傳回極大值 9999.0 觸發攔截)
-                    if val >= 4: 
-                        val = 9999.0 
-                    else: 
-                        continue # 若只有 1-2 顆且無 mg 資訊，放行交由其他機制檢查
+                    # [V1.7 Precision Fix] 移除 9999.0 暴走邏輯。
+                    # 只提取數值，計算交給後續的 fallback 或 hard rule 處理，避免誤報。
+                    continue 
             results.append(val)
         except: continue
     
-    # [P0 Emergency Fix] Multiplier Detection (5X, 10X, 5倍)
-    if not results:
-        multiplier_match = re.search(r'(\d+)\s*(x|倍|times|normal)', dose_str.lower())
-        if multiplier_match:
-            try:
-                mult = float(multiplier_match.group(1))
-                if mult >= 2:
-                    return [9999.0], True # Return extreme value to force HIGH_RISK
-            except: pass
+    # [V1.7 Precision Fix] 徹底移除 multiplier_match (5X, 10X) 邏輯，避免與頻率 (2 times) 混淆。
+    return results, bool(results)
             
     return results, bool(results)
 
@@ -808,67 +799,84 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
                 return True, "MISSING_DATA", "⛔ HARD RULE: 此藥物對高齡者有高度風險，但系統無法讀取或缺乏病患年齡資料，基於安全考量強制退回人工核對。"
             
         # 🛡️ [RED TEAM FIX] 語音出血護欄 (Voice Guardrail)
-        # 🛡️ [RED TEAM FIX] 語音出血護欄 (Voice Guardrail) & [DEEP FIX] Allergy/Emergency
-        bleeding_keywords = ["bleed", "blood", "hemorrhage", "black stool", "tarry stool", "bruising", "流血", "出血", "黑便", "血尿", "瘀青", "bruise"]
-        anticoagulants = ["warfarin", "coumadin", "xarelto", "rivaroxaban", "dabigatran", "eliquis", "apixaban", "edoxaban", "aspirin", "bokey", "plavix", "clopidogrel"]
-        
-        allergy_keywords = ["allergic", "allergy", "anaphylaxis", "過敏", "起疹", "腫起來", "asthma", "氣喘"]
-        emergency_keywords = ["chest pain", "suicide", "stroke", "crushing pain", "胸痛", "想不開", "中風", "呼吸困難"]
-        
-        voice_lower = str(voice_context).lower()
-        
-        # 1. Emergency Protocol (Hard Stop)
-        if any(k in voice_lower for k in emergency_keywords):
-             return True, "HIGH_RISK", "⛔ CRITICAL EMERGENCY: User reported life-threatening symptoms (Chest Pain/Suicide/Stroke). CALL 119."
+        # ---------------------------------------------------------
+        # 🏥 [V1.7 Clinical Awareness] ICD-10 與病史識別 (二級預防判定)
+        # ---------------------------------------------------------
+        icd_codes = patient.get("icd_10") or actual_data.get("icd_10") or []
+        if isinstance(icd_codes, str): icd_codes = [icd_codes]
+        medical_history = str(patient.get("medical_history") or actual_data.get("medical_history") or "").lower()
 
-        # 2. Bleeding Check
-        if any(k in voice_lower for k in bleeding_keywords):
-            if any(d in drug_name for d in anticoagulants):
-                return True, "HIGH_RISK", "⛔ CRITICAL: Patient reported BLEEDING while on Anticoagulant/Antiplatelet. Immediate Medical Attention Required."
+        # 二級預防 (Secondary Prevention) 排除清單
+        secondary_icd_prefixes = ("i20", "i21", "i22", "i24", "i25", "i63", "i64", "i69", "z95.1", "z95.5")
+        secondary_keywords = ["stroke", "myocardial infarction", "stent", "cabg", "中風", "心肌梗塞", "支架", "冠心病", "心肌缺血"]
+        
+        is_secondary_prevention = False
+        if any(str(code).lower().startswith(secondary_icd_prefixes) for code in icd_codes):
+            is_secondary_prevention = True
+        elif any(kw in medical_history for kw in secondary_keywords):
+            is_secondary_prevention = True
 
         # ---------------------------------------------------------
-        # 🛡️ [防線 1] 獨立於劑量的硬性規則 (Architecture Decoupling - Round 129)
-        # 即使 VLM 劑量提取失敗 (mg_vals 為空)，只要年齡與藥名吻合，一律攔截！
+        # 🛡️ [防線 1] 獨立於劑量的硬性規則 (Architecture Decoupling - Round 131)
         # ---------------------------------------------------------
-        if age_val >= 60 and ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
-            # ✅ 新增 ⛔ HARD RULE 標籤，確保被 logical_consistency_check 立即攔截
-            return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: AGS Beers Criteria 2023: Avoid Aspirin for primary prevention in adults 60+ due to major bleeding risk. Verify if intended for secondary prevention."
-            
+        if ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
+            # 🚨 絕對攔截：高齡高劑量 (無論一二級預防皆不適合長期使用)
+            # 注意：這裡會先嘗試從藥名預判劑量，如果是 >= 325mg 則 HIGH_RISK
+            if age_val >= 65 and re.search(r'(325|500)\s*mg', drug_name, re.I):
+                return True, "HIGH_RISK", f"⛔ HARD RULE: 高齡者 ({age_val}歲) 長期使用高劑量阿斯匹靈 (≥325mg) 出血風險極大。除急性期外應重新評估劑量或併用 PPI。"
+
+            # ⚠️ 智能警示：一級預防撤藥建議 (二級預防者排除)
+            if not is_secondary_prevention:
+                if age_val >= 65:
+                    return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: AGS Beers Criteria 2023: {age_val}歲長者應避免阿斯匹靈作為「一級預防」。若無心血管病史，建議啟動撤藥評估 (可直接停藥)。"
+                elif age_val >= 60:
+                    return True, "WARNING", f"⚠️ HARD RULE: USPSTF 2022: {age_val}歲長者不建議新啟動阿斯匹靈作為一級預防，出血風險顯著大於潛在獲益。"
+
         if age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
-             # ✅ 新增 ⚠️ HARD RULE 標籤
-             return True, "WARNING", f"⚠️ HARD RULE: AGS Beers Criteria 2023: Zolpidem (Age {age_val}) 增加高齡者跌倒與混亂風險。若必須使用，最大劑量限制為 5mg。"
+             # 提醒：即使劑量正確，Z-drugs 對高齡者仍是高風險 (Beers Criteria)
+             return True, "WARNING", f"⚠️ HARD RULE: AGS Beers Criteria 2023: Zolpidem (Age {age_val}) 會顯著增加跌倒與骨折風險。⚠️切勿突然停藥，應由醫師指示逐漸減量以免引發戒斷।"
 
         # ---------------------------------------------------------
         # 🛡️ [防線 2] 依賴數值的劑量檢查 (Dosage Limits)
         # ---------------------------------------------------------
         raw_dose = str(drug.get("dose") or drug.get("dosage") or actual_data.get("dosage") or "0")
         
-        # 1. 先執行常規的毫克轉換
+        # 1. 先執行常規毫克轉換
         mg_vals, _ = normalize_dose_to_mg(raw_dose)
 
-        # 2. [Fallback Extraction V1.6] 
-        # 如果常規解析結果為空 (例如遇到 "E.C." 或只有 "2錠" 卻缺乏 mg 資訊)
-        # 強制掃描藥名，並將找到的數字重新賦值給 mg_vals，強迫啟動後續檢查迴圈
+        # 2. [Fallback Extraction V1.7] 含「顆數」精確權重計算
+        # 如果常規解析結果為空 (例如 "E.C." 或 "2錠")
         if not mg_vals:
+            # 嘗試從 raw_dose 抓取數量 (預設 1.0)
+            pill_match = re.search(r'(\d+(?:\.\d+)?)\s*(顆|錠|粒|capsule|tablet)', str(raw_dose), re.I)
+            pill_count = float(pill_match.group(1)) if pill_match else 1.0
+
+            # 從藥名抓取基準毫克
             fallback_match = re.search(r'(\d+)\s*mg', drug_name, flags=re.IGNORECASE)
             if fallback_match:
-                print(f"🔄 [Dose Fallback V1.6] Recovered dosage from name: '{fallback_match.group(1)}mg'")
-                # 強制生成有效的毫克陣列
-                mg_vals = [float(fallback_match.group(1))]
+                base_mg = float(fallback_match.group(1))
+                total_mg = base_mg * pill_count
+                print(f"🔄 [Dose Fallback V1.7] '{base_mg}mg' * {pill_count} pills = {total_mg}mg")
+                mg_vals = [total_mg]
 
-        # 3. 進入安全的檢測迴圈
         for mg_val in mg_vals:
             if age_val >= 80 and ("glu" in drug_name or "metformin" in drug_name or "glucophage" in drug_name):
                 if mg_val > 1000: return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
             elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
-                if mg_val > 5: return True, "HIGH_RISK", f"⛔ HARD RULE: BEERS CRITERIA (Zolpidem {mg_val}mg > 5mg). High fall risk."
+                # [V1.7 Clinical Awareness] 判斷長效型 (CR/ER) 與速效型
+                is_er = any(kw in drug_name.lower() for kw in ["cr", "er", "長效", "持續釋放"])
+                max_geriatric_dose = 6.25 if is_er else 5.0
+                
+                if mg_val > max_geriatric_dose: 
+                    return True, "HIGH_RISK", f"⛔ HARD RULE: FDA 劑量限制異常！高齡者 Zolpidem ({'長效' if is_er else '速效'}) 最大劑量為 {max_geriatric_dose}mg (當前辨識: {mg_val}mg)。⚠️注意：請由醫師指示逐漸減量，切勿突然停藥。"
             elif "lipitor" in drug_name or "atorvastatin" in drug_name:
                 if mg_val > 80: return True, "HIGH_RISK", f"⛔ HARD RULE: Atorvastatin Safety Limit ({mg_val}mg > 80mg)."
             elif "diovan" in drug_name or "valsartan" in drug_name:
                 if mg_val > 320: return True, "HIGH_RISK", f"⛔ HARD RULE: Valsartan Safety Limit ({mg_val}mg > 320mg)."
             elif "panadol" in drug_name or "acetaminophen" in drug_name:
-                if mg_val > 1000: return True, "HIGH_RISK", f"⛔ Acetaminophen Overdose: Single dose {mg_val}mg exceeds safe limit (1000mg)."
-                elif mg_val >= 300: return True, "PASS", f"ℹ️ Acetaminophen Reminder: General safe limit for adults is 4000mg/day. Consult your doctor for your specific limit."
+                if mg_val > 1000: 
+                    return True, "HIGH_RISK", f"⛔ Acetaminophen Overdose: Single dose {mg_val}mg exceeds safe limit (1000mg)."
+                # [V1.7 Precision Fix] 移除 return PASS，避免中斷迴圈導致跳過下方的 Q1H 檢查
             elif "lisinopril" in drug_name and "potassium" in drug_name:
                 return True, "WARNING", "⚠️ POTENTIAL INTERACTION: Lisinopril + Potassium supplement may cause hyperkalemia."
             
