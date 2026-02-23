@@ -824,7 +824,8 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         # 🚨 [V2.0 Hotfix] 育齡期女性致畸胎藥物防護 (Category X / D Guardrail)
         teratogenic_drugs = ["valsartan", "diovan", "atorvastatin", "lipitor", "crestor", "rosuvastatin", "warfarin", "rivaroxaban", "xarelto"]
         if 15 <= age_val <= 50 and any(t in drug_name for t in teratogenic_drugs):
-             return True, "WARNING", f"⚠️ [WARNING] 系統衛教提醒：此藥物 ({drug_name}) 若於懷孕期間使用可能對胎兒造成傷害。若您可能懷孕或正在哺乳，請【立即】諮詢醫師確認用藥安全性！"
+             # [Hotfix 134] 將 WARNING 改為 INFO，避免觸發 logical_consistency_check 的重試機制導致無限重試 (Infinite Retry Trap)
+             return True, "INFO", f"⚠️ [WARNING] 系統衛教提醒：此藥物 ({drug_name}) 若於懷孕期間使用可能對胎兒造成傷害。若您可能懷孕或正在哺乳，請【立即】諮詢醫師確認用藥安全性！"
 
         if ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
             # ⚠️ 智能警示：一級預防撤藥建議 (二級預防者排除)
@@ -860,8 +861,8 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         for mg_val in mg_vals:
             if age_val >= 80 and ("glu" in drug_name or "metformin" in drug_name or "glucophage" in drug_name):
                 if mg_val > 1000: return True, "PHARMACIST_REVIEW_REQUIRED", f"⚠️ [CRITICAL] 系統輔助提醒：高齡者 Metformin 建議劑量不宜過高。當前辨識劑量 ({mg_val}mg) 已超過建議值，請與醫師確認適當性。"
-            elif ("aspirin" in drug_name or "bokey" in drug_name):
-                # 🚨 [V2.0 Hotfix] 將阿斯匹靈超量檢查移入此處，以支援 Fallback 乘法後的劑量精確判定
+            elif ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
+                # 🚨 [V2.0 Hotfix] 將阿斯匹靈超量檢查移入此處，以支援 Fallback 乘法後的劑量精確判定 (並加齊 asa 關鍵字)
                 if mg_val >= 325 and age_val >= 65:
                     return True, "HIGH_RISK", f"⚠️ [CRITICAL] 系統提示：高齡者 ({age_val}歲) 服用高劑量阿斯匹靈 (達 {mg_val}mg) 出血風險極大。建議您與醫師確認此劑量之必要性。"
             elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
