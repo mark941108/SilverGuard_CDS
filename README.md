@@ -395,6 +395,15 @@ Due to medical privacy regulations (HIPAA/PDPA), we cannot access real patient p
 
 **Evaluation**: When critical information is blocked, the VLM may hallucinate. However, the **Symbolic Shield** detects that the extracted invalid text is not in the verified medication database, triggering an automatic **`🛑 [Safety Override]`**. The system refuses to provide instructions for unverified drugs, ensuring 100% safety even when visually impaired.
 
+#### 🌪️ Case Study: Agentic Self-Correction (Crumpled & Wet)
+![Reflection Test](assets/DEMO/20260223_213841.jpg)
+*Figure: Extreme stress—crumpled paper texture + fluid stains. System recovers via Agentic Reflection.*
+
+**Evaluation**: This test demonstrates the core **"Thinking" Agent** behavior. 
+1. **Try 0**: VLM is confused by creases and hallucinations occur. 
+2. **Reflection**: The system detects a logic/database mismatch. 
+3. **Recovery**: A retry cycle with lowered temperature (0.1) and **Context-Aware RAG** successfully recovers the identity of `Norvasc`. This proves our system can reach "Ground Truth" where standard single-pass LLMs would fail.
+
 > ⚠️ **Phase 1 Limitation**: This validates optical resilience (lens + sensor pipeline), not clinical efficacy with real-world prescriptions.
 
 **Future Work (Phase 2 - Clinical Validation)**:
