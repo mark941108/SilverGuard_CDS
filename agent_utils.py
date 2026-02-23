@@ -703,7 +703,7 @@ def parse_json_from_response(response_text):
         match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response_text, re.DOTALL)
         json_str = match.group(1) if match else response_text
 
-        # 2. 終極防線：如果 VLM 忘記寫後面的 ```，直接抓取第一對大括號 (Greedy Match)
+        # 2. 終極防線：如果 VLM 忘記寫後面的 ```，嘗試抓取第一對大括號
         if not match:
             match_bracket = re.search(r'\{.*\}', json_str, re.DOTALL)
             if match_bracket:
@@ -711,10 +711,30 @@ def parse_json_from_response(response_text):
 
         # 3. 清理與解析 (原生支援 true/false/null)
         json_str = json_str.strip()
-        data = json.loads(json_str)
         
+        # 🚀 [V28 Enhancement] Emergency Elastic Resolver for "Extra Data" errors
+        # If the model closes the JSON early and keeps talking, find the valid block.
+        data = None
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            if "Extra data" in str(e):
+                # Attempt to find the last brace before the error
+                # and iteratively truncate until valid or empty
+                temp_str = json_str
+                while temp_str:
+                    last_brace_idx = temp_str.rfind('}')
+                    if last_brace_idx == -1: break
+                    temp_str = temp_str[:last_brace_idx+1]
+                    try:
+                        data = json.loads(temp_str)
+                        break
+                    except:
+                        temp_str = temp_str[:-1] # Remove the brace and try again
+            if not data: raise e # Rethrow if elastic resolver failed
+
         # [V27 Fix] Unwrap "parsed" if model nested it
-        if "parsed" in data and isinstance(data["parsed"], dict):
+        if data and "parsed" in data and isinstance(data["parsed"], dict):
             data = data["parsed"]
         return data, None
         

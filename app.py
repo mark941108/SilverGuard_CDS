@@ -2426,12 +2426,15 @@ def create_demo():
                                      fixed_sbar = f"**SBAR Handoff (Verified)**\n* **S (Situation):** Automated Analysis Flagged Risk.\n* **B (Background):** Patient: {real_name} ({real_age}). Drug: {real_drug}.\n* **A (Assessment):** {real_status}. {real_reason}\n* **R (Recommendation):** ⛔ DO NOT DISPENSE without Pharmacist Double-Check."
     
                                  # Overwrite in both possible locations
-                                 result["sbar_handoff"] = fixed_sbar
-                                 if "vlm_output" in result:
-                                     if "parsed" in result["vlm_output"]:
-                                         result["vlm_output"]["parsed"]["sbar_handoff"] = fixed_sbar
-                                     else:
-                                         result["vlm_output"]["sbar_handoff"] = fixed_sbar
+                                 if isinstance(result, dict):
+                                     result["sbar_handoff"] = fixed_sbar
+                                     if result.get("vlm_output") and isinstance(result["vlm_output"], dict):
+                                         if result["vlm_output"].get("parsed") is not None:
+                                             # Ensure parsed is a dict before assignment
+                                             if isinstance(result["vlm_output"]["parsed"], dict):
+                                                 result["vlm_output"]["parsed"]["sbar_handoff"] = fixed_sbar
+                                         else:
+                                             result["vlm_output"]["sbar_handoff"] = fixed_sbar
                         except Exception as e:
                             print(f"⚠️ [SBAR Fix] Failed to patch SBAR: {e}")
     
