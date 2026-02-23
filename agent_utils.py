@@ -641,8 +641,13 @@ def clean_text_for_tts(text, lang='zh-tw'):
     text = re.sub(r'http[s]?://\S+', '', text)
     # Remove Markdown bold/italic
     text = re.sub(r'[*_#]', '', text)
-    # Remove Emojis & excessive symbols (to prevent engine stutters)
-    text = re.sub(r'[⚠️✅🔴🟡🟢❓🚨⛔🚫]', '', text)
+    # ✅ [Omni-Emoji Filter] 全方位表情符號與特殊圖標過濾
+    # 1. 攔截絕大多數的高位元 Emoji (Surrogate Pairs, 包含 💡, 💊, 🛡️ 等)
+    text = re.sub(r'[\U00010000-\U0010ffff]', '', text)
+    # 2. 攔截基礎多語言平面 (BMP) 中的雜項符號 (如 ⚠️, ✅, ⛔, ⚕️, ☎️ 等)
+    text = re.sub(r'[\u2600-\u27BF\u2300-\u23FF\u2B50\u2B55]', '', text)
+    # 3. 針對性清除您系統愛用的特定全形標籤
+    text = re.sub(r'[❓🔴🟡🟢🚨🚫]', '', text)
     
     # 🟢 [UX Fix] 柔化警報 (已移至 app.py 源頭處理)
     

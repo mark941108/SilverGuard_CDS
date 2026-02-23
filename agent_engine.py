@@ -2560,9 +2560,11 @@ def clean_text_for_tts(text, lang='zh'):
     text = text.replace("⛔", "危險！").replace("🚫", "禁止！")
 
     # 3. 移除裝飾性 Emoji (老人不需要聽這些)
-    # 範圍涵蓋常見圖示：✅, 💊, 🟢, 📋, 👵, 👋 等
-    # 使用 Unicode Range 移除所有表情符號
+    # ✅ [Omni-Emoji Filter] 全方位表情符號與特殊圖標過濾
+    # 攔截絕大多數的高位元 Emoji (Surrogate Pairs, 包含 💡, 💊, 🛡️ 等)
     text = re.sub(r'[\U00010000-\U0010ffff]', '', text)
+    # 攔截基礎多語言平面 (BMP) 中的雜項符號 (如 ⚠️, ✅, ⛔, ⚕️, ☎️ 等)
+    text = re.sub(r'[\u2600-\u27BF\u2300-\u23FF\u2B50\u2B55]', '', text)
 
     # 4. 處理標點符號與排版 (優化停頓)
     # 將換行轉為逗號，避免黏在一起
