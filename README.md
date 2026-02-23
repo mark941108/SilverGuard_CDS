@@ -383,6 +383,12 @@ Due to medical privacy regulations (HIPAA/PDPA), we cannot access real patient p
 
 - **Results**: Maintains **60%+** extraction accuracy across 10 physical stress tests
 
+#### 🛠️ Case Study: Real-World Resilience
+![Physical Stress Test](assets/DEMO/20260223_205940.jpg)
+*Figure: Testing a B&W print with a severe horizontal crease (over drug name) and uneven shadows.*
+
+**Evaluation**: Despite significant optical interference, the **Neuro-Symbolic Shield** successfully identifies the drug (`Aspirin`) and elderly risk factor (`78y`), triggering the Beers Criteria safety block. This validates the system's **Sim2Real** readiness for noisy environment deployment.
+
 > ⚠️ **Phase 1 Limitation**: This validates optical resilience (lens + sensor pipeline), not clinical efficacy with real-world prescriptions.
 
 **Future Work (Phase 2 - Clinical Validation)**:
