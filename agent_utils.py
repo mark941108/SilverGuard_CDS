@@ -917,9 +917,9 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
                     return True, "HIGH_RISK", f"⛔ CRITICAL: NOAC dose {mg_val}mg exceeds maximum approved dose."
             # ✅ Aspirin 60+ logic consolidated above (Line 882)
             elif age_val >= 65 and ("plavix" in drug_name or "clopidogrel" in drug_name):
-                # Clopidogrel: 標準劑量 75mg，> 75mg 需確認
+                # [Hotfix 136] 將 WARNING 降級為 INFO，避免觸發 logical_consistency_check 的重試機制
                 if mg_val > 75:
-                    return True, "WARNING", f"⚠️ Clopidogrel {mg_val}mg exceeds standard dose (75mg). Verify prescription."
+                    return True, "INFO", f"⚠️ [INFO] 系統輔助提醒：Clopidogrel 辨識劑量 ({mg_val}mg) 高於常規保份劑量 (75mg)，建議諮詢醫師確認適當性。"
             
             # [P0 Emergency Fix] General Extreme Dose Sentinel (Sent from normalize_dose_to_mg)
             if mg_val >= 9000:
@@ -1149,13 +1149,14 @@ def check_is_prescription(response_text):
         if exclude_kw in response_lower:
             return False
     
-       # ✅ [V2.0 Hotfix] 精確匹配短單位（g, mg, ml），避免 "good", "dog" 等字串引發 OOD 誤判
+    # ✅ [V2.0 Hotfix] 解決 \b 陷阱 (Word Boundary Trap)
+    # 使用 Negative Lookaround 針對英文字母邊界鎖定，確保 100mg 能被正確識別，且不誤報 good/image
     keyword_count = 0
     for kw in CORE_MEDICAL_KEYWORDS:
-        if len(kw) <= 2: # 針對 g, mg, ml, cc 等短字元使用正則字邊界鎖定
-            if re.search(rf'\b{kw}\b', response_lower):
+        if kw in ["g", "mg", "ml", "mcg", "cc"]: # 短英文單位
+            if re.search(rf'(?<![a-z]){kw}(?![a-z])', response_lower, re.I):
                 keyword_count += 1
-        else: # 長字元（dosage, hospital）維持字串包含判定
+        else: # 中文關鍵字與長英文關鍵字
             if kw.lower() in response_lower:
                 keyword_count += 1
     
