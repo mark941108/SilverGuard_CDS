@@ -818,14 +818,15 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
             is_secondary_prevention = True
 
         # ---------------------------------------------------------
-        # 🛡️ [防線 1] 獨立於劑量的硬性規則 (Architecture Decoupling - Round 132)
+        # 🛡️ [防線 1] 獨立於劑量的硬性規則 (Architecture Decoupling - Round 133)
         # 使用 Hidden Tag 策略 [HARD RULE] 確保系統攔截，但口吻諮詢化
         # ---------------------------------------------------------
-        if ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
-            # 🚨 絕對攔截：高齡高劑量 (無論一二級預防皆不適合長期使用)
-            if age_val >= 65 and re.search(r'(325|500)\s*mg', drug_name, re.I):
-                return True, "HIGH_RISK", f"⚠️ [CRITICAL] 系統提示：高齡者 ({age_val}歲) 長期使用高劑量阿斯匹靈 (≥325mg) 出血風險極大。建議您與醫師確認劑量適當性，切勿自行更改藥量。"
+        # 🚨 [V2.0 Hotfix] 育齡期女性致畸胎藥物防護 (Category X / D Guardrail)
+        teratogenic_drugs = ["valsartan", "diovan", "atorvastatin", "lipitor", "crestor", "rosuvastatin", "warfarin", "rivaroxaban", "xarelto"]
+        if 15 <= age_val <= 50 and any(t in drug_name for t in teratogenic_drugs):
+             return True, "WARNING", f"⚠️ [WARNING] 系統衛教提醒：此藥物 ({drug_name}) 若於懷孕期間使用可能對胎兒造成傷害。若您可能懷孕或正在哺乳，請【立即】諮詢醫師確認用藥安全性！"
 
+        if ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
             # ⚠️ 智能警示：一級預防撤藥建議 (二級預防者排除)
             if not is_secondary_prevention:
                 if age_val >= 65:
@@ -859,6 +860,10 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         for mg_val in mg_vals:
             if age_val >= 80 and ("glu" in drug_name or "metformin" in drug_name or "glucophage" in drug_name):
                 if mg_val > 1000: return True, "PHARMACIST_REVIEW_REQUIRED", f"⚠️ [CRITICAL] 系統輔助提醒：高齡者 Metformin 建議劑量不宜過高。當前辨識劑量 ({mg_val}mg) 已超過建議值，請與醫師確認適當性。"
+            elif ("aspirin" in drug_name or "bokey" in drug_name):
+                # 🚨 [V2.0 Hotfix] 將阿斯匹靈超量檢查移入此處，以支援 Fallback 乘法後的劑量精確判定
+                if mg_val >= 325 and age_val >= 65:
+                    return True, "HIGH_RISK", f"⚠️ [CRITICAL] 系統提示：高齡者 ({age_val}歲) 服用高劑量阿斯匹靈 (達 {mg_val}mg) 出血風險極大。建議您與醫師確認此劑量之必要性。"
             elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
                 # [V1.7 Clinical Awareness] 判斷長效型 (CR/ER) 與速效型
                 is_er = any(kw in drug_name.lower() for kw in ["cr", "er", "長效", "持續釋放"])
@@ -945,12 +950,22 @@ def logical_consistency_check(extracted_data, safety_analysis=None, voice_contex
 
     # 3. Age & Hard Rules (Geriatric Guardrails)
     try:
-        raw_age = patient.get("age") or 0
-        age_val = int(raw_age)
-        if age_val > 120: issues.append(f"Invalid Age: {age_val}")
-        if 0 < age_val < 18: issues.append(f"Pediatric case ({age_val}) requires manual review")
+        # 確保安全萃取數字 (修正 Age 0 繞過漏洞)
+        raw_age = patient.get("age") or actual_data.get("patient_age") or "0"
+        age_str = re.sub(r'\D', '', str(raw_age))
+        age_val = int(age_str) if age_str else 0
+        
+        if age_val > 120: 
+            issues.append(f"⚠️ [CRITICAL] 系統提示：病患年齡異常 ({age_val})，請重新掃描。")
+        elif age_val == 0: 
+            # 🚨 [V2.0 Hotfix] 強制攔截未知年齡，防止對孩童/孕婦造成危險
+            issues.append("⚠️ [HARD RULE] 系統提示：無法辨識/未提供病患年齡！年齡為用藥安全評估之核心，請由藥師人工核對。")
+        elif age_val < 18:
+            # 🚨 [V2.0 Hotfix] 強化兒科/未成年保護
+            issues.append(f"⚠️ [HARD RULE] 系統提示：兒科/未成年處方 (年齡 {age_val}) 具有特殊劑量準則，請轉交專業藥師手動核對。")
     except:
         age_val = 0
+        issues.append("⚠️ [HARD RULE] 系統提示：年齡解析失敗！為了安全，請由專業人員協助評估。")
 
     # Trigger Central Hard Rules
     is_triggered, rule_status, rule_reason = check_hard_safety_rules(actual_data, voice_context=voice_context)
@@ -991,9 +1006,6 @@ def logical_consistency_check(extracted_data, safety_analysis=None, voice_contex
         issues.append("Safety Reasoning does not mention the flagged drug name.")
 
     if issues:
-        # Prevent infinite retry for unknown drugs if flagged
-        if any("not in knowledge base" in issue for issue in issues):
-            return True, f"⚠️ UNKNOWN_DRUG detected: {drug_name}. Manual Review Required.", logs
         return False, f"Logic Consistency Failed: {'; '.join(issues)}", logs
 
     return True, "Logic Consistent", logs
@@ -1111,8 +1123,15 @@ def check_is_prescription(response_text):
         if exclude_kw in response_lower:
             return False
     
-    # 計算醫療關鍵字命中數
-    keyword_count = sum(1 for kw in CORE_MEDICAL_KEYWORDS if kw.lower() in response_lower)
+       # ✅ [V2.0 Hotfix] 精確匹配短單位（g, mg, ml），避免 "good", "dog" 等字串引發 OOD 誤判
+    keyword_count = 0
+    for kw in CORE_MEDICAL_KEYWORDS:
+        if len(kw) <= 2: # 針對 g, mg, ml, cc 等短字元使用正則字邊界鎖定
+            if re.search(rf'\b{kw}\b', response_lower):
+                keyword_count += 1
+        else: # 長字元（dosage, hospital）維持字串包含判定
+            if kw.lower() in response_lower:
+                keyword_count += 1
     
     # 門檻：至少要命中 2 個醫療關鍵字才算是處方箋 (原為 4，針對短回覆進行優化)
     # (例如只有 "Aspirin 100mg" 也應該過)
