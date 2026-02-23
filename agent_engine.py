@@ -1624,6 +1624,14 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                         correction_context = f"Failed to parse JSON. Please ensure valid JSON structure. Error: {parse_err}"
                         continue
                     else: break
+            # 🛡️ [Hotfix] Null Guard for worst-case failure (JSON Parse Fail + Scavenger Fail)
+            if not parsed_json:
+                print(f"   🛑 [REJECT] Pipeline total failure. JSON malformed and Scavenger failed.")
+                result["pipeline_status"] = "FAILED"
+                result["final_status"] = "ERROR"
+                result["vlm_output"] = {"parsed": {}, "raw": gen_text}
+                result["silverguard_message"] = "⛔ 系統無法讀取藥物資訊，建議諮詢藥師。"
+                return result
 
             # [Unified Logic Relay] Use agent_utils canonical functions
             # 1. Hard Rule Check (Deterministic Shield)

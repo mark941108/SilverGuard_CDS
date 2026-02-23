@@ -2398,8 +2398,8 @@ def create_demo():
                                      
                                  # [V8.2] Null-Guard for parsed content
                                  if vlm_out is not None:
-                                     ex = vlm_out.get("extracted_data", {})
-                                     sf = vlm_out.get("safety_analysis", {})
+                                     ex = vlm_out.get("extracted_data", {}) if isinstance(vlm_out, dict) else {}
+                                     sf = vlm_out.get("safety_analysis", {}) if isinstance(vlm_out, dict) else {}
                                      
                                      # ✅ [Audit Fix P0] Nested Dict Hardening
                                      pat_info = ex.get("patient", {}) if isinstance(ex, dict) else {}
@@ -2413,6 +2413,11 @@ def create_demo():
                                      real_drug = dru_info.get("name", "Unknown") if isinstance(dru_info, dict) else "Unknown"
                                      real_status = sf.get("status", "UNKNOWN") if isinstance(sf, dict) else "UNKNOWN"
                                      real_reason = sf.get("reasoning", "") if isinstance(sf, dict) else ""
+                                 else:
+                                     # Default Fallback if vlm_out is None
+                                     real_name = real_age = real_drug = "Unknown"
+                                     real_status = "UNKNOWN"
+                                     real_reason = "No data"
                                  
                                  # Reconstruct SBAR
                                  fixed_sbar = f"**SBAR Handoff (Verified)**\n* **S (Situation):** Automated SilverGuard Analysis.\n* **B (Background):** Patient: {real_name} ({real_age}). Drug: {real_drug}.\n* **A (Assessment):** {real_status}. {real_reason}\n* **R (Recommendation):** Review finding."
