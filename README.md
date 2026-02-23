@@ -404,6 +404,12 @@ Due to medical privacy regulations (HIPAA/PDPA), we cannot access real patient p
 2. **Reflection**: The system detects a logic/database mismatch. 
 3. **Recovery**: A retry cycle with lowered temperature (0.1) and **Context-Aware RAG** successfully recovers the identity of `Norvasc`. This proves our system can reach "Ground Truth" where standard single-pass LLMs would fail.
 
+#### ✨ Case Study: Glare & Reflection Resilience
+![Glare Test](assets/DEMO/20260223_215633.jpg)
+*Figure: Home-care simulation—medication bag inside a double-layer plastic Ziploc bag with strong ceiling glare.*
+
+**Evaluation**: Transparent packaging often causes spectral reflections that "blind" standard OCR. However, MedGemma's visual encoder maintains structural understanding through the plastic layer. The system achieves **0.94 confidence** and correctly triggers the **Beers Criteria** safety shield, proving its utility in real-world home storage conditions.
+
 > ⚠️ **Phase 1 Limitation**: This validates optical resilience (lens + sensor pipeline), not clinical efficacy with real-world prescriptions.
 
 **Future Work (Phase 2 - Clinical Validation)**:
