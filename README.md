@@ -51,9 +51,10 @@
 - [🌟 Key Features (Impact)](#-key-features-impact)
 - [⚡ Judges' Executive Summary (30-Second Insight)](#-judges-executive-summary-30-second-insight)
 - [📈 Projected Impact Analysis](#-projected-impact-analysis)
-- [🚀 Deployment Roadmap & Scaling Impact](#-deployment-roadmap--scaling-impact)
-- [🏗️ Complete Workflow Architecture (Neuro-Symbolic Agent Loop)](#%EF%B8%8F-complete-workflow-architecture-neuro-symbolic-agent-loop)
+  - [🚀 Deployment Roadmap & Scaling Impact](#-deployment-roadmap--scaling-impact)
 - [🏆 Demo Results](#-demo-results)
+- [🛠️ Technical Architecture (Agentic Loop)](#%EF%B8%8F-technical-architecture-agentic-safety-loop)
+  - [🏗️ Complete Workflow Architecture (Neuro-Symbolic Agent Loop)](#️-complete-workflow-architecture-neuro-symbolic-agent-loop)
 - [🏛️ Technical Foundation & HAI-DEF Alignment](#%EF%B8%8F-technical-foundation--hai-def-alignment)
 - [⚖️ Legal & Compliance](#%EF%B8%8F-legal--compliance)
 - [📚 References](#-references)
@@ -1245,10 +1246,10 @@ We understand that if an AI flags every prescription as "Potential Risk," pharma
 *   **Thresholding:** We use a conservative logic where `WARNING` is only triggered if specific contraindications (e.g., Age > 80 + High Dose) are met, rather than generic warnings.
 *   **Visual Hierarchy:** SilverGuard CDS's UI uses distinct color coding (Red for lethal, Yellow for caution) so pharmacists can prioritize their attention. Our internal testing shows a specificity of ~92%, ensuring alerts are meaningful.
 
-### Q6: The `DRUG_DATABASE` currently has only 19 distinct medications. Is this scalable?
+### Q6: The `DRUG_DATABASE` currently has only 21 distinct medications. Is this scalable?
 **A: Yes, we use a "Lightweight Proto-Strategy" for edge demo efficiency.**
-*   **Architecture Note:** For this **Edge-AI Prototype**, we implemented a zero-latency dictionary lookup.
-*   **Production Vision:** The `retrieve_drug_info` interface is designed to be **hot-swapped** with a scalable Vector Database (e.g., ChromaDB) or RxNorm API in Phase 2, without changing the core reasoning logic.
+*   **Architecture Note:** For this **Edge-AI Prototype**, we implemented a high-speed dictionary lookup with **21 priority medications** common in elderly care.
+*   **Scalability Design:** The `retrieve_drug_info` interface is a modular abstraction. It is designed to be **hot-swapped** with a production-grade Vector Database (e.g., ChromaDB, Pinecone) or a real-time RxNorm API in Phase 2. The core MedGemma reasoning logic remains unchanged regardless of whether the database contains 21 drugs or 21,000.
 
 ### Q7: Why specifically MedGemma? Why not a general vision model like PaliGemma?
 **A: Because of "Medical Fine-Tuning" and Clinical Alignment.**
