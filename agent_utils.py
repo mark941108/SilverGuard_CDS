@@ -800,6 +800,7 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
             
         # 🛡️ [RED TEAM FIX] 語音出血護欄 (Voice Guardrail)
         # ---------------------------------------------------------
+        # ---------------------------------------------------------
         # 🏥 [V1.7 Clinical Awareness] ICD-10 與病史識別 (二級預防判定)
         # ---------------------------------------------------------
         icd_codes = patient.get("icd_10") or actual_data.get("icd_10") or []
@@ -817,24 +818,24 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
             is_secondary_prevention = True
 
         # ---------------------------------------------------------
-        # 🛡️ [防線 1] 獨立於劑量的硬性規則 (Architecture Decoupling - Round 131)
+        # 🛡️ [防線 1] 獨立於劑量的硬性規則 (Architecture Decoupling - Round 132)
+        # 使用 Hidden Tag 策略 [HARD RULE] 確保系統攔截，但口吻諮詢化
         # ---------------------------------------------------------
         if ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
             # 🚨 絕對攔截：高齡高劑量 (無論一二級預防皆不適合長期使用)
-            # 注意：這裡會先嘗試從藥名預判劑量，如果是 >= 325mg 則 HIGH_RISK
             if age_val >= 65 and re.search(r'(325|500)\s*mg', drug_name, re.I):
-                return True, "HIGH_RISK", f"⛔ HARD RULE: 高齡者 ({age_val}歲) 長期使用高劑量阿斯匹靈 (≥325mg) 出血風險極大。除急性期外應重新評估劑量或併用 PPI。"
+                return True, "HIGH_RISK", f"⚠️ [CRITICAL] 系統提示：高齡者 ({age_val}歲) 長期使用高劑量阿斯匹靈 (≥325mg) 出血風險極大。建議您與醫師確認劑量適當性，切勿自行更改藥量。"
 
             # ⚠️ 智能警示：一級預防撤藥建議 (二級預防者排除)
             if not is_secondary_prevention:
                 if age_val >= 65:
-                    return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: AGS Beers Criteria 2023: {age_val}歲長者應避免阿斯匹靈作為「一級預防」。若無心血管病史，建議啟動撤藥評估 (可直接停藥)。"
+                    return True, "PHARMACIST_REVIEW_REQUIRED", f"⚠️ [HARD RULE] 系統提示 (Beers Criteria 2023)：針對 {age_val} 歲長者，阿斯匹靈作為日常保養 (一級預防) 的出血風險較高。建議您與醫師或藥師討論是否需要調整處方，切勿自行貿然停藥。"
                 elif age_val >= 60:
-                    return True, "WARNING", f"⚠️ HARD RULE: USPSTF 2022: {age_val}歲長者不建議新啟動阿斯匹靈作為一級預防，出血風險顯著大於潛在獲益。"
+                    return True, "WARNING", f"⚠️ [HARD RULE] 系統提示 (USPSTF 2022)：{age_val} 歲長者不建議新啟動阿斯匹靈作為一級預防，潛在出血風險可能大於獲益。建議諮詢醫療人員評估。"
 
         if age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
              # 提醒：即使劑量正確，Z-drugs 對高齡者仍是高風險 (Beers Criteria)
-             return True, "WARNING", f"⚠️ HARD RULE: AGS Beers Criteria 2023: Zolpidem (Age {age_val}) 會顯著增加跌倒與骨折風險。⚠️切勿突然停藥，應由醫師指示逐漸減量以免引發戒斷।"
+             return True, "WARNING", f"⚠️ [HARD RULE] 系統提示：長者服用此安眠藥 (年齡 {age_val}) 需特別留意跌倒與混亂風險。建議尋求醫療人員評估最佳劑量。⚠️請注意：安眠藥切勿自行突然停藥，應由醫師指示逐漸減量以免引發嚴重失眠反彈。"
 
         # ---------------------------------------------------------
         # 🛡️ [防線 2] 依賴數值的劑量檢查 (Dosage Limits)
@@ -845,13 +846,9 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         mg_vals, _ = normalize_dose_to_mg(raw_dose)
 
         # 2. [Fallback Extraction V1.7] 含「顆數」精確權重計算
-        # 如果常規解析結果為空 (例如 "E.C." 或 "2錠")
         if not mg_vals:
-            # 嘗試從 raw_dose 抓取數量 (預設 1.0)
             pill_match = re.search(r'(\d+(?:\.\d+)?)\s*(顆|錠|粒|capsule|tablet)', str(raw_dose), re.I)
             pill_count = float(pill_match.group(1)) if pill_match else 1.0
-
-            # 從藥名抓取基準毫克
             fallback_match = re.search(r'(\d+)\s*mg', drug_name, flags=re.IGNORECASE)
             if fallback_match:
                 base_mg = float(fallback_match.group(1))
@@ -861,24 +858,21 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
 
         for mg_val in mg_vals:
             if age_val >= 80 and ("glu" in drug_name or "metformin" in drug_name or "glucophage" in drug_name):
-                if mg_val > 1000: return True, "PHARMACIST_REVIEW_REQUIRED", f"⛔ HARD RULE: Geriatric Max Dose Exceeded (Metformin {mg_val}mg > 1000mg)"
+                if mg_val > 1000: return True, "PHARMACIST_REVIEW_REQUIRED", f"⚠️ [CRITICAL] 系統輔助提醒：高齡者 Metformin 建議劑量不宜過高。當前辨識劑量 ({mg_val}mg) 已超過建議值，請與醫師確認適當性。"
             elif age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
                 # [V1.7 Clinical Awareness] 判斷長效型 (CR/ER) 與速效型
                 is_er = any(kw in drug_name.lower() for kw in ["cr", "er", "長效", "持續釋放"])
                 max_geriatric_dose = 6.25 if is_er else 5.0
                 
                 if mg_val > max_geriatric_dose: 
-                    return True, "HIGH_RISK", f"⛔ HARD RULE: FDA 劑量限制異常！高齡者 Zolpidem ({'長效' if is_er else '速效'}) 最大劑量為 {max_geriatric_dose}mg (當前辨識: {mg_val}mg)。⚠️注意：請由醫師指示逐漸減量，切勿突然停藥。"
+                    return True, "HIGH_RISK", f"⚠️ [CRITICAL] 系統輔助提醒：系統辨識到 Zolpidem ({'長效' if is_er else '速效'}) 劑量為 {mg_val}mg，高於長者建議上限 ({max_geriatric_dose}mg)。為確保用藥安全，強烈建議您與主治醫師確認此劑量是否適合您目前的狀況。切勿自行調整藥量。"
             elif "lipitor" in drug_name or "atorvastatin" in drug_name:
-                if mg_val > 80: return True, "HIGH_RISK", f"⛔ HARD RULE: Atorvastatin Safety Limit ({mg_val}mg > 80mg)."
-            elif "diovan" in drug_name or "valsartan" in drug_name:
-                if mg_val > 320: return True, "HIGH_RISK", f"⛔ HARD RULE: Valsartan Safety Limit ({mg_val}mg > 320mg)."
+                if mg_val > 80: return True, "HIGH_RISK", f"⚠️ [CRITICAL] 系統輔助提醒：Atorvastatin 劑量辨識為 {mg_val}mg，高於一般建議上限 (80mg)，請與醫師核對。"
             elif "panadol" in drug_name or "acetaminophen" in drug_name:
                 if mg_val > 1000: 
-                    return True, "HIGH_RISK", f"⛔ Acetaminophen Overdose: Single dose {mg_val}mg exceeds safe limit (1000mg)."
-                # [V1.7 Precision Fix] 移除 return PASS，避免中斷迴圈導致跳過下方的 Q1H 檢查
+                    return True, "HIGH_RISK", f"⚠️ [CRITICAL] 普拿疼提醒：單次劑量 {mg_val}mg 已超過建議安全限制 (1000mg)，請諮詢藥師評估風險。"
             elif "lisinopril" in drug_name and "potassium" in drug_name:
-                return True, "WARNING", "⚠️ POTENTIAL INTERACTION: Lisinopril + Potassium supplement may cause hyperkalemia."
+                return True, "WARNING", "⚠️ [HARD RULE] 系統輔助提醒：Lisinopril 與鉀離子補充品併用可能影響血鉀平衡，建議諮詢醫師評估。"
             
             # V12.0 Round 120.2: Separate Warfarin and Aspirin thresholds (CRITICAL FIX)
             # Bug: 之前將 Aspirin 100mg 誤判為過量，但這是正常心血管預防劑量！
