@@ -2399,9 +2399,16 @@ def create_demo():
                                      ex = vlm_out.get("extracted_data", {})
                                      sf = vlm_out.get("safety_analysis", {})
                                      
-                                     real_name = ex.get("patient", {}).get("name", "Unknown") if isinstance(ex, dict) else "Unknown"
-                                     real_age = ex.get("patient", {}).get("age", "Unknown") if isinstance(ex, dict) else "Unknown"
-                                     real_drug = ex.get("drug", {}).get("name", "Unknown") if isinstance(ex, dict) else "Unknown"
+                                     # ✅ [Audit Fix P0] Nested Dict Hardening
+                                     pat_info = ex.get("patient", {}) if isinstance(ex, dict) else {}
+                                     if isinstance(pat_info, str): pat_info = {"name": pat_info}
+                                     
+                                     dru_info = ex.get("drug", {}) if isinstance(ex, dict) else {}
+                                     if isinstance(dru_info, str): dru_info = {"name": dru_info}
+
+                                     real_name = pat_info.get("name", "Unknown") if isinstance(pat_info, dict) else "Unknown"
+                                     real_age = pat_info.get("age", "Unknown") if isinstance(pat_info, dict) else "Unknown"
+                                     real_drug = dru_info.get("name", "Unknown") if isinstance(dru_info, dict) else "Unknown"
                                      real_status = sf.get("status", "UNKNOWN") if isinstance(sf, dict) else "UNKNOWN"
                                      real_reason = sf.get("reasoning", "") if isinstance(sf, dict) else ""
                                  

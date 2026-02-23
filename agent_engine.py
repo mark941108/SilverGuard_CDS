@@ -1478,7 +1478,11 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
             # [Round 127] Smart Drug Name Validation - Reject meaningless names
             if parsed_json:
                 extracted = parsed_json.get('extracted_data', {})
+                # ✅ [Audit Fix P0] Nested Dict Hardening: handle VLM flattening drug to string
                 drug_info = extracted.get('drug', {}) if isinstance(extracted, dict) else {}
+                if isinstance(drug_info, str):
+                    drug_info = {"name": drug_info}
+                
                 drug_name = str(drug_info.get('name', '')).lower().strip()
                 
                 # Invalid drug names that indicate no real medicine detected
@@ -1534,8 +1538,12 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
             if parsed_json and (not parsed_json.get("sbar_handoff") or len(parsed_json["sbar_handoff"]) < 10):
                 try:
                     ext = parsed_json.get("extracted_data", {})
-                    pat = ext.get("patient", {})
-                    dru = ext.get("drug", {})
+                    # ✅ [Audit Fix P0] Nested Dict Hardening
+                    pat = ext.get("patient", {}) if isinstance(ext, dict) else {}
+                    if isinstance(pat, str): pat = {"name": pat}
+                    
+                    dru = ext.get("drug", {}) if isinstance(ext, dict) else {}
+                    if isinstance(dru, str): dru = {"name": dru}
                     saf = parsed_json.get("safety_analysis", {})
                     
                     sbar_fallback = (
@@ -1589,8 +1597,10 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                 
                 found_safe = None
                 raw_lower = gen_text.lower()
+                import re # [Audit Fix P1] Ensure re is available for word boundary check
                 for safe_drug in SAFE_SUBSTRINGS:
-                    if safe_drug in raw_lower:
+                    # ✅ [Audit Fix P1] Word Boundary Fix: prevent 'asa' matching 'basal'
+                    if re.search(rf'\b{re.escape(safe_drug.lower())}\b', raw_lower):
                         found_safe = safe_drug
                         break
                 
@@ -1716,7 +1726,8 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                     clean_text = clean_text.replace(" .", ".").strip(": \n\t. ")
                     return clean_text or "Use as directed" # Default to a safe placeholder
                 elif isinstance(obj, dict):
-                    return {k: ghostbuster(v) for k, v in obj.items()}
+                    # ✅ [Audit Fix P1] Ghostbuster Scope Protection: skip cleaning 'usage' field
+                    return {k: (v if k == "usage" else ghostbuster(v)) for k, v in obj.items()}
                 elif isinstance(obj, list):
                     return [ghostbuster(x) for x in obj]
                 return obj
