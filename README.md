@@ -378,10 +378,10 @@ Due to medical privacy regulations (HIPAA/PDPA), we cannot access real patient p
 
 - **Methodology**: Screen-based re-capture testing
   - Synthetic drug bag images displayed on calibrated monitor (sRGB, 100% brightness)
-  - iPhone camera capture at varying angles (0°, 15°, 30°) and lighting conditions (natural light, fluorescent, LED)
+  - Mobile device camera capture at varying angles (0°, 15°, 30°) and lighting conditions (natural light, fluorescent, LED)
   - Simulated physical stress: reflections, glare, motion blur
 
-- **Results**: Maintains 85%+ extraction accuracy across 10 physical stress tests
+- **Results**: Maintains **60%+** extraction accuracy across 10 physical stress tests
 
 > ⚠️ **Phase 1 Limitation**: This validates optical resilience (lens + sensor pipeline), not clinical efficacy with real-world prescriptions.
 
