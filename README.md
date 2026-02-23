@@ -47,13 +47,13 @@
 ## Table of Contents
 
 - [💔 The Real-World Problem](#-the-real-world-problem)
-- [⚡ Quick Start & Deployment](#-quick-start--deployment)
-- [🌟 Key Features](#-key-features-impact)
-- [⚡ Judges' Executive Summary](#-judges-executive-summary-30-second-insight)
-- [ Projected Impact Analysis](#-projected-impact-analysis)
-- [🚀 Deployment Roadmap](#-deployment-roadmap--scaling-impact)
-- [🏗️ Architecture](#%EF%B8%8F-complete-workflow-architecture-neuro-symbolic-agent-loop)
-- [🎬 Demo Results](#-demo-results)
+- [🚀 Quick Start & Deployment](#-quick-start--deployment)
+- [🌟 Key Features (Impact)](#-key-features-impact)
+- [⚡ Judges' Executive Summary (30-Second Insight)](#-judges-executive-summary-30-second-insight)
+- [📈 Projected Impact Analysis](#-projected-impact-analysis)
+- [🚀 Deployment Roadmap & Scaling Impact](#-deployment-roadmap--scaling-impact)
+- [🏗️ Complete Workflow Architecture (Neuro-Symbolic Agent Loop)](#%EF%B8%8F-complete-workflow-architecture-neuro-symbolic-agent-loop)
+- [🏆 Demo Results](#-demo-results)
 - [🏛️ Technical Foundation & HAI-DEF Alignment](#%EF%B8%8F-technical-foundation--hai-def-alignment)
 - [⚖️ Legal & Compliance](#%EF%B8%8F-legal--compliance)
 - [📚 References](#-references)
@@ -452,7 +452,6 @@ We selected the Taiwan medical ecosystem as a **High-Complexity Stress Test** fo
 | **1 in 30 patients** experience medication-related harm in healthcare | WHO 2024 |
 | Patients 65+ have **7x higher** medication error rate | Geriatric Pharmacy Research |
 | **53%** of preventable medication harm occurs at prescribing stage | WHO 2024 |
-| **TTS (Voice)** | Defaults to high-quality Neural Cloud TTS. Automatically falls back to local **Piper Neural TTS** (100% Offline) for zero-latency migrant caregiver support. |
 
 ### Core Features
 
@@ -1007,7 +1006,7 @@ By running **locally on RTX 5060 (or Kaggle/Colab GPU)**:
 | Custom Cloud Server | ~$500/month | ⚠️ Requires IT team |
 | **MedGemma (This Project)** | **$0/month** | ✅ 100% local |
 
-> *One-time hardware cost (T4 GPU) pays for itself in 2 months vs cloud APIs.*
+> *One-time hardware cost (e.g., Consumer GPU like RTX 5060) pays for itself in 2 months vs cloud APIs.*
 
 ### Technical Specifications
 
@@ -1048,18 +1047,6 @@ Roadmap to Next-Generation Architecture (Post-Competition):
 - **Phase 5 - On-Device Deployment**: Deploy via **MediaPipe LLM Inference API** on high-end Android (Pixel 9 Pro, Galaxy S24 Ultra) with aggressive 4-bit quantization, OR **Edge Gateways** (NVIDIA Jetson Orin) for clinic deployment. *Note: MedGemma 4B exceeds standard AICore 3.25B limit; future research includes distilling to Gemini Nano 3B for native AICore compatibility.*
 - **Accessibility**: Support for 10+ dialects via MedASR-Large. (Current: Traditional Chinese / 繁體中文; Supported: Indonesian/Vietnamese via Piper Neural TTS)
 
-<a name="docker-reproducibility-optional"></a>
-### 🐳 Option 3: Docker (Production Deployment)
-
-For local hospital deployment (Air-Gapped), use the provided Dockerfile.
-
-```bash
-# 1. Build the container (includes T4-optimized PyTorch & TTS)
-docker build -t medgemma-guardian .
-
-# 2. Run inference service (Offline Mode Enabled)
-docker run --gpus all -p 7860:7860 -v $(pwd)/logs:/app/logs silverguard_cds
-```
 
 ---
 
