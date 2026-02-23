@@ -1383,6 +1383,12 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
             elif raw_image.mode != "RGB":
                 raw_image = raw_image.convert("RGB")
 
+            # 🟢 [ADD VRAM OOM SHIELD] 強制限制最大邊長為 1024px
+            max_dim = 1024
+            if max(raw_image.size) > max_dim:
+                raw_image.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+                if verbose: print(f" 📉 [VRAM Shield] Image safely resized to {raw_image.size}")
+
             inputs = processor(text=prompt, images=raw_image, return_tensors="pt").to(model.device)
             input_len = inputs.input_ids.shape[1]
 

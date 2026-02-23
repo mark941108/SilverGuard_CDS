@@ -435,40 +435,43 @@ class UnifiedRAGEngine:
 
 
     def query(self, q, k=1):
-        """Query the knowledge base."""
-        # 1. Check for need to rebuild cache
+        """Query the knowledge base with Robust Substring Matching."""
         if self._needs_fuzzy_rebuild:
             self._rebuild_fuzzy_cache()
-
-        # Check if Vector RAG is available and index is loaded
-        if self.rag_available and self.index:
-             # Strategy 1: Vector Search (Conceptual / Lazy Load)
-             # [Future Implementation]
-             pass
-
-        # Strategy 2: Fuzzy Match (Canonical Fallback)
-        import difflib
+            
         q_lower = str(q).lower()
-        candidates = self.fuzzy_cache["candidates"]
+        # 1. 移除劑量與單位雜訊 (Aspirin 100mg -> aspirin)
+        q_clean = re.sub(r'\s*\d+\.?\d*\s*(mg|g|mcg|ug|ml)\b', '', q_lower).strip()
+        
         lookup = self.fuzzy_cache["lookup"]
-        
-        if not candidates:
-            return None, 1.0
+        candidates = self.fuzzy_cache["candidates"]
+        if not candidates: return None, 1.0
 
-        matches = difflib.get_close_matches(q_lower, candidates, n=1, cutoff=0.85) # ✅ 提高到 0.85 (Safety First)
+        # 2. Alias 與精確匹配
+        target = DRUG_ALIASES.get(q_clean, q_clean)
+        if target in lookup:
+            info = lookup[target]
+            return self._format_info(info), 0.0
+            
+        # 3. 子字串包含匹配 (極度重要：解決長字串 RAG 失效)
+        for candidate, info in lookup.items():
+            if len(q_clean) >= 3 and (q_clean in candidate or candidate in q_clean):
+                return self._format_info(info), 0.1
+
+        # 4. 模糊比對
+        import difflib
+        matches = difflib.get_close_matches(q_clean, candidates, n=1, cutoff=0.70)
         if matches:
-            match_key = matches[0]
-            info = lookup.get(match_key, {})
-            k_result = (f"Official Name: {info.get('name_en')}\n"
-                        f"Generic: {info.get('generic')}\n"
-                        f"Indication: {info.get('indication')}\n"
-                        f"Standard Dose: {info.get('dose')}\n"
-                        f"Warning: {info.get('warning')}\n"
-                        f"Usage: {info.get('default_usage')}")
-            dist = 1.0 - difflib.SequenceMatcher(None, q_lower, match_key).ratio()
-            return k_result, dist
-        
+            info = lookup[matches[0]]
+            return self._format_info(info), 0.2
         return None, 1.0
+
+    def _format_info(self, info):
+        return (f"Official Name: {info.get('name_en')}\n"
+                f"Generic: {info.get('generic')}\n"
+                f"Indication: {info.get('indication')}\n"
+                f"Standard Dose: {info.get('dose')}\n"
+                f"Warning: {info.get('warning')}")
 
     def get_drug_data(self, q):
         """Returns the raw drug dictionary for compatibility with app.py."""
@@ -641,6 +644,10 @@ def clean_text_for_tts(text, lang='zh-tw'):
     # Remove Emojis & excessive symbols (to prevent engine stutters)
     text = re.sub(r'[⚠️✅🔴🟡🟢❓🚨⛔🚫]', '', text)
     
+    # 🟢 [UX Fix] 柔化一般慢性病風險的 119 恐慌警報
+    text = text.replace("請立即撥打 119 前往急診", "建議您暫停服用，並與原看診醫師討論是否需要調整處方")
+    text = text.replace("[緊急]", "[系統提醒]")
+    
     # Final cleanup of spacing
     text = re.sub(r'\s+', ' ', text)
     
@@ -662,9 +669,15 @@ def check_drug_interaction(drug_a, drug_b):
         ("panadol", "alcohol"): "❌ 危險！普拿疼配酒會造成肝臟損傷"
     }
     
-    # Normalize drug names
-    a_lower = str(drug_a).lower().strip()
-    b_lower = str(drug_b).lower().strip()
+    # Normalize drug names (🟢 加入劑量過濾機制)
+    def clean_name_for_interaction(name):
+        n = extract_generic_from_context({}, drug_name_with_parentheses=name) or name
+        n = re.sub(r'\s*\d+\.?\d*\s*(mg|g|mcg|ug|ml)\b', '', str(n), flags=re.IGNORECASE)
+        n = re.sub(r'(錠|膠囊|膜衣錠|顆|粒|tab|tablet|capsule)', '', n, flags=re.IGNORECASE)
+        return n.lower().strip()
+
+    a_lower = clean_name_for_interaction(drug_a)
+    b_lower = clean_name_for_interaction(drug_b)
     
     # Check both orderings
     pair1 = (a_lower, b_lower)
