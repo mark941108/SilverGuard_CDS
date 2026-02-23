@@ -516,10 +516,10 @@ This engine allows us to validate **Behavioral Stability** against physical entr
 **Methodology**: Screen-to-camera validation using **legacy consumer hardware** (Samsung A22, 4-year-old budget device). This tests the system's ability to handle low-resolution sensors, lens distortion, and digital noise typical of rural or low-resource settings.
 
 | Test Case | Sample | Description | System Response |
-2: |-----------|--------|-------------|------------------|
-478: | **Normal Capture** | ![Photo1](assets/DEMO/mobile_capture/20260221_144323.jpg) | Standard shooting angle (A22) | ✅ **PASS** (96% confidence) |
-479: | **Left-Angled** | ![Photo2](assets/DEMO/mobile_capture/20260221_144343.jpg) | Device tilted 15° (A22) | ✅ **PASS** (91% confidence) |
-480: | **Down-Angled** | ![Photo3](assets/DEMO/mobile_capture/20260221_144400.jpg) | Device tilted 30° (A22) | ✅ **PASS** (80% confidence) |
+|-----------|--------|-------------|------------------|
+| **Normal Capture** | ![Photo1](assets/DEMO/mobile_capture/20260221_144323.jpg) | Standard shooting angle (A22) | ✅ **PASS** (96% confidence) |
+| **Left-Angled** | ![Photo2](assets/DEMO/mobile_capture/20260221_144343.jpg) | Device tilted 15° (A22) | ✅ **PASS** (91% confidence) |
+| **Down-Angled** | ![Photo3](assets/DEMO/mobile_capture/20260221_144400.jpg) | Device tilted 30° (A22) | ✅ **PASS** (80% confidence) |
 
 > [!TIP]
 > **Robustness Insight**: By successfully processing images from a $150 USD legacy phone, SilverGuard CDS proves it is ready for deployment in the **Global South** and rural clinics, where the latest flagship hardware is unavailable.
@@ -752,7 +752,7 @@ flowchart LR
         Correction
   end
  subgraph Wayfinding["🗺️ Wayfinding Protocol (Schaekermann et al., 2025)"]
-        ConfCheck{"Below threshold?\nHIGH_RISK: <50% | PASS: <70%"}
+        ConfCheck{"Below threshold?\nHIGH_RISK: <50% | PASS: <75%"}
         AskUser@{ label: "❓ Ask: 'Is this 500 or 850?'" }
   end
  subgraph Action["🛡️ Action & Impact Layer"]
@@ -1041,7 +1041,7 @@ By running **locally on RTX 5060 (or Kaggle/Colab GPU)**:
 |---------|---------------|
 | **🔒 Privacy First** | No patient data leaves the local device (Ephemeral Processing) |
 | **⚡ Inference Speed** | VLM Generation: ~15-20 tok/sec. End-to-End Pipeline: ~30s (Local RTX) / ~45s (Kaggle T4) |
-| **🧠 Human-in-the-Loop** | Dual threshold: `HIGH_RISK` ≥50% (Recall Priority) · `PASS` ≥70% (Precision Priority) → flag `HUMAN_REVIEW_NEEDED` |
+| **🧠 Human-in-the-Loop** | Dual threshold: `HIGH_RISK` ≥50% (Recall Priority) · `PASS` ≥75% (Precision Priority) → flag `HUMAN_REVIEW_NEEDED` |
 | **💾 Memory Efficient** | Fits within 6GB VRAM (Consumer GPU Ready) |
 | **📋 HIPAA-Compliant Design** | All processing in RAM, data wiped after session |
 | **🕒 Timezone Robustness** | UTC+8 Hard-coded logic prevents "Yesterday Bug" in early morning tests |
