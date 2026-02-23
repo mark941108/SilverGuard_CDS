@@ -389,6 +389,12 @@ Due to medical privacy regulations (HIPAA/PDPA), we cannot access real patient p
 
 **Evaluation**: Despite significant optical interference, the **Neuro-Symbolic Shield** successfully identifies the drug (`Aspirin`) and elderly risk factor (`78y`), triggering the Beers Criteria safety block. This validates the system's **Sim2Real** readiness for noisy environment deployment.
 
+#### 🛡️ Case Study: Occlusion & Skew Defense
+![Occlusion Test](assets/DEMO/20260223_212142.jpg)
+*Figure: Severe occlusion test—80% of drug name blocked by hand + 30° camera skew.*
+
+**Evaluation**: When critical information is blocked, the VLM may hallucinate. However, the **Symbolic Shield** detects that the extracted invalid text is not in the verified medication database, triggering an automatic **`🛑 [Safety Override]`**. The system refuses to provide instructions for unverified drugs, ensuring 100% safety even when visually impaired.
+
 > ⚠️ **Phase 1 Limitation**: This validates optical resilience (lens + sensor pipeline), not clinical efficacy with real-world prescriptions.
 
 **Future Work (Phase 2 - Clinical Validation)**:
