@@ -1496,9 +1496,11 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                     combined_text = (reasoning_text + " " + silver_msg).lower()
                     
                     found_fallback = None
+                    import re # [Audit Fix P1] Ensure re is available for word boundary check
                     # 從資料庫中匹配已知的藥名關鍵字
                     for drug_key in SAFE_SUBSTRINGS:
-                        if drug_key in combined_text:
+                        # 🌟 [Audit Fix P1] 加入正則單字邊界防護，防止 asa 誤認 basal
+                        if re.search(rf'\b{re.escape(drug_key.lower())}\b', combined_text):
                             found_fallback = drug_key.title()
                             break
                     
@@ -1697,7 +1699,15 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
             # 2. Unknown Drug Shield: Detect unidentified or out-of-database drugs
             is_unknown = False
             ext_data = parsed_json.get("extracted_data", {})
-            drug_name_val = str(ext_data.get("drug", {}).get("name", "") if isinstance(ext_data, dict) else "").lower()
+
+            # 🌟 [Audit Fix P0] 徹底解開並防護巢狀字典崩潰
+            drug_info = ext_data.get("drug", {}) if isinstance(ext_data, dict) else {}
+            if isinstance(drug_info, str):
+                drug_info = {"name": drug_info}
+            elif not isinstance(drug_info, dict):
+                drug_info = {}
+
+            drug_name_val = str(drug_info.get("name", "")).lower()
             
             # Check for the RAG marker "(⚠️資料庫未收錄)" or the "Unknown" label
             if "unknown" in drug_name_val or "資料庫未收錄" in drug_name_val or "⚠️" in drug_name_val:
@@ -2224,11 +2234,20 @@ def create_gradio_demo():
         # Save temp image (Race Condition Fix)
         # Use uuid to ensure thread safety in multi-user environments
         import uuid
+        import os
         temp_path = f"./temp_upload_{uuid.uuid4().hex[:8]}.png"
         image.save(temp_path)
     
-        # Run agentic pipeline
-        result = agentic_inference(model, processor, temp_path, verbose=False)
+        try:
+            # Run agentic pipeline
+            result = agentic_inference(model, processor, temp_path, verbose=False)
+        finally:
+            # 🌟 [Audit Fix P2] 確保暫存檔被回收
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
     
         # Format output
         status = result["final_status"]

@@ -1040,10 +1040,12 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     # ✅ [V2.0 Schema Hardening] 動態型別防禦 (防止 VLM 壓平 JSON 導致 .get 崩潰)
     if isinstance(drug, str):
         raw_drug_name = drug
+        drug = {"name": drug} # 🌟 [Audit Fix P0] 將 drug 包裝回字典，防止下方 .get("dose") 崩潰
     elif isinstance(drug, dict):
         raw_drug_name = drug.get("drug_name", drug.get("name", "未知藥物"))
     else:
         raw_drug_name = "未知藥物"
+        drug = {} # 確保為字典
     
     # [V13.4 Fix] 強制進行中文譯名轉換 (Ensuring Chinese Names in Calendar)
     drug_name = resolve_drug_name_zh(raw_drug_name)
