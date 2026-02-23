@@ -1568,7 +1568,7 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
                  is_bleeding = "出血" in reasoning or "bleeding" in reasoning.lower()
                  if is_bleeding:
                      # Clean text, no raw reasoning
-                     msg += f" ⚠️ [緊急] 系統監測到出血風險。若症狀嚴重，請立即撥打 119 前往急診。"
+                     msg += f" ⚠️ [系統提醒] 系統監測到高齡出血風險。建議您和原看診醫師討論是否需要調整處方。"
                  else:
                      # Clean text, no raw reasoning
                      msg += f" 💡 臨床建議：系統偵測到潛在風險。請聯繫原開單醫院藥劑科，或撥打 食藥署諮詢專線 1919。"
@@ -1583,7 +1583,7 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
             # [Emergency Override] Bleeding check
             is_bleeding = "出血" in reasoning or "bleeding" in reasoning.lower()
             if is_bleeding:
-                msg += f" ⚠️ [緊急] 系統監測到出血風險。若症狀嚴重，請立即撥打 119 前往急診。"
+                msg += f" ⚠️ [系統提醒] 系統監測到高齡出血風險。建議您和原看診醫師討論是否需要調整處方。"
             else:
                 msg += f" 💡 臨床建議：系統偵測到潛在風險。請聯繫原開單醫院藥劑科，或撥打 食藥署諮詢專線 1919。"
         elif status in ["HUMAN_REVIEW_NEEDED", "UNKNOWN_DRUG", "UNKNOWN", "MISSING_DATA"]:

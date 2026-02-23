@@ -644,9 +644,7 @@ def clean_text_for_tts(text, lang='zh-tw'):
     # Remove Emojis & excessive symbols (to prevent engine stutters)
     text = re.sub(r'[⚠️✅🔴🟡🟢❓🚨⛔🚫]', '', text)
     
-    # 🟢 [UX Fix] 柔化一般慢性病風險的 119 恐慌警報
-    text = text.replace("請立即撥打 119 前往急診", "建議您暫停服用，並與原看診醫師討論是否需要調整處方")
-    text = text.replace("[緊急]", "[系統提醒]")
+    # 🟢 [UX Fix] 柔化警報 (已移至 app.py 源頭處理)
     
     # Final cleanup of spacing
     text = re.sub(r'\s+', ' ', text)
