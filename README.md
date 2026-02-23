@@ -201,7 +201,8 @@ SilverGuard CDS is a **MedGemma-powered clinical safety agent** designed for sup
 *   **👵 SilverGuard CDS Protocol**: Converts complex medical jargon into **Elderly-Friendly Speech** (Traditional Chinese, 繁體中文) and **Large-Font Calendars**.
 *   **🌏 Migrant Caregiver Support**: Breaking language barriers with **Visual Translation Override** (UI text degrades to simple native warnings for ID/VI) and **High-Fidelity Translations**.
 *   **🗣️ Local Dialect Support**: Voice output in **Traditional Chinese (繁體中文)** optimized for the 65+ demographic in Taiwan. (Local Support: Piper Neural TTS for Zero-Latency Support)
-*   **🔐 Privacy First**: **Deployment-Aware Hybrid Architecture** — Local RTX 5060 (Windows): fully air-gapped, Piper/SAPI5 offline TTS, zero data egress. Kaggle T4 (Linux): VLM inference is local; TTS routes to **Microsoft Edge-TTS** (cloud, internet required) with Piper fallback.
+*   **🔐 Extreme Edge AI Shield**: **Deployment-Aware Hybrid Architecture** — Local RTX 5060 (Windows): fully air-gapped, Piper/SAPI5 offline TTS, zero data egress. This architecture effectively eliminates CUDA Out-of-Memory (OOM) crashes, ensuring stable 24/7 inference.
+*   **🗣️ Hybrid Privacy Architecture**: **Core Inference (VLM + RAG): 100% Local (Air-Gapped Capable)**. TTS (Voice): Defaults to high-quality Neural Cloud TTS (Anonymized drug data only) for best UX, with an automatic fallback to fully offline pyttsx3 when air-gapped.
 *   **🧠 Agentic Reflection Pattern**: "Think before speaking" loop with self-critique and refinement (Andrew Ng, 2024).
 
 | Question | Answer |
@@ -1329,7 +1330,7 @@ SilverGuard CDS is an **Offline-First**, LLM-powered visual QA system designed t
 *   **Yubin Kim et al. (2025).** *Towards a Science of Scaling Agent Systems.* Google Research & Google DeepMind.
 *   **Schaekermann, M. & Sayres, R. (2025).** *Towards Better Health Conversations: Research insights on a “wayfinding” AI agent based on Gemini.* Google Research.
 *   **American Geriatrics Society (2023).** *AGS Beers Criteria® Update.* JAGS.
-*   **Google Health AI (2026).** *MedGemma & MedASR Model Cards.* HAI-DEF.
+*   **Google Health AI (2024-2025).** *MedGemma & MedASR Model Cards.* HAI-DEF.
 *   **WHO (2024).** *Medication Without Harm: Global Patient Safety Challenge.*
 *   **Taiwan Ministry of Health and Welfare (2025).** *Patient Safety Reporting System Statistics.*
 
