@@ -763,8 +763,6 @@ def normalize_dose_to_mg(dose_str):
     
     # [V1.7 Precision Fix] 徹底移除 multiplier_match (5X, 10X) 邏輯，避免與頻率 (2 times) 混淆。
     return results, bool(results)
-            
-    return results, bool(results)
 
 def check_hard_safety_rules(extracted_data, voice_context=""):
     """
@@ -810,12 +808,21 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         # 二級預防 (Secondary Prevention) 排除清單
         secondary_icd_prefixes = ("i20", "i21", "i22", "i24", "i25", "i63", "i64", "i69", "z95.1", "z95.5")
         secondary_keywords = ["stroke", "myocardial infarction", "stent", "cabg", "中風", "心肌梗塞", "支架", "冠心病", "心肌缺血"]
+        negative_prefixes = ["無", "沒有", "denies", "no history of", "no ", "否定", "排除", "未曾"]
         
         is_secondary_prevention = False
         if any(str(code).lower().startswith(secondary_icd_prefixes) for code in icd_codes):
             is_secondary_prevention = True
-        elif any(kw in medical_history for kw in secondary_keywords):
-            is_secondary_prevention = True
+        else:
+            # 🚨 [V2.0 Hotfix] 否定句攔截機制 (Negation Trap Filter)
+            for kw in secondary_keywords:
+                if kw in medical_history:
+                    idx = medical_history.find(kw)
+                    # 往前看 10 個字元檢查是否有否定詞
+                    context_window = medical_history[max(0, idx-10):idx]
+                    if not any(neg in context_window.lower() for neg in negative_prefixes):
+                        is_secondary_prevention = True
+                        break
 
         # ---------------------------------------------------------
         # 🛡️ [防線 1] 獨立於劑量的硬性規則 (Architecture Decoupling - Round 133)
@@ -847,15 +854,33 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         # 1. 先執行常規毫克轉換
         mg_vals, _ = normalize_dose_to_mg(raw_dose)
 
-        # 2. [Fallback Extraction V1.7] 含「顆數」精確權重計算
+        # 2. [Fallback Extraction V1.7] 含「顆數」精確權重計算 (支援分數與中文量詞)
         if not mg_vals:
-            pill_match = re.search(r'(\d+(?:\.\d+)?)\s*(顆|錠|粒|capsule|tablet)', str(raw_dose), re.I)
-            pill_count = float(pill_match.group(1)) if pill_match else 1.0
+            # 🚨 [V2.0 Hotfix] 支援分數 (1/2), 小數 (0.5), 中文量詞 (半, 一, 兩, 二, 三, 四)
+            pill_match = re.search(r'(\d+/\d+|\d+(?:\.\d+)?|[半一兩二三四])\s*(顆|錠|粒|capsule|tablet)', str(raw_dose), re.I)
+            
+            pill_count = 1.0
+            if pill_match:
+                val_str = pill_match.group(1)
+                if val_str == "半": pill_count = 0.5
+                elif val_str in ["一", "1"]: pill_count = 1.0
+                elif val_str in ["兩", "二", "2"]: pill_count = 2.0
+                elif val_str in ["三", "3"]: pill_count = 3.0
+                elif val_str in ["四", "4"]: pill_count = 4.0
+                elif "/" in val_str:
+                    try:
+                        num, denom = val_str.split("/")
+                        pill_count = float(num) / float(denom)
+                    except: pill_count = 1.0
+                else:
+                    try: pill_count = float(val_str)
+                    except: pill_count = 1.0
+
             fallback_match = re.search(r'(\d+)\s*mg', drug_name, flags=re.IGNORECASE)
             if fallback_match:
                 base_mg = float(fallback_match.group(1))
                 total_mg = base_mg * pill_count
-                print(f"🔄 [Dose Fallback V1.7] '{base_mg}mg' * {pill_count} pills = {total_mg}mg")
+                print(f"🔄 [Dose Fallback V1.7/2.0] '{base_mg}mg' * {pill_count} pills = {total_mg}mg")
                 mg_vals = [total_mg]
 
         for mg_val in mg_vals:
