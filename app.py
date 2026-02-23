@@ -1036,7 +1036,14 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     # Handle MedGemma 1.5 Flat Schema
     vlm_parsed = case_data.get("vlm_output", {}).get("parsed", case_data)
     drug = extracted.get("drug", vlm_parsed)
-    raw_drug_name = drug.get("drug_name", drug.get("name", "未知藥物"))
+
+    # ✅ [V2.0 Schema Hardening] 動態型別防禦 (防止 VLM 壓平 JSON 導致 .get 崩潰)
+    if isinstance(drug, str):
+        raw_drug_name = drug
+    elif isinstance(drug, dict):
+        raw_drug_name = drug.get("drug_name", drug.get("name", "未知藥物"))
+    else:
+        raw_drug_name = "未知藥物"
     
     # [V13.4 Fix] 強制進行中文譯名轉換 (Ensuring Chinese Names in Calendar)
     drug_name = resolve_drug_name_zh(raw_drug_name)
@@ -1193,7 +1200,10 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     y_off += 40
     # [V13 Fix] 修正藥丸圖示對齊，並確保藥名顯示正確
     draw_pill_icon(draw, 70, y_off+40, size=45, color="#E3F2FD")
-    draw.text((120, y_off+10), f"藥品: {drug_name}", fill=COLORS["text_title"], font=font_title)
+    
+    # ✅ [V2.0 UI Polish] 藥名溢出防護 (Text Overflow)
+    display_drug_name = drug_name[:18] + "..." if len(drug_name) > 18 else drug_name
+    draw.text((120, y_off+10), f"藥品: {display_drug_name}", fill=COLORS["text_title"], font=font_title)
     y_off += 80
     draw.text((50, y_off), f"總量: {quantity} 顆 / {dose}", fill=COLORS["text_body"], font=font_body)
     
@@ -1407,6 +1417,12 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
     # [Fix] Robust Drug Name Extraction (Round 140)
     import re  # [Fix P0] Import 're' here to avoid UnboundLocalError
     drug_info = extracted.get("drug", {})
+
+    # ✅ [V2.0 Schema Hardening] 防止 VLM 將 drug 壓平成字串導致 .get() 崩潰
+    if isinstance(drug_info, str):
+        drug_info = {"name": drug_info}
+    elif not isinstance(drug_info, dict):
+        drug_info = {}
     if target_lang == "zh-TW":
         # Strategy: name_zh > name > drug_name > name_en > "這個藥"
         drug_name = drug_info.get("name_zh") or drug_info.get("name") or drug_info.get("drug_name") or drug_info.get("name_en")
