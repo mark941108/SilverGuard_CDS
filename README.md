@@ -1023,7 +1023,7 @@ By running **locally on RTX 5060 (or Kaggle/Colab GPU)**:
 
 - **Phase 1**: Kaggle Notebook (current) ✅
 - **Phase 2**: Gradio/Streamlit Web App + SilverGuard CDS UI ✅
-- **Phase 3**: Edge deployment on **NVIDIA Jetson Orin Nano** (67 TOPS, 15W) or consumer GPUs (RTX 5060)
+- **Phase 3**: Edge deployment on **NVIDIA Jetson Orin Nano** (67 TOPS, 15W) or consumer GPUs (RTX 5060) ✅
 - **Phase 4**: Mobile App (iOS/Android) for home caregivers
 
 > **Accuracy Over Speed**: In medical safety, waiting 30-45 seconds for a verified End-to-End Agentic cycle is preferable to a 0.1% false negative rate. *Missed dangerous prescriptions cost lives; extra inference time costs only electricity.*
@@ -1042,9 +1042,9 @@ Designed for cognitive accessibility in elderly patients:
 ### Future Roadmap (Agentic Memory & DDI)
 Roadmap to Next-Generation Architecture (Post-Competition):
 - **Phase 2 - Multi-Bag Sessions**: Context memory for Drug-Drug Interaction (DDI) checking.
-- **Phase 3 - Dynamic RAG**: Integration with vector database (ChromaDB) to scale drug knowledge beyond the 19-drug POC.
+- **Phase 3 - Dynamic RAG**: Integration with vector database (ChromaDB) to scale drug knowledge beyond the 21-drug POC.
 - **Phase 4 - Constitutional AI**: "Dual-Stream Verification" to prevent visual prompt injection attacks.
-- **Phase 5 - On-Device Deployment**: Deploy via **MediaPipe LLM Inference API** on high-end Android (Pixel 9 Pro, Galaxy S24 Ultra) with aggressive 4-bit quantization, OR **Edge Gateways** (NVIDIA Jetson Orin) for clinic deployment. *Note: MedGemma 4B exceeds standard AICore 3.25B limit; future research includes distilling to Gemini Nano 3B for native AICore compatibility.*
+- **Phase 5 - On-Device Deployment**: Deploy via **MediaPipe LLM Inference API** on high-end Android (Pixel 9 Pro, Galaxy S24 Ultra) with aggressive 4-bit quantization. *(Note: NVIDIA Jetson Orin / RTX Edge Gateway deployment successfully achieved in Phase 3).*
 - **Accessibility**: Support for 10+ dialects via MedASR-Large. (Current: Traditional Chinese / 繁體中文; Supported: Indonesian/Vietnamese via Piper Neural TTS)
 
 
@@ -1089,7 +1089,7 @@ To ensure full transparency for the "Agentic Workflow Prize" evaluation, we disc
 *   **Proof of Concept**: The "Clinical Knowledge Base" utilizes a **Hybrid Strategy**.
     *   **Edge/Demo**: A lightweight **Mock-RAG (Dictionary/Fuzzy Match)** or **Local FAISS** is used for zero-latency, offline-capable demonstration.
     *   **Production Goal**: Scalable Vector Database (ChromaDB) indexing millions of drugs.
-*   **Current Limit**: Contains **19 representative drugs**. Queries for drugs outside this set will trigger a "General Logic Check" rather than a specific literature review.
+*   **Current Limit**: Contains **21 representative drugs**. Queries for drugs outside this set will trigger a "General Logic Check" rather than a specific literature review.
 
 ### Deployment & Validation Limitations
 *   **Privacy**: Core VLM inference runs 100% offline.
@@ -1301,7 +1301,7 @@ SilverGuard CDS is an **Offline-First**, LLM-powered visual QA system designed t
 ### Non-Affiliation & Liability Disclaimer
 
 * ⚠️ **Disclaimer**: This project is a **"Sim2Real Prototype"** for the Kaggle MedGemma Challenge. It demonstrates a **Human-in-the-Loop Triage Tool**, NOT a diagnostic medical device.
-* ⚠️ **POC Limitation**: The current knowledge base is a subset of 19 distinct medications for architectural demonstration. Production deployment requires integration with full-scale drug databases (e.g., RxNorm, Micromedex).
+* ⚠️ **POC Limitation**: The current knowledge base is a subset of 21 distinct medications for architectural demonstration. Production deployment requires integration with full-scale drug databases (e.g., RxNorm, Micromedex).
 * **Independent Research**: This project is an independent academic research initiative developed by a student team for the Kaggle MedGemma Impact Challenge.
 * **No Sponsorship:** This project is **NOT** sponsored, endorsed, or affiliated with any pharmaceutical companies (e.g., Pfizer, Novartis), healthcare institutions, or government agencies cited in the examples.
 * **No Commercial Intent:** This software is a non-commercial research prototype and is not intended for sale or commercial distribution.
