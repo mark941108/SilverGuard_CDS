@@ -815,8 +815,22 @@ def cleanup_temp_files():
     except Exception as e:
         print(f"⚠️ Cleanup failed: {e}")
 
-# 執行清理
+# 執行清理 (Startup)
 cleanup_temp_files()
+
+# 🟢 [V2.1 DevOps Fix] 背景持續性垃圾回收 (Daemon GC Thread)
+def continuous_garbage_collection():
+    import time
+    while True:
+        try:
+            time.sleep(3600)  # 每 1 小時喚醒一次
+            cleanup_temp_files()
+        except: pass
+
+import threading
+gc_thread = threading.Thread(target=continuous_garbage_collection, daemon=True)
+gc_thread.start()
+print("🛡️ [DevOps] Continuous Garbage Collection Thread Started.")
 
 
 # ============================================================================
