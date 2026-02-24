@@ -1324,8 +1324,9 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
     # forced to hallucinate a JSON structure.
     
     classification_prompt = (
-        "Analyze this image carefully. Is it a drug bag, a medical prescription, or medicine packaging? "
-        "Answer ONLY with 'YES' or 'NO'. If it is a computer screen, a settings menu, a phone screenshot, or a cat, answer 'NO'."
+        "Analyze this image. Is it a drug bag, a medical prescription, or medicine packaging? "
+        "You are a strict boolean classifier. Answer ONLY with 'YES' or 'NO'. "
+        "Do NOT explain. Do NOT output any other text."
     )
     
     try:
@@ -1334,13 +1335,14 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
         if hasattr(raw_image_pre, "mode") and raw_image_pre.mode in ("RGBA", "P"):
             raw_image_pre = raw_image_pre.convert("RGB")
         
-        # 🚀 Stage 1: Zero-Constraint Request
+        # 🚀 Stage 1: Ultra-Fast Boolean Pass
         pre_messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": classification_prompt}]}]
         pre_prompt = processor.tokenizer.apply_chat_template(pre_messages, tokenize=False, add_generation_prompt=True)
         pre_inputs = processor(text=pre_prompt, images=raw_image_pre, return_tensors="pt").to(model.device)
         
         with torch.no_grad():
-            pre_outputs = model.generate(**pre_inputs, max_new_tokens=15, do_sample=False)
+            # [Optimize] max_new_tokens=5 is enough for YES/NO, drastically cutting latency
+            pre_outputs = model.generate(**pre_inputs, max_new_tokens=5, do_sample=False)
             
             # [Fix Round 136] Handle both 'ModelOutput' and raw 'Tensor' returns
             # Some model configs return an object, others a raw tensor.
@@ -1352,10 +1354,20 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
         # [Robustness Fix] Check if NO is present and YES is NOT present (handling wordy models)
         if "NO" in pre_res and "YES" not in pre_res:
             print(f"🛑 [OOD Shield] VLM Refused Content (Stage 1) -> Rejecting input.")
+            
+            # [Fix Round 137] Multi-language OOD Support
+            ood_messages = {
+                "zh-TW": "⛔ 這看起來不像藥袋。請拍攝您的藥袋或處方箋。",
+                "en": "⛔ This does not look like a drug bag. Please take a photo of your drug bag or prescription.",
+                "id": "⛔ Ini tidak terlihat seperti kantong obat. Silakan ambil foto kantong obat atau resep Anda.",
+                "vi": "⛔ Đây không giống như túi thuốc. Vui lòng chụp ảnh túi thuốc hoặc đơn thuốc của bạn."
+            }
+            final_ood_msg = ood_messages.get(target_lang, ood_messages["zh-TW"])
+
             return {
                 "final_status": "REJECTED_INPUT",
                 "vlm_output": {"parsed": {}, "raw": pre_res},
-                "silverguard_message": "⛔ 這看起來不像藥袋。請拍攝您的藥袋或處方箋（不要拍電腦螢幕或截圖）。",
+                "silverguard_message": final_ood_msg,
                 "confidence": {"score": 0.0, "status": "LOW_CONFIDENCE", "message": "Pre-flight OOD Rejection"}
             }
     except Exception as e:

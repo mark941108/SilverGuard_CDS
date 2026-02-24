@@ -1474,10 +1474,53 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
         usage = usage_map[raw_usage].get(target_lang, usage_map[raw_usage].get("en", raw_usage))
     else:
         usage = raw_usage
+
+    # [Fix Round 138] Fuzzy Usage Translation (Shield against VLM variations)
+    # If target is non-Chinese and output contains Chinese or is not translated, use fuzzy logic.
+    if target_lang in ["id", "vi"] and (re.search(r'[\u4e00-\u9fff]', str(usage)) or usage == raw_usage):
+        u_upper = str(raw_usage).upper()
         
+        if target_lang == "id":
+            # Count logic
+            count_id = ""
+            if any(k in raw_usage for k in ["一", "1", "QD"]): count_id = "satu kali sehari"
+            elif any(k in raw_usage for k in ["兩", "二", "2", "BID"]): count_id = "dua kali sehari"
+            elif any(k in raw_usage for k in ["三", "3", "TID"]): count_id = "tiga kali sehari"
+            elif any(k in raw_usage for k in ["四", "4", "QID"]): count_id = "empat kali sehari"
+            
+            # Timing logic
+            timing_id = ""
+            if "飯後" in raw_usage or "PC" in u_upper: timing_id = " sesudah makan"
+            elif "飯前" in raw_usage or "AC" in u_upper: timing_id = " sebelum makan"
+            elif "晚" in raw_usage or "HS" in u_upper or "睡" in raw_usage:
+                count_id = "sekali sehari"
+                timing_id = " sebelum tidur"
+            
+            if count_id:
+                usage = f"Minum {count_id}{timing_id}"
+        
+        elif target_lang == "vi":
+            # Count logic
+            count_vi = ""
+            if any(k in raw_usage for k in ["一", "1", "QD"]): count_vi = "một lần mỗi ngày"
+            elif any(k in raw_usage for k in ["兩", "二", "2", "BID"]): count_vi = "hai lần mỗi ngày"
+            elif any(k in raw_usage for k in ["三", "3", "TID"]): count_vi = "ba lần mỗi ngày"
+            elif any(k in raw_usage for k in ["四", "4", "QID"]): count_vi = "bốn lần mỗi ngày"
+            
+            # Timing logic
+            timing_vi = ""
+            if "飯後" in raw_usage or "PC" in u_upper: timing_vi = " sau khi ăn"
+            elif "飯前" in raw_usage or "AC" in u_upper: timing_vi = " trước khi ăn"
+            elif "晚" in raw_usage or "HS" in u_upper or "睡" in raw_usage:
+                count_vi = "một lần mỗi ngày"
+                timing_vi = " trước khi đi ngủ"
+            
+            if count_vi:
+                usage = f"Uống {count_vi}{timing_vi}"
+
     # [Fix] Remove redundancy in usage string (e.g. "服用" + "吃")
     if target_lang == "zh-TW" and usage:
-        usage = usage.replace("服用", "").replace("使用", "").strip()
+        usage = str(usage).replace("服用", "").replace("使用", "").strip()
     status = safety.get("status", "UNKNOWN")
     reasoning = safety.get("reasoning", "")
     
@@ -1547,8 +1590,12 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
 
     # Validation: Ensure it's not empty or just a placeholder
     use_agent_msg = False
-    if target_lang == "zh-TW" and agent_msg and len(agent_msg) > 5 and "未知" not in agent_msg:
-        use_agent_msg = True
+    # [Fix Round 137] Globalized Agent Messages (Removed zh-TW restriction)
+    if agent_msg and len(agent_msg) > 5:
+        # Avoid placeholders in any supported language
+        placeholders = ["未知", "Unknown", "tidak diketahui", "không rõ"]
+        if not any(p in agent_msg for p in placeholders):
+            use_agent_msg = True
         
     t = templates.get(target_lang, templates["en"]) # Fallback to English
     
