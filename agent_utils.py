@@ -230,11 +230,12 @@ def neutralize_hallucinations(data, context="", full_data=None):
                             drug_name_with_parentheses=val_str
                         )
                     
+                    if contextual_match:
                         # Case A: 在 context 中找到已知藥物學名
                         print(f"🔍 [Smart Degradation] '{val_str}' → Likely '{contextual_match}' (via context)")
                         new_data[k] = f"⚠️推測為: {contextual_match} (未驗證)"
                     else:
-                        # Case B: 真正的未知藥物 - 軟性標記保留
+                        # Case B: 真正的未知藥物 - 軟性標記保留 (防止 None 顯示)
                         print(f"⚠️ [RAG] 未知藥物保留: {val_str}")
                         new_data[k] = f"{v} (⚠️資料庫未收錄)"
                 else:
@@ -1159,46 +1160,59 @@ def safety_critic_tool(json_output):
 
 def check_is_prescription(response_text):
     """
-    🛡️ [Round 126] Enhanced OOD Detection - Reject non-medical images
-    防止 ETF、風景照、貓咪照被強行解釋成藥物
+    🛡️ [Round 135 Hardening] Advanced OOD Detection - Reject non-medical images
+    防止模型在強行 JSON 引導下產生的「幻覺關鍵字」繞過安全檢測。
     """
     # 核心醫療關鍵字（必須包含這些才算醫療內容）
     CORE_MEDICAL_KEYWORDS = [
         "藥", "drug", "medicine", "pill", "tablet", "capsule", 
-        "mg", "mcg", "g", "ml",  # 劑量單位
-        "服用", "早晚", "飯後", "睡前", "use", "take", "daily",
+        "mg", "mcg", "g", "ml", "cc", "錠", "顆", "粒", "公克", "毫克", # 劑量單位
+        "服用", "早晚", "飯後", "睡前", "use", "take", "daily", "指示",
         "indication", "side effect", "warning", "副作用", "適應症",
         "pharmacy", "hospital", "診所", "醫院", "prescription",
-        "patient", "dose", "dosage", "medication", "治療"
+        "patient", "dose", "dosage", "medication", "治療", "診斷",
+        "doctor", "pharmacist", "醫師", "藥師", "處方"
     ]
     
-    # 排除關鍵字（如果包含這些，大概率不是藥單）
+    # 排除關鍵字（如果包含這些，大概率是非醫療環境或系統介面）
     EXCLUDE_KEYWORDS = [
         "etf", "exchange traded fund", "stock", "投資", "基金",
-        "0050", "2330", "股票", "trading", "portfolio"
+        "0050", "2330", "股票", "trading", "portfolio",
+        "windows settings", "display settings", "phone link", "system set", # 針對 A22 手機截圖優化
+        "battery", "wi-fi", "bluetooth"
     ]
     
     response_lower = str(response_text).lower()
     
-    # 檢查排除關鍵字
+    # 1. 檢查排除關鍵字
     for exclude_kw in EXCLUDE_KEYWORDS:
         if exclude_kw in response_lower:
+            print(f"🛑 [OOD Filter] Triggered Exclusion Keyword: {exclude_kw}")
             return False
     
-    # ✅ [V2.0 Hotfix] 解決 \b 陷阱 (Word Boundary Trap)
-    # 使用 Negative Lookaround 針對英文字母邊界鎖定，確保 100mg 能被正確識別，且不誤報 good/image
+    # 2. 精準權重統計
     keyword_count = 0
+    found_keywords = []
+    
     for kw in CORE_MEDICAL_KEYWORDS:
-        if kw in ["g", "mg", "ml", "mcg", "cc"]: # 短英文單位
-            if re.search(rf'(?<![a-z]){kw}(?![a-z])', response_lower, re.I):
+        # [V2.5] 使用 \b (Word Boundary) 針對關鍵單位鎖定，防止 "Management" 誤報 "mg"
+        # 針對中文不需要 \b，針對英文強烈建議
+        if re.search(r'[a-zA-Z]', kw): # 英文關鍵字
+            pattern = rf'(?<![a-z]){re.escape(kw)}(?![a-z])'
+            if re.search(pattern, response_lower, re.I):
                 keyword_count += 1
-        else: # 中文關鍵字與長英文關鍵字
-            if kw.lower() in response_lower:
+                found_keywords.append(kw)
+        else: # 中文關鍵字
+            if kw in response_lower:
                 keyword_count += 1
+                found_keywords.append(kw)
     
-    # 門檻：至少要命中 2 個醫療關鍵字才算是處方箋 (原為 4，針對短回覆進行優化)
-    # (例如只有 "Aspirin 100mg" 也應該過)
-    if keyword_count >= 2:
-        return True
-    
-    return False
+    # 門檻：至少要命中 3 個醫療關鍵字才算是有效醫療內容
+    # (提高門檻以應對 VLM 的導引幻覺)
+    # [Round 135] DEBUG Logging
+    if keyword_count < 3:
+        print(f"⚠️ [OOD Filter] Low confidence ({keyword_count}/3). Found: {found_keywords}")
+        return False
+        
+    print(f"✅ [OOD Filter] Medical content verified (Score: {keyword_count}).")
+    return True

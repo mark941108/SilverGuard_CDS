@@ -1316,6 +1316,54 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
     lang_map = {"zh-TW": "Traditional Chinese", "id": "Indonesian", "vi": "Vietnamese", "en": "English"}
     display_lang = lang_map.get(target_lang, "Traditional Chinese")
 
+    # ========================================================================
+    # 🛡️ ROUND 135: TWO-STAGE ROUTER (STAGE 1: PRE-FLIGHT OOD CHECK)
+    # ========================================================================
+    # [Logic] We perform a zero-constraint check BEFORE forced JSON generation.
+    # This gives the VLM a chance to refuse non-medical images without being 
+    # forced to hallucinate a JSON structure.
+    
+    classification_prompt = (
+        "Analyze this image carefully. Is it a drug bag, a medical prescription, or medicine packaging? "
+        "Answer ONLY with 'YES' or 'NO'. If it is a computer screen, a settings menu, a phone screenshot, or a cat, answer 'NO'."
+    )
+    
+    try:
+        from PIL import Image
+        raw_image_pre = Image.open(img_path)
+        if hasattr(raw_image_pre, "mode") and raw_image_pre.mode in ("RGBA", "P"):
+            raw_image_pre = raw_image_pre.convert("RGB")
+        
+        # 🚀 Stage 1: Zero-Constraint Request
+        pre_messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": classification_prompt}]}]
+        pre_prompt = processor.tokenizer.apply_chat_template(pre_messages, tokenize=False, add_generation_prompt=True)
+        pre_inputs = processor(text=pre_prompt, images=raw_image_pre, return_tensors="pt").to(model.device)
+        
+        with torch.no_grad():
+            pre_outputs = model.generate(**pre_inputs, max_new_tokens=15, do_sample=False)
+            
+            # [Fix Round 136] Handle both 'ModelOutput' and raw 'Tensor' returns
+            # Some model configs return an object, others a raw tensor.
+            seq = pre_outputs.sequences[0] if hasattr(pre_outputs, "sequences") else pre_outputs[0]
+            pre_res = processor.decode(seq[pre_inputs.input_ids.shape[1]:], skip_special_tokens=True).strip().upper()
+        
+        if verbose: print(f" 🛡️ [Pre-flight Router] Classification Result: '{pre_res}'")
+        
+        # [Robustness Fix] Check if NO is present and YES is NOT present (handling wordy models)
+        if "NO" in pre_res and "YES" not in pre_res:
+            print(f"🛑 [OOD Shield] VLM Refused Content (Stage 1) -> Rejecting input.")
+            return {
+                "final_status": "REJECTED_INPUT",
+                "vlm_output": {"parsed": {}, "raw": pre_res},
+                "silverguard_message": "⛔ 這看起來不像藥袋。請拍攝您的藥袋或處方箋（不要拍電腦螢幕或截圖）。",
+                "confidence": {"score": 0.0, "status": "LOW_CONFIDENCE", "message": "Pre-flight OOD Rejection"}
+            }
+    except Exception as e:
+        print(f"⚠️ [Pre-flight Warning] Router check failed, falling back to Stage 2: {e}")
+
+    # ========================================================================
+    # STAGE 2: ADAPTIVE VLM REASONING (Strict Extraction)
+    # ========================================================================
     base_prompt = (
         f"You are **SilverGuard CDS**, an elite **Clinical Decision Support System** specialized in geriatric medication safety. **You are an AI assistant, NOT a doctor.** "
         f"Analyze the drug bag image and return valid JSON in {display_lang}.\n"

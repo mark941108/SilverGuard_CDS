@@ -1592,6 +1592,10 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
             # For safe usage, translate logic is handled in UI, but here we do simple fallback
             msg += " " + t["safe"].format(usage=usage)
     # 👆 🟢 加入完畢 👆
+    # [Fix Round 135] Silences Emojis to prevent pyttsx3 crashes on Windows
+    # Using Regex to sweep out high-point unicode characters right before return
+    import re
+    msg = re.sub(r'[\U00010000-\U0010ffff]', '', msg)
         
     return msg
 
