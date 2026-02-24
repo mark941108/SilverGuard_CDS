@@ -35,8 +35,8 @@ DRUG_DATABASE = {
          "max_daily_dose": 2550, "drug_class": "Biguanide", "beers_risk": False},
         {"code": "BC23456793", "name_en": "Daonil", "name_zh": "道尼爾", "generic": "Glibenclamide", "dose": "5mg", "appearance": "白色長條形 (刻痕)", "indication": "降血糖", "warning": "低血糖風險高", "default_usage": "QD_breakfast_after",
          "max_daily_dose": 20, "drug_class": "Sulfonylurea", "beers_risk": True}, # ⚠️ High Risk for Elderly
-        {"code": "BC23456795", "name_en": "Diamicron", "name_zh": "岱蜜克龍", "generic": "Gliclazide", "dose": "30mg", "appearance": "白色長條形", "indication": "降血糖", "warning": "飯前30分鐘服用", "default_usage": "QD_breakfast_before",
-         "max_daily_dose": 120, "drug_class": "Sulfonylurea", "beers_risk": True}, # ⚠️ High Risk for Elderly (Long-acting)
+        {"code": "BC23456795", "name_en": "Diamicron", "name_zh": "岱蜜克龍", "generic": "Gliclazide", "dose": "30mg", "appearance": "白色長條形", "indication": "降血糖", "warning": "飯前服用，高齡者仍需注意低血糖徵兆", "default_usage": "QD_breakfast_before",
+         "max_daily_dose": 120, "drug_class": "Sulfonylurea", "beers_risk": False}, # ✅ Gliclazide 較為安全，不在 Beers 黑名單內
     ],
     # --- Confusion Cluster 3: Gastric ---
     "Gastric": [

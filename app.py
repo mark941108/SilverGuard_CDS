@@ -903,9 +903,9 @@ def draw_moon_icon(draw, x, y, size=35, color="#FFE082"):
     r = size // 2
     # 繪製月牙 (大圓減小圓)
     draw.ellipse([x-r, y-r, x+r, y+r], fill=color, outline="#FBC02D", width=2)
-    # 背景白圓遮擋形成月牙
+    # [V29 Fix] 遮擋形成月牙 - 確保使用卡片背景色而不是死板的白色
     offset = r // 2
-    draw.ellipse([x-r+offset, y-r-2, x+r+offset, y+r+2], fill="white")
+    draw.ellipse([x-r+offset, y-r-2, x+r+offset, y+r+2], fill="#FFFFFF") # TODO: 動態傳入背景色
     # 增加一顆閃爍的小星星
     sx, sy = x - r//2, y - r//2
     draw.polygon([(sx, sy-6), (sx-2, sy-2), (sx-6, sy), (sx-2, sy+2), (sx, sy+6), (sx+2, sy+2), (sx+6, sy), (sx+2, sy-2)], fill="#FFF59D")
@@ -931,18 +931,34 @@ def draw_warning_icon(draw, x, y, size=35):
     draw.text((x-2, y-r+8), "!", fill="white") 
 
 def draw_bowl_icon(draw, x, y, size=30, is_full=True):
-    """繪製碗圖示 (空碗/滿碗)"""
+    """
+    🥣 旗艦級碗圖示 - 已優化視覺辨識度 (V29 Polish)
+    針對高齡使用者：加入米飯『丘』與斜放筷子，徹底解決飯前/飯後分不清的問題。
+    """
     r = size // 2
-    # 碗邊緣 (弧線)
-    draw.arc([x-r, y-r//2, x+r, y+r], start=0, end=180, fill="#795548", width=3)
-    # 碗底
-    draw.line([(x-r, y), (x+r, y)], fill="#795548", width=3)
-    
+    bowl_color = "#795548"
+    rice_color = "#FFFFFF"
+    chopstick_color = "#8D6E63"
+
+    # 1. 繪製碗身 (有填充的淺色背景)
+    draw.chord([x-r, y-r, x+r, y+r], start=0, end=180, fill="#F5F5F5", outline=bowl_color, width=3)
+    # 碗口水平線
+    draw.line([(x-r, y), (x+r, y)], fill=bowl_color, width=3)
+
     if is_full:
-        # 畫飯粒 (小圓點)
-        for i in range(-r+5, r-5, 10):
-            for j in range(-r//4, r//4, 8):
-                draw.ellipse([x+i-2, y+j-2, x+i+2, y+j+2], fill="white")
+        # 🍚 [飯後/隨餐] - 畫出鼓起的飯丘
+        # 畫米飯半圓
+        draw.chord([x-r+5, y-r-5, x+r-5, y+r-5], start=180, end=360, fill=rice_color, outline="#D7CCC8", width=1)
+        
+        # 🥢 加入斜放的筷子 (提升「用餐」的視覺聯想)
+        # 第一根
+        draw.line([(x-r-2, y-r+10), (x+r+2, y-2)], fill=chopstick_color, width=3)
+        # 第二根
+        draw.line([(x-r-2, y-r+15), (x+r+2, y+3)], fill=chopstick_color, width=3)
+    else:
+        # ⚪ [飯前] - 顯示空碗
+        # 加入一個淺色陰影表示空碗內部深處
+        draw.ellipse([x-r+10, y+4, x+r-10, y+r-8], outline="#E0E0E0", width=1)
 
 def draw_pill_icon(draw, x, y, size=30, color="lightblue"):
     """繪製藥丸圖示"""
@@ -953,17 +969,7 @@ def draw_pill_icon(draw, x, y, size=30, color="lightblue"):
     # 中間分割線
     draw.line([(x, y-r), (x, y+r)], fill="blue", width=2)
 
-def draw_warning_icon(draw, x, y, size=35):
-    """繪製三角形警示圖示"""
-    r = size // 2
-    # 三角形
-    draw.polygon(
-        [(x, y-r), (x-r, y+r), (x+r, y+r)],
-        fill="#D32F2F", outline="#B71C1C", width=2
-    )
-    # 驚嘆號 (使用較小字型並精確居中)
-    # 中心偏移微調
-    draw.text((x-2, y-r+5), "!", fill="white") # 預設字體即可，或者傳入小字體
+# [Audit Fix] Deleted redundant/inferior draw_warning_icon to prevent function overwrite.
 
 # ============================================================================
 # 🗓️ Medication Calendar Generator (Flagship Edition)
@@ -993,8 +999,9 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
         "evening": "#512DA8",       # 晚上（深紫）
         "bedtime": "#303F9F",       # 睡前（靛藍）
         # 狀態色
-        "danger": "#D32F2F",        # 危險
-        "warning": "#FFA000",       # 警告
+        "danger": "#D32F2F",        # 危險 (紅)
+        "warning": "#FF8F00",       # 警示 (深琥珀色 - WCAG 對比增強)
+        "info": "#FF8F00",          # 提示 (同上)
     }
     
     # ============ 建立畫布 ============
@@ -1050,7 +1057,8 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     # [V13.4 Fix] 強制進行中文譯名轉換 (Ensuring Chinese Names in Calendar)
     drug_name = resolve_drug_name_zh(raw_drug_name)
     
-    status = vlm_parsed.get("status") or safety.get("status", "UNKNOWN")
+    # ✅ 修正後 (確保 Stage 1 的 REJECTED_INPUT 能成功傳遞)：
+    status = case_data.get("final_status") or vlm_parsed.get("status") or safety.get("status", "UNKNOWN")
     reasoning = vlm_parsed.get("reasoning") or safety.get("reasoning", "")
     warnings = [reasoning] if reasoning else []
     if "detected_issues" in safety: warnings.extend(safety["detected_issues"])
@@ -1061,7 +1069,10 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
     # 🚨 [CRITICAL FIX] Safety Warning Card Generation
     # 當圖片模糊或無法辨識時，不生成行事曆，改為生成警告卡片
     # [Fix] Added "UNKNOWN" and "MISSING_DATA" to catch all failure modes
-    if status in ["REJECTED_INPUT", "INVALID_IMAGE", "REJECTED_BLUR", "INVALID_FORMAT"] or (drug_name == "未知藥物" and status in ["WARNING", "UNKNOWN", "MISSING_DATA"]):
+    # [Fix Round 142] 寬鬆化警告卡片門檻：
+    # 只要有藥名或有特定狀態，即便 JSON 不完美也嘗試進入行事曆生成，以避免誤判。
+    # ✅ 修正後 (補上 UNKNOWN、WARNING 等狀態)：
+    if status in ["REJECTED_INPUT", "INVALID_IMAGE", "REJECTED_BLUR", "INVALID_FORMAT"] or (drug_name == "未知藥物" and status in ["INVALID_JSON", "UNKNOWN", "WARNING", "MISSING_DATA"]):
         draw.rectangle([(0, 0), (WIDTH, HEIGHT)], fill="#FFF3E0") # Light Orange Background
         draw.rectangle([(50, 50), (WIDTH-50, HEIGHT-50)], outline="#E65100", width=10)
         
@@ -1070,7 +1081,7 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
         
         # Warning Text
         draw.text((WIDTH//2 - 250, 500), "無法產生用藥行事曆", fill="#E65100", font=font_title)
-        draw.text((WIDTH//2 - 400, 600), "原因：影像模糊或無法辨識藥品", fill="#F57C00", font=font_subtitle)
+        draw.text((WIDTH//2 - 400, 600), "原因：影像模糊或無法辨識藥品", fill="#FF8F00", font=font_subtitle)
         
         # Actionable Advice
         draw.text((100, 800), "建議採取以下行動：", fill="#424242", font=font_subtitle)
@@ -1250,34 +1261,37 @@ def create_medication_calendar(case_data, target_lang="zh-TW"):
         draw.text((560, y_off+30), f"{bowl_text} ｜ 配水 200cc", fill=COLORS["text_body"], font=font_subtitle)
         y_off += card_h + 20
         
-    if status in ["HIGH_RISK", "WARNING", "HUMAN_REVIEW_NEEDED"] or "HIGH" in str(warnings):
+    if status in ["HIGH_RISK", "WARNING", "HUMAN_REVIEW_NEEDED", "PHARMACIST_REVIEW_REQUIRED"] or "HIGH" in str(warnings):
         y_off += 20
         warn_msg = warnings[0] if warnings else "請諮詢藥師確認用藥細節"
         
+        # 🛡️ [Hardening] 根據狀態決定邊框顏色 (Graceful Degradation)
+        is_critical = (status == "HIGH_RISK")
+        border_color = COLORS["danger"] if is_critical else COLORS["warning"]
+        box_bg = "#FFEBEE" if is_critical else "#FFF8E1"
+        
         # [Round 108/144] Dynamic Box Height & Line Expansion
-        # Ensure critical safety info is never truncated.
         wrapper = textwrap.TextWrapper(width=24) 
         warn_lines = wrapper.wrap(warn_msg)
         
-        # Calculate dynamic height (Standard 160 + Extra for overflow)
-        # Max 6 lines for the video demo
+        # Calculate dynamic height
         display_lines = warn_lines[:6]
         box_h = max(160, 100 + len(display_lines) * 40)
         
-        draw.rectangle([(50, y_off), (WIDTH-50, y_off + box_h)], fill="#FFEBEE", outline=COLORS["danger"], width=6)
+        draw.rectangle([(50, y_off), (WIDTH-50, y_off + box_h)], fill=box_bg, outline=border_color, width=6)
         
         warn_icon_x = 90
         warn_icon_y = y_off + 45
         draw_warning_icon(draw, warn_icon_x, warn_icon_y, size=40)
         
-        draw.text((135, y_off+20), "用藥時間表", fill=COLORS["danger"], font=font_title)
+        draw.text((135, y_off+20), "用藥安全提醒", fill=border_color, font=font_title)
         
         text_y = y_off + 85
         for line in display_lines:
             draw.text((80, text_y), line, fill=COLORS["text_body"], font=font_body)
             text_y += 35
         
-        y_off += box_h # Update y_off for disclaimer below
+        y_off += box_h 
 
     # [V13.6 Fix] 專業免責聲明與安全提示 (Professional Disclaimer & Safety Prompt)
     disclaimer_bg = "#F5F5F5"
@@ -1544,7 +1558,7 @@ def json_to_elderly_speech(result_json, target_lang="zh-TW"):
             "greeting": "您好，我是您的用藥小幫手。這是您的藥「{name}」。",
             "risk": "⚠️ 特別注意喔！系統發現：{reason}. 請一定要拿給藥師或醫生確認一下比較安全喔！",
             "safe": "醫生交代要「{usage}」吃。您要把身體照顧好喔!",
-            "review": "提醒您，這個藥我看不清楚，為了安全，建議拿給藥師看一次喔。"
+            "review": "系統目前無法確認這顆藥物，為了您的安全，請記得拿給藥師看一眼喔。"
         },
         "en": {
             "greeting": "Hello, I am your SilverGuard CDS assistant. This is your medication '{name}'.",

@@ -1361,6 +1361,17 @@ SilverGuard CDS is an **Offline-First**, LLM-powered visual QA system designed t
 * **Data Integrity:** All patient names (e.g., "Chen Jin-Long"), dates, and prescription details shown in this documentation are **AI-generated**. Any resemblance to real persons is coincidental.
 * **Anti-Forgery:** All AI-generated prescription samples are cryptographically stamped with `"SAMPLE COPY - DEMO ONLY"` to prevent misuse under Taiwan Criminal Code Art. 210 (Forgery).
 
+## 🛡️ Technical Limitations & Red Team Hardening
+
+> [!IMPORTANT]
+> **Graceful Degradation & Alert Fatigue Mitigation**
+> By differentiating between "High-Risk Intercept" and "Unknown Drug Advice," the system demonstrates the ability to gracefully degrade when encountering Out-of-Distribution (OOD) data. This is a critical design choice in real-world Clinical Decision Support (CDS) deployment to prevent "Alert Fatigue" and build clinical trust.
+
+### 🔴 Hard Constraints & Mitigation Strategies
+1.  **LASA (Look-Alike Sound-Alike) Detection**: To prevent identification errors of medially famous look-alike drugs (e.g., Celebrex vs. Celexa), the system implements a **"Fuzzy Guard"** mechanism. This enforces "Prefix Anchoring" and "Levenshtein Distance" constraints, ensuring that OCR errors are corrected without triggering catastrophic drug misidentification.
+2.  **Multi-Factor Weighted Validation**: The system utilizes weighting logic (Dose + Frequency + Entity) to identify legitimate prescriptions, supplemented by a **"Fast-Track"** mechanism. This ensures that even for rural or hand-written drug bags lacking institutional headers, any detection of core high-risk medications (e.g., Warfarin) will still trigger safety guardrails.
+3.  **Elderly Accessibility**: In compliance with WCAG standards for patients with cataracts or macular degeneration, the system uses a high-contrast **Deep Amber (#FF8F00)** for "Unknown Drug" notifications. This design ensures better visibility in high-contrast modes, preventing elderly users from overlooking critical safety consultations.
+
 ---
 
 ## 📚 References

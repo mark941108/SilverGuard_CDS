@@ -16,6 +16,58 @@ DRUG_DATABASE = {}
 _SYNTHETIC_DATA_GEN_SOURCE = {}
 BLUR_THRESHOLD = 25.0  # [Red Team Fix] Lowered for handheld demo stability
 
+def levenshtein_distance(s1, s2):
+    """計算兩個字串之間的編輯距離 (Levenshtein Distance)"""
+    if len(s1) < len(s2): return levenshtein_distance(s2, s1)
+    if len(s2) == 0: return len(s1)
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+    return previous_row[-1]
+
+def fuzzy_contains(target, text):
+    """
+    🛡️ [Hardening] 醫療級模糊比對 (The LASA Shield)
+    實作「條件性模糊比對」，防止 Celebrex/Celexa 等 LASA 藥物誤判。
+    
+    規則：
+    1. 字首錨點 (Prefix Anchor): 第一個字母必須相同。
+    2. 物理距離 (Physical Distance): 長度差異 <= 1 且 編輯距離 <= 2。
+    3. 門檻：僅對 4 個字元以上的長藥名進行模糊比對。
+    """
+    if not target or not text: return False
+    target = target.lower().strip()
+    text = text.lower().strip()
+    
+    # 1. 快速路徑：精確包含
+    if target in text: return True
+    
+    # 2. 短字串保護：若目標太短，模糊比對風險極高 (例如 "ASA" 模糊比對會擊中太多東西)
+    if len(target) < 4: return False
+    
+    # 3. 分詞掃描 (Token scanning)
+    tokens = re.findall(r'[a-z]+', text)
+    for token in tokens:
+        # A. 字首錨點 (Prefix Anchor)
+        if not token or token[0] != target[0]: continue
+        
+        # B. 長度限制 (Length Diff <= 1)
+        if abs(len(token) - len(target)) > 1: continue
+        
+        # C. 編輯距離 (Edit Distance <= 2)
+        dist = levenshtein_distance(target, token)
+        if dist <= 2:
+            print(f"🎯 [Fuzzy Guard] Match: '{token}' -> '{target}' (Dist: {dist})")
+            return True
+            
+    return False
+
 # [V11.0] Layer 3: Safe Substrings (Whitelist for trusted meds)
 # Fixes "Aspirin E.C." or "Panadol Extra" being flagged as Unknown
 SAFE_SUBSTRINGS = ["aspirin", "bokey", "panadol", "acetaminophen", "warfarin", "coumadin", 
@@ -191,7 +243,6 @@ def neutralize_hallucinations(data, context="", full_data=None):
     # 於真實產品環境 (Production) 中，此模組將串接正規的 Medical NER (命名實體辨識) 模型，
     # 自動識別並遮蔽所有未知的病患姓名 (Name) 與年齡 (Age)。
     BANNED_NAMES = ["劉淑芬", "王大明", "陳小明"]
-    BANNED_AGES = ["79", "83", "88"]
     
     if isinstance(data, dict):
         new_data = {}
@@ -210,9 +261,6 @@ def neutralize_hallucinations(data, context="", full_data=None):
             if k in ["name", "detected_name"] and val_str in BANNED_NAMES:
                  # Only neutralize if it's a known test-data dummy that indicates extraction failure
                  print(f"🛡️ [Shield] Hallucination Detected (Banned Name): {v} -> Neutralized to Unknown")
-                 new_data[k] = "Unknown"
-            elif k == "age" and val_str in BANNED_AGES:
-                 print(f"🛡️ [Shield] Hallucination Detected (Banned Age): {v} -> Neutralized to Unknown")
                  new_data[k] = "Unknown"
             
             # 2. 雙向 RAG 驗證 (幽靈藥品過濾) + 智能降級
@@ -731,6 +779,15 @@ def parse_json_from_response(response_text):
             if match_bracket:
                 json_str = match_bracket.group(0)
 
+        # 🚀 [V29 Hardening] Sanitize Chinese Punctuation Artifacts
+        # 解決模型在低溫下容易產生 「」 或 ， 導致 JSON 解析失敗的問題
+        # 替換中文引號為標準雙引號 (僅針對可能出現在語法位置的部分)
+        # 例如：「...」 改為 "..."
+        json_str = json_str.replace('「', '"').replace('」', '"')
+        # 替換中文冒號與逗號 (慎重處理，避免破壞內容，但 VLM 常在 Key 後面寫 ：)
+        # 我們只替換 "Key" ： 的情況
+        json_str = re.sub(r'("\w+")\s*[:：]\s*', r'\1: ', json_str)
+        
         # 3. 清理與解析 (原生支援 true/false/null)
         json_str = json_str.strip()
         
@@ -844,11 +901,10 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         except:
             age_val = 0 # 確保崩潰時退回到 0，觸發 MISSING_DATA 攔截
             
-        # 🛡️ [FAIL-SAFE] Check for missing age on high-risk geriatric drugs
-        # 如果年齡為 0 (解析失敗或漏失)，針對 Beers Criteria 高風險藥物強制攔截
         if age_val == 0:
             high_risk_elderly_drugs = ["aspirin", "bokey", "zolpidem", "stilnox", "metformin", "glucophage"]
-            if any(d in drug_name for d in high_risk_elderly_drugs):
+            # 🛡️ [Hardening] 使用 fuzzy_contains 應對 OCR 誤差
+            if any(fuzzy_contains(d, drug_name) for d in high_risk_elderly_drugs):
                 return True, "MISSING_DATA", "⛔ HARD RULE: 此藥物對高齡者有高度風險，但系統無法讀取或缺乏病患年齡資料，基於安全考量強制退回人工核對。"
             
         # 🛡️ [RED TEAM FIX] 語音出血護欄 (Voice Guardrail)
@@ -885,11 +941,11 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
         # ---------------------------------------------------------
         # 🚨 [V2.0 Hotfix] 育齡期女性致畸胎藥物防護 (Category X / D Guardrail)
         teratogenic_drugs = ["valsartan", "diovan", "atorvastatin", "lipitor", "crestor", "rosuvastatin", "warfarin", "rivaroxaban", "xarelto"]
-        if 15 <= age_val <= 50 and any(t in drug_name for t in teratogenic_drugs):
+        if 15 <= age_val <= 50 and any(fuzzy_contains(t, drug_name) for t in teratogenic_drugs):
              # [Hotfix 134] 將 WARNING 改為 INFO，避免觸發 logical_consistency_check 的重試機制導致無限重試 (Infinite Retry Trap)
              return True, "INFO", f"⚠️ [WARNING] 系統衛教提醒：此藥物 ({drug_name}) 若於懷孕期間使用可能對胎兒造成傷害。若您可能懷孕或正在哺乳，請【立即】諮詢醫師確認用藥安全性！"
 
-        if ("aspirin" in drug_name or "bokey" in drug_name or "asa" in drug_name):
+        if fuzzy_contains("aspirin", drug_name) or fuzzy_contains("bokey", drug_name) or fuzzy_contains("asa", drug_name):
             # ⚠️ 智能警示：一級預防撤藥建議 (二級預防者排除)
             if not is_secondary_prevention:
                 if age_val >= 65:
@@ -897,7 +953,7 @@ def check_hard_safety_rules(extracted_data, voice_context=""):
                 elif age_val >= 60:
                     return True, "WARNING", f"⚠️ [HARD RULE] 系統提示 (USPSTF 2022)：{age_val} 歲長者不建議新啟動阿斯匹靈作為一級預防，潛在出血風險可能大於獲益。建議諮詢醫療人員評估。"
 
-        if age_val >= 65 and ("stilnox" in drug_name or "zolpidem" in drug_name):
+        if age_val >= 65 and (fuzzy_contains("stilnox", drug_name) or fuzzy_contains("zolpidem", drug_name)):
              # 提醒：即使劑量正確，Z-drugs 對高齡者仍是高風險 (Beers Criteria)
              return True, "WARNING", f"⚠️ [HARD RULE] 系統提示：長者服用此安眠藥 (年齡 {age_val}) 需特別留意跌倒與混亂風險。建議尋求醫療人員評估最佳劑量。⚠️請注意：安眠藥切勿自行突然停藥，應由醫師指示逐漸減量以免引發嚴重失眠反彈。"
 
@@ -1178,59 +1234,62 @@ def safety_critic_tool(json_output):
 
 def check_is_prescription(response_text):
     """
-    🛡️ [Round 135 Hardening] Advanced OOD Detection - Reject non-medical images
+    🛡️ [Red Team Hardening] Multi-Factor Prescription Weighting (Graceful Degradation)
     防止模型在強行 JSON 引導下產生的「幻覺關鍵字」繞過安全檢測。
+    
+    [Mod v2.5] 支援「一票通關 (Fast-Track)」邏輯，防止偏鄉手寫藥袋被誤刪。
+    IF (命中核心藥物) OR (符合 2 個以上分類) THEN 放行。
     """
-    # 核心醫療關鍵字（必須包含這些才算醫療內容）
-    CORE_MEDICAL_KEYWORDS = [
-        "藥", "drug", "medicine", "pill", "tablet", "capsule", 
-        "mg", "mcg", "g", "ml", "cc", "錠", "顆", "粒", "公克", "毫克", # 劑量單位
-        "服用", "早晚", "飯後", "睡前", "use", "take", "daily", "指示",
-        "indication", "side effect", "warning", "副作用", "適應症",
-        "pharmacy", "hospital", "診所", "醫院", "prescription",
-        "patient", "dose", "dosage", "medication", "治療", "診斷",
-        "doctor", "pharmacist", "醫師", "藥師", "處方"
-    ]
-    
-    # 排除關鍵字（如果包含這些，大概率是非醫療環境或系統介面）
-    EXCLUDE_KEYWORDS = [
-        "etf", "exchange traded fund", "stock", "投資", "基金",
-        "0050", "2330", "股票", "trading", "portfolio",
-        "windows settings", "display settings", "phone link", "system set", # 針對 A22 手機截圖優化
-        "battery", "wi-fi", "bluetooth"
-    ]
-    
     response_lower = str(response_text).lower()
     
-    # 1. 檢查排除關鍵字
-    for exclude_kw in EXCLUDE_KEYWORDS:
-        if exclude_kw in response_lower:
-            print(f"🛑 [OOD Filter] Triggered Exclusion Keyword: {exclude_kw}")
+    # 0. [Fast-Track] 核心高風險藥物鎖定 (只要看到毒藥，就算寫在衛生紙上也要攔截)
+    # 使用 fuzzy_contains 確保 OCR 誤差時也能觸發快軌
+    if any(fuzzy_contains(safe, response_lower) for safe in SAFE_SUBSTRINGS):
+        print(f"🚀 [OOD Filter] Fast-Track Triggered: Core medication detected.")
+        return True
+
+    # 1. 核心分類關鍵字
+    FACTORS = {
+        "Dose": ["mg", "mcg", "g", "ml", "cc", "錠", "顆", "粒", "公克", "毫克", "capsule", "tablet"],
+        "Frequency": ["服用", "早晚", "飯後", "睡前", "use", "take", "daily", "qd", "bid", "tid", "qid", "ac", "pc"],
+        "Entity": ["pharmacy", "hospital", "診所", "醫院", "prescription", "藥局", "醫師", "藥師", "doctor", "pharmacist"]
+    }
+    
+    # 2. 排除關鍵字 (金融、系統介面等)
+    EXCLUDE_KEYWORDS = ["etf", "stock", "投資", "基金", "0050", "2330", "股票", "trading", "portfolio", "settings", "wi-fi", "bluetooth"]
+    
+    for ex in EXCLUDE_KEYWORDS:
+        if ex in response_lower:
+            print(f"🛑 [OOD Filter] Exclusion Match: {ex}")
             return False
+            
+    # 3. 權重計算
+    hit_categories = 0
+    found_details = []
     
-    # 2. 精準權重統計
-    keyword_count = 0
-    found_keywords = []
-    
-    for kw in CORE_MEDICAL_KEYWORDS:
-        # [V2.5] 使用 \b (Word Boundary) 針對關鍵單位鎖定，防止 "Management" 誤報 "mg"
-        # 針對中文不需要 \b，針對英文強烈建議
-        if re.search(r'[a-zA-Z]', kw): # 英文關鍵字
-            pattern = rf'(?<![a-z]){re.escape(kw)}(?![a-z])'
-            if re.search(pattern, response_lower, re.I):
-                keyword_count += 1
-                found_keywords.append(kw)
-        else: # 中文關鍵字
-            if kw in response_lower:
-                keyword_count += 1
-                found_keywords.append(kw)
-    
-    # 門檻：至少要命中 3 個醫療關鍵字才算是有效醫療內容
-    # (提高門檻以應對 VLM 的導引幻覺)
-    # [Round 135] DEBUG Logging
-    if keyword_count < 3:
-        print(f"⚠️ [OOD Filter] Low confidence ({keyword_count}/3). Found: {found_keywords}")
-        return False
+    for cat, kws in FACTORS.items():
+        cat_hit = False
+        for kw in kws:
+            # 英文詞彙鎖定單字邊界 (修復 \b 導致 20mg 無法匹配的致命 Bug)
+            if re.search(r'[a-z]', kw):
+                # 確保前後不是英文字母，但允許數字或符號相連 (例如 20mg, 10ml)
+                pattern = rf'(?<![a-z]){re.escape(kw)}(?![a-z])'
+                if re.search(pattern, response_lower, re.IGNORECASE):
+                    cat_hit = True
+                    break
+            # 中文詞彙直接比對
+            elif kw in response_lower:
+                cat_hit = True
+                break
         
-    print(f"✅ [OOD Filter] Medical content verified (Score: {keyword_count}).")
-    return True
+        if cat_hit:
+            hit_categories += 1
+            found_details.append(cat)
+            
+    # 4. 判準：至少滿足 2 個分類
+    if hit_categories >= 2:
+        print(f"✅ [OOD Filter] Verified as medical content ({hit_categories} factors: {found_details}).")
+        return True
+    
+    print(f"⚠️ [OOD Filter] Rejected: Insufficient evidence ({hit_categories}/2). Found: {found_details}")
+    return False

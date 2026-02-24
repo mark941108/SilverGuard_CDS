@@ -1421,6 +1421,9 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
     rag_context = ""
     correction_context = ""
 
+    best_valid_json = None
+    best_gen_text = ""
+
     for current_try in range(MAX_RETRIES + 1):
         try:
             # ❄️ [Fix Round 106] Lower temperature for all tries to prevent hallucinations
@@ -1546,11 +1549,25 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                     "confidence": {"score": 0.0, "status": "LOW_CONFIDENCE", "message": "Not a prescription"}
                 }
 
+            # 🛡️ [V29 Extreme Polish] Double-Insurance for Chinese Quote Hallucination
+            # Ensuring standard ASCII quotes even if sanitization is also in parse_json_from_response.
+            gen_text_sanitized = gen_text.replace('「', '"').replace('」', '"')
+            
             # 解析 JSON
-            parsed_json, parse_err = parse_json_from_response(gen_text)
+            parsed_json, parse_err = parse_json_from_response(gen_text_sanitized)
             
             if parse_err:
                 print(f"❌ [DEBUG] JSON 解析失敗: {parse_err}")
+                # 🛡️ [V29 Hardening] 如果解析失敗但之前有成功的結果，嘗試救援
+                if best_valid_json:
+                    print(f"   🔄 [Fallback] 嘗試使用前一次成功的 JSON 結構進行救援...")
+                    parsed_json = best_valid_json
+                    gen_text = best_gen_text
+                    parse_err = None
+            else:
+                # 紀錄本次成功的結果供後續 fallback
+                best_valid_json = parsed_json
+                best_gen_text = gen_text
 
             # [Round 127] Smart Drug Name Validation - Reject meaningless names
             if parsed_json:
