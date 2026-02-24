@@ -1323,9 +1323,13 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
     # This gives the VLM a chance to refuse non-medical images without being 
     # forced to hallucinate a JSON structure.
     
-    # [T4 Hardening Fix] Simplified Prompt for better instruction following on non-bfloat16 hardware
+    # [T4 Hardening Fix] Broadened to support Synthetic/Digital labels and Educational samples
+    # Explicitly defines what constitutes a "YES" to prevent False Rejections.
     classification_prompt = (
-        "Is this image a drug bag, prescription, or medical packaging? "
+        "Analyze this image. Does it look like a medical prescription, a drug bag, "
+        "or a medication label (including digital samples and educational charts)?\n"
+        "Answer 'YES' if it contains drug names, dosage info, or patient instructions.\n"
+        "Answer 'NO' only if it is completely non-medical (e.g., landscape, furniture, settings menu).\n"
         "Reply with exactly one word: 'YES' or 'NO'."
     )
     

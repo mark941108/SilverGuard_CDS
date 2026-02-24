@@ -71,9 +71,8 @@ def ensure_font_exists():
             print(f"⚠️ Font download failed: {e}")
     return font_path
 
-# Execute initial Font Check
-# (Fonts will be downloaded/verified)
-download_fonts()
+    # [V18 Fix] Download fonts inside the function to avoid NameError if called early
+    # (Removed the premature call at the top of file)
 
 # ==========================================
 # ⚖️ LEGAL DISCLAIMER / 免責聲明
@@ -111,6 +110,11 @@ os.makedirs(ASSETS_FONTS_DIR, exist_ok=True)
 FONT_URLS = {
     "Bold": "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Bold.otf",
     "Regular": "https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansTC-Regular.otf"
+}
+
+FONT_PATHS = {
+    "Bold": os.path.join(ASSETS_FONTS_DIR, "NotoSansTC-Bold.otf"),
+    "Regular": os.path.join(ASSETS_FONTS_DIR, "NotoSansTC-Regular.otf")
 }
 
 def is_valid_otf(path):
@@ -373,7 +377,13 @@ def draw_hyper_real_pill(draw, x, y, drug_data, force_mismatch=False):
         draw.chord([x, y, x+80, y+80], start=180, end=360, fill=top_color, outline=outline_color, width=2) # Top half
         
     elif shape == "oblong":
-         draw.rounded_rectangle([x, y+20, x+100, y+60], radius=20, fill=fill_color, outline=outline_color, width=2)
+        draw.rounded_rectangle([x, y+20, x+100, y+60], radius=20, fill=fill_color, outline=outline_color, width=2)
+        
+    elif shape == "oval":
+        # [Fix] Added missing Oval shape to prevent invisible pills
+        draw.ellipse([x-10, y+15, x+90, y+65], fill=fill_color, outline=outline_color, width=2)
+        # Highlight for 3D effect
+        draw.chord([x, y+20, x+80, y+60], start=180, end=270, fill=(255, 255, 255, 100))
 
 # ==========================================
 # 5. 格線系統 V17 (Grid System)
@@ -659,15 +669,44 @@ def generate_v26_human_bag(filename, pair_type, drug_data, trap_mode=False, **kw
     for i in range(1, 4): draw.line([x+i*col_w, y, x+i*col_w, y+h], fill="black", width=2)
     headers = ["早上", "中午", "晚上", "睡前"]
     
-    is_before_meal = "飯前" in drug_data.get('warning', '')
-    usage_code = drug_data.get('usage_code', 'BID')
+    # 🚨 [緊急修復] 從 drug_data 安全提取變數 (支援新舊資料庫欄位)
+    usage_code = drug_data.get('usage_code', drug_data.get('usage', 'QD'))
+    instruction_text = (str(drug_data.get('dosage_instruction', '')) + 
+                        str(drug_data.get('warning', '')) + 
+                        str(drug_data.get('timing', ''))).lower()
+    
+    # 🚨 [緊急修復] 動態判斷是否為飯前 (Before Meal)
+    is_before_meal = any(kw in instruction_text for kw in ["飯前", "before", "空腹", "ac"])
+
+    # [Fix] Robust Semantic Parser for Usage Grid (Sync with Text)
+    # Prevents QID/PRN from falling into BID fallback or missing circles.
+    usage_upper = usage_code.upper()
     targets = [] 
-    if "BID_MN" in usage_code: targets = [0, 1] # [V26 Fix] Morning + Noon
-    elif "BID" in usage_code: targets = [0, 2]
-    elif "TID" in usage_code: targets = [0, 1, 2]
-    elif "QD" in usage_code: targets = [0]
-    elif "HS" in usage_code: targets = [3]
-    else: targets = [0, 2]
+
+    if "QID" in usage_upper or "四次" in usage_upper: 
+        targets = [0, 1, 2, 3] # 早、中、晚、睡前
+    elif "TID" in usage_upper or "三次" in usage_upper: 
+        targets = [0, 1, 2] # 早、中、晚
+    elif "BID_MN" in usage_upper: 
+        targets = [0, 1] # 早、中
+    elif "BID" in usage_upper or "兩次" in usage_upper: 
+        targets = [0, 2] # 早、晚
+    elif "HS" in usage_upper or "睡" in usage_upper: 
+        targets = [3] # 睡前
+    elif "QD" in usage_upper or "一次" in usage_upper:
+        if any(kw in instruction_text for kw in ["晚", "dinner", "evening"]):
+            targets = [2] # 晚上
+        elif any(kw in instruction_text for kw in ["睡", "bedtime"]):
+            targets = [3] # 睡前
+        elif any(kw in instruction_text for kw in ["午", "noon"]):
+            targets = [1] # 中午
+        else:
+            targets = [0] # 預設：早上
+    elif "PRN" in usage_upper or "需要時" in usage_upper:
+        targets = [] # PRN 代表不固定時段，不畫紅圈是正確的（防止藥物過量）
+    else:
+        # Fallback to morning if unknown
+        targets = [0]
     
     for i in range(4):
         bx = x + i*col_w; cx = bx + col_w//2; cy = y + h//2

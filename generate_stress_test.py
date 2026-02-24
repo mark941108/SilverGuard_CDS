@@ -223,12 +223,37 @@ def draw_usage_grid_2026(draw, x, y, w, h, drug):
     usage_code = drug['usage']
     timing = drug['timing'] # 飯前 or 飯後
     
-    targets = []
-    if "BID" in usage_code: targets = [0, 2]
-    elif "TID" in usage_code: targets = [0, 1, 2]
-    elif "QD" in usage_code: targets = [0]
-    # [Fix] Support V17 standards (HS/bedtime) in addition to Legacy QN
-    elif any(x in usage_code for x in ["QN", "HS", "bedtime"]): targets = [3]
+    # [Fix] Robust Semantic Parser for Usage Grid (V17 Standard)
+    usage_upper = usage_code.upper()
+    targets = [] 
+    
+    # 結合藥物文字資訊 (cht/warning/timing)，動態判斷 QD (每日一次) 的具體時段
+    instruction_text = (str(drug.get('cht', '')) + str(drug.get('warning', '')) + str(drug.get('timing', ''))).lower()
+
+    if "QID" in usage_upper or "四次" in usage_upper: 
+        targets = [0, 1, 2, 3] # 早、中、晚、睡前
+    elif "TID" in usage_upper or "三次" in usage_upper: 
+        targets = [0, 1, 2] # 早、中、晚
+    elif "BID_MN" in usage_upper: 
+        targets = [0, 1] # 早、中
+    elif "BID" in usage_upper or "兩次" in usage_upper: 
+        targets = [0, 2] # 早、晚
+    elif any(x in usage_upper for x in ["HS", "QN", "睡", "BEDTIME"]): 
+        targets = [3] # 睡前
+    elif "QD" in usage_upper or "一次" in usage_upper:
+        if any(kw in instruction_text for kw in ["晚", "dinner", "evening"]):
+            targets = [2] # 晚上
+        elif any(kw in instruction_text for kw in ["睡", "bedtime"]):
+            targets = [3] # 睡前
+        elif any(kw in instruction_text for kw in ["午", "noon"]):
+            targets = [1] # 中午
+        else:
+            targets = [0] # 預設：早上
+    elif "PRN" in usage_upper or "需要時" in usage_upper:
+        targets = [] # PRN 不畫固定紅圈 (臨床安全規範)
+    else:
+        # Fallback to morning/no circles based on context
+        targets = []
     
     for i in range(4):
         bx = x + i*col_w
@@ -582,7 +607,8 @@ def generate_v9_bag(filename, patient, drug, is_danger=False, optical_severity=0
     wrapped_lines = wrapper.wrap(drug['warning'])
     
     current_y = y_warn + 50
-    for line in wrapped_lines[:2]:
+    # [Fix] Expansion to 3 lines (Avoid Silent Truncation)
+    for line in wrapped_lines[:3]:
         draw.text((55, current_y), line, fill="red", font=f_body)
         current_y += 30
         
@@ -769,17 +795,18 @@ if __name__ == "__main__":
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
         filename = f"{OUTPUT_DIR}/demo_clean_{i}.png"
-        generate_v9_bag(filename, p, d, is_danger=False, optical_severity=0)
+        is_danger_val = False # Define locally for Ground Truth recording
+        generate_v9_bag(filename, p, d, is_danger=is_danger_val, optical_severity=0)
         
         # [Audit Fix P0] Record Ground Truth
         # [Beers 2023 Fix] Determine Ground Truth status dynamically
         ground_truth_status = "WITHIN_STANDARD"
-        ground_truth_danger = is_danger
+        ground_truth_danger = is_danger_val
         
         if ("Aspirin" in d['eng'] or "Bokey" in d['eng']) and p['age'] >= 60:
              ground_truth_status = "PHARMACIST_REVIEW_REQUIRED"
              ground_truth_danger = True
-        elif is_danger:
+        elif is_danger_val:
              ground_truth_status = "HIGH_RISK"
              ground_truth_danger = True
 
@@ -798,17 +825,18 @@ if __name__ == "__main__":
         p = random.choice(PATIENTS)
         d = random.choice(DRUGS)
         filename = f"{OUTPUT_DIR}/demo_dirty_{i}.png"
-        generate_v9_bag(filename, p, d, is_danger=False, optical_severity=2)
+        is_danger_val = False
+        generate_v9_bag(filename, p, d, is_danger=is_danger_val, optical_severity=2)
         
         # [Audit Fix P0] Record Ground Truth
         # [Beers 2023 Fix]
         ground_truth_status = "WITHIN_STANDARD"
-        ground_truth_danger = is_danger
+        ground_truth_danger = is_danger_val
         
         if ("Aspirin" in d['eng'] or "Bokey" in d['eng']) and p['age'] >= 60:
              ground_truth_status = "PHARMACIST_REVIEW_REQUIRED"
              ground_truth_danger = True
-        elif is_danger:
+        elif is_danger_val:
              ground_truth_status = "HIGH_RISK"
              ground_truth_danger = True
 
