@@ -587,51 +587,69 @@ def clean_text_for_tts(text, lang='zh-tw'):
     for pattern in noise_patterns:
         text = re.sub(pattern, '', text, flags=re.IGNORECASE)
 
-    # --- 2. Medical Jargon Translation Map (Elder-Friendly) ---
-    # Note: Focus on abbreviations commonly found in "Usage" fields
-    JARGON_MAP = {
-        # Latin Abbreviations
-        r'\bQD\b': '一天吃一次',
-        r'\bBID\b': '一天吃兩次',
-        r'\bTID\b': '一天吃三次',
-        r'\bQID\b': '一天吃四次',
-        r'\bHs\b': '睡前吃',
-        r'\bQHS\b': '睡前吃',
-        r'\bPRN\b': '很不舒服的時候才吃',
-        r'\bac\b': '飯前吃',
-        r'\bpc\b': '飯後吃',
-        r'\bPO\b': '口服',
-        r'\bSTAT\b': '立刻吃',
-        r'\bq6h\b': '每六個小時吃一次',
-        r'\bq8h\b': '每八個小時吃一次',
-        r'\bq12h\b': '每十二個小時吃一次',
-        
-        # Common English placeholders
-        r'\bas\s+directed\b': '照醫生的吩咐吃',
-        r'\bas\s*needed\b': '不舒服的時候才吃',
-        
-        # Units (to avoid speech engines saying "m-g")
-        r'\bmg\b': '毫克',
-        r'\bml\b': '毫升',
-        r'\bkg\b': '公斤',
-        
-        # --- Standard Taiwan Normalization (Elder-Friendly via Clarity) ---
-        r'(\d)\s*次': r'\1次',
-        r'1次': '一次',
-        r'2次': '兩次',
-        r'3次': '三次',
-        r'4次': '四次',
-        r'1顆': '一顆',
-        r'2顆': '兩顆',
-        r'3顆': '三顆',
-        r'4顆': '四顆',
-        r'1錠': '一錠', # Restore 錠
-        r'2錠': '兩錠',
-        r'3錠': '三錠',
-        r'4錠': '四錠',
-    }
+    # --- 2. 動態多語系醫學術語轉換 (Dynamic Medical Jargon Translation) ---
+    lang_lower = str(lang).lower()
     
-    # 針對多國語言可以擴充此 Map (目前預設支援中英混讀優化)
+    if 'id' in lang_lower: # 印尼文
+        JARGON_MAP = {
+            r'\bQD\b': 'satu kali sehari', r'\bBID\b': 'dua kali sehari',
+            r'\bTID\b': 'tiga kali sehari', r'\bQID\b': 'empat kali sehari',
+            r'\bHs\b': 'sebelum tidur', r'\bQHS\b': 'sebelum tidur',
+            r'\bac\b': 'sebelum makan', r'\bpc\b': 'sesudah makan',
+            r'\bmg\b': 'miligram', r'\bml\b': 'mililiter'
+        }
+    elif 'vi' in lang_lower: # 越南文
+        JARGON_MAP = {
+            r'\bQD\b': 'mỗi ngày một lần', r'\bBID\b': 'mỗi ngày hai lần',
+            r'\bTID\b': 'mỗi ngày ba lần', r'\bQID\b': 'mỗi ngày bốn lần',
+            r'\bHs\b': 'trước khi đi ngủ', r'\bQHS\b': 'trước khi đi ngủ',
+            r'\bac\b': 'trước khi ăn', r'\bpc\b': 'sau khi ăn',
+            r'\bmg\b': 'miligam', r'\bml\b': 'mililít'
+        }
+    else: # 預設繁體中文 (zh-TW)
+        JARGON_MAP = {
+            # Latin Abbreviations
+            r'\bQD\b': '一天吃一次',
+            r'\bBID\b': '一天吃兩次',
+            r'\bTID\b': '一天吃三次',
+            r'\bQID\b': '一天吃四次',
+            r'\bHs\b': '睡前吃',
+            r'\bQHS\b': '睡前吃',
+            r'\bPRN\b': '很不舒服的時候才吃',
+            r'\bac\b': '飯前吃',
+            r'\bpc\b': '飯後吃',
+            r'\bPO\b': '口服',
+            r'\bSTAT\b': '立刻吃',
+            r'\bq6h\b': '每六個小時吃一次',
+            r'\bq8h\b': '每八個小時吃一次',
+            r'\bq12h\b': '每十二個小時吃一次',
+            
+            # Common English placeholders
+            r'\bas\s+directed\b': '照醫生的吩咐吃',
+            r'\bas\s*needed\b': '不舒服的時候才吃',
+            
+            # Units (to avoid speech engines saying "m-g")
+            r'\bmg\b': '毫克',
+            r'\bml\b': '毫升',
+            r'\bkg\b': '公斤',
+            
+            # --- Standard Taiwan Normalization ---
+            r'(\d)\s*次': r'\1次',
+            r'1次': '一次',
+            r'2次': '兩次',
+            r'3次': '三次',
+            r'4次': '四次',
+            r'1顆': '一顆',
+            r'2顆': '兩顆',
+            r'3顆': '三顆',
+            r'4顆': '四顆',
+            r'1錠': '一錠',
+            r'2錠': '兩錠',
+            r'3錠': '三錠',
+            r'4錠': '四錠',
+        }
+    
+    # 執行取代
     for eng, local in JARGON_MAP.items():
         text = re.sub(eng, local, text, flags=re.IGNORECASE)
 

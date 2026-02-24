@@ -1323,17 +1323,23 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
     # This gives the VLM a chance to refuse non-medical images without being 
     # forced to hallucinate a JSON structure.
     
+    # [T4 Hardening Fix] Simplified Prompt for better instruction following on non-bfloat16 hardware
     classification_prompt = (
-        "Analyze this image. Is it a drug bag, a medical prescription, or medicine packaging? "
-        "You are a strict boolean classifier. Answer ONLY with 'YES' or 'NO'. "
-        "Do NOT explain. Do NOT output any other text."
+        "Is this image a drug bag, prescription, or medical packaging? "
+        "Reply with exactly one word: 'YES' or 'NO'."
     )
     
     try:
         from PIL import Image
+        import re
         raw_image_pre = Image.open(img_path)
         if hasattr(raw_image_pre, "mode") and raw_image_pre.mode in ("RGBA", "P"):
             raw_image_pre = raw_image_pre.convert("RGB")
+            
+        # 🟢 [P0 Fix: T4 Attention Collapse Shield] Stage 1 must also resize to prevent VRAM overflow
+        max_dim = 1024
+        if max(raw_image_pre.size) > max_dim:
+            raw_image_pre.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
         
         # 🚀 Stage 1: Ultra-Fast Boolean Pass
         pre_messages = [{"role": "user", "content": [{"type": "image"}, {"type": "text", "text": classification_prompt}]}]
@@ -1341,26 +1347,30 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
         pre_inputs = processor(text=pre_prompt, images=raw_image_pre, return_tensors="pt").to(model.device)
         
         with torch.no_grad():
-            # [Optimize] max_new_tokens=5 is enough for YES/NO, drastically cutting latency
-            pre_outputs = model.generate(**pre_inputs, max_new_tokens=5, do_sample=False)
+            # [Optimize] Increase max_new_tokens slightly (10) for less-precise models to avoid truncation errors
+            pre_outputs = model.generate(**pre_inputs, max_new_tokens=10, do_sample=False)
             
-            # [Fix Round 136] Handle both 'ModelOutput' and raw 'Tensor' returns
-            # Some model configs return an object, others a raw tensor.
             seq = pre_outputs.sequences[0] if hasattr(pre_outputs, "sequences") else pre_outputs[0]
             pre_res = processor.decode(seq[pre_inputs.input_ids.shape[1]:], skip_special_tokens=True).strip().upper()
         
         if verbose: print(f" 🛡️ [Pre-flight Router] Classification Result: '{pre_res}'")
         
-        # [Robustness Fix] Check if NO is present and YES is NOT present (handling wordy models)
-        if "NO" in pre_res and "YES" not in pre_res:
+        # 🟢 [P0 Fix: Fail-Open Strategy for T4] 
+        # Use Word Boundaries (\b) to avoid hitting "NOT", "NORMAL", or "NOTE"
+        is_definite_no = bool(re.search(r'\bNO\b', pre_res))
+        is_definite_yes = bool(re.search(r'\bYES\b', pre_res))
+        
+        # Fail-Open Logic: Only reject if it's DEFINITELY 'NO' and NOT 'YES'.
+        # If model outputs gibberish or is ambiguous (both or neither), pass to Stage 2.
+        if is_definite_no and not is_definite_yes:
             print(f"🛑 [OOD Shield] VLM Refused Content (Stage 1) -> Rejecting input.")
             
             # [Fix Round 137] Multi-language OOD Support
             ood_messages = {
                 "zh-TW": "⛔ 這看起來不像藥袋。請拍攝您的藥袋或處方箋。",
-                "en": "⛔ This does not look like a drug bag. Please take a photo of your drug bag or prescription.",
-                "id": "⛔ Ini tidak terlihat seperti kantong obat. Silakan ambil foto kantong obat atau resep Anda.",
-                "vi": "⛔ Đây không giống như túi thuốc. Vui lòng chụp ảnh túi thuốc hoặc đơn thuốc của bạn."
+                "en": "⛔ This does not look like a drug bag. Please take a photo of your drug bag.",
+                "id": "⛔ Ini tidak terlihat seperti kantong obat. Silakan ambil foto kantong obat Anda.",
+                "vi": "⛔ Đây không giống như túi thuốc. Vui lòng chụp ảnh túi thuốc của bạn."
             }
             final_ood_msg = ood_messages.get(target_lang, ood_messages["zh-TW"])
 
@@ -1370,6 +1380,8 @@ def agentic_inference(model, processor, img_path, patient_notes="", voice_contex
                 "silverguard_message": final_ood_msg,
                 "confidence": {"score": 0.0, "status": "LOW_CONFIDENCE", "message": "Pre-flight OOD Rejection"}
             }
+        else:
+            if verbose: print(f" ⏩ [Pre-flight Router] Passed. Proceeding to Stage 2.")
     except Exception as e:
         print(f"⚠️ [Pre-flight Warning] Router check failed, falling back to Stage 2: {e}")
 
